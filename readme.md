@@ -1,96 +1,131 @@
-# NASA BackEnd Study Project
+# 🚀 NASA Wellness Backend API (NASA_backEnd)
 
-TypeScript와 Node.js를 기반으로 개발하는 백엔드 스터디용 프로젝트입니다. NASA 관련 오픈 API를 연동하거나 백엔드 기본기를 학습하기 위한 용도로 구성되어 있습니다.
+> **AI 가상 펫 "타미(Tammy)"와 함께하는 바이오리듬 게이미피케이션 & 웰니스 헬스케어 백엔드 시스템**
 
-## 🛠 기술 스택
+[![Node.js](https://img.shields.io/badge/Node.js-v18+-green.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-v5.0+-blue.svg)](https://www.typescriptlang.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-v7.0+-indigo.svg)](https://www.prisma.io/)
+[![Jest](https://img.shields.io/badge/Jest-Integration_Tests-red.svg)](https://jestjs.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-- **Runtime**: Node.js (v20+ 권장)
-- **Language**: TypeScript
-- **Execution Tool**: `tsx` (TypeScript Execute)
+---
 
-## 📁 디렉토리 구조
+## 📌 1. 프로젝트 개요
 
-```text
-├── docs/               # 프로젝트 관련 문서 보관 디렉토리
-├── src/                # 소스 코드 디렉토리
-│   └── index.ts        # 애플리케이션 진입점 (Entry Point)
-├── package.json        # 의존성 관리 및 빌드 스크립트 설정
-├── tsconfig.json       # TypeScript 컴파일러 설정
-└── readme.md           # 프로젝트 설명 문서
+**NASA_backEnd**는 AI 심리 공감 챗봇, AI 비전 스캔 기반 영양 분석, 그리고 별여행 게이미피케이션을 유기적으로 결합한 웰니스 헬스케어 백엔드 서비스입니다. 
+
+사용자가 식단 사진을 올리거나 1-Tap 수분/운동 완 기록을 남기면, AI 가상 펫 **타미(Tammy)**가 별여행 미션 연료(Fuel) 및 경험치(EXP) 보상을 지급하고 다음 웰니스 행성으로 워프(Warp)하는 경험을 제공합니다.
+
+---
+
+## 🌟 2. 핵심 3대 기둥 & 주요 기능
+
+### 🗣️ Pillar 1. AI 타미 심리 공감 대화 (`[CHT]`)
+- **실시간 대화 & 감정 추출**: 사용자의 다이어트/일상 스트레스를 공감하고 감정 상태(STRESSED, COMFORTED 등)를 분석합니다.
+- **장기 기억 캡슐 (Memory Pill)**: 대화 중 중요한 가치관이나 취향을 자동 추출하여 DB에 보관하고 대화 맥락에 반영합니다.
+
+### 🥗 Pillar 2. 사진 비전 영양 분석 (`[FOD]`)
+- **AI 비전 스캔**: 음식 사진 업로드 시 5대 영양소(탄/단/지/비/미) 및 칼로리를 자동 추정합니다.
+- **확정 등록 보상**: 사용자가 수정한 영양 성분을 확정하면 **연료 +50 Fuel, EXP +30** 보상이 지급됩니다.
+
+### 🌌 Pillar 3. 타미 별여행 게이미피케이션 & 1-Tap 데일리 케어 (`[TRV/CARE/WKO]`)
+- **1-Tap 수분 및 운동 완 기록**: 수분 섭취(250ml ➔ +10 Fuel), 오늘 운동 완(➔ +30 Fuel) 단 1초 만에 기록.
+- **행성 탐사 & 워프(Warp)**: 누적 연료가 목표치(300 Fuel)에 도달하면 신규 행성("네뷸라 크리스탈 행성" 등)으로 워프합니다.
+
+### 📊 온디맨드 AI 건강 리포트 (`[RPT]`)
+- **상시 웰니스 대시보드**: 주간/월간 칼로리 추이 및 영양 밸런스 차트 데이터를 제공합니다.
+- **AI 종합 진단서**: 사용자의 요청 시 누적 데이터를 기반으로 맞춤 웰니스 개선 가이드를 동적 생성합니다.
+
+---
+
+## 🛠️ 3. 기술 스택 & 아키텍처
+
+- **Language & Runtime**: TypeScript, Node.js
+- **Web Framework**: Express.js
+- **API Spec & Swagger Automation**: TSOA (OpenAPI 3.0 스펙 기반 Swagger UI 자동 생성)
+- **Dependency Injection**: TypeDI (`@Service()`, `@Inject()` IoC 컨테이너 패턴)
+- **Database & ORM**: MariaDB / MySQL, Prisma 7 (MariaDB Driver Adapter 연동)
+- **Logging & Monitoring**: Winston (File & Console Log), Morgan (HTTP Access Log), Prisma Query Event Listener
+- **Testing**: Jest, Supertest (Supertest 기반 HTTP API 통합 자동화 테스트)
+- **Cron Jobs**: Node-cron (월간 리포트 30일 만료 파기 및 안부 미션 트리거)
+
+---
+
+## 📂 4. 디렉토리 구조
+
+```
+NASA_backEnd/
+├── docs/                   # 기능 명세서, API 문서, 비즈니스 룰, 백엔드 구현 계획서
+├── prisma/                 # Prisma DB 스키마 (schema.prisma)
+├── src/
+│   ├── api/
+│   │   ├── middlewares/    # 에러 핸들러, CORS, 개발용 인증 패스 미들웨어
+│   │   └── routes/         # TSOA Controller 엔드포인트
+│   ├── config/             # 환경 변수 설정 (.env 매핑)
+│   ├── interfaces/         # DTO 및 API 표준 응답 인터페이스
+│   ├── jobs/               # Background Cron Scheduler 스케줄러
+│   ├── loaders/            # Express, Prisma, Winston Logger 로더
+│   ├── services/           # 핵심 비즈니스 로직 & AI 통신 파이프라인
+│   └── utils/              # 커스텀 에러 예외 클래스 (AppError, UserNotFoundError)
+├── tests/                  # Supertest 기반 Jest 통합 테스트 슈트
+└── package.json
 ```
 
-## 🚀 시작하기
+---
 
-### 1. 환경 변수 설정
+## 🚀 5. 시작하기 (Getting Started)
 
-`.env.example` 파일을 복사하여 `.env` 파일을 생성하고 필요한 환경 변수들을 설정합니다.
+### 1) 환경 변수 설정 (`.env`)
+프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 아래 정보를 설정합니다:
 
-### 2. 패키지 설치
+```env
+# Database URLs
+DATABASE_URL="mysql://root:password@localhost:3306/nasa_db"
+MOCK_DATABASE_URL="mysql://root:password@localhost:3306/nasa_mock_db"
 
-프로젝트에 필요한 패키지를 설치합니다.
+# Environment State (development 설정 시 안전하게 MOCK_DATABASE_URL로 자동 스위칭)
+NODE_ENV="development"
 
+# AI Server Connection
+AI_SERVER_URL="http://localhost:8000"
+```
+
+### 2) 패키지 설치
 ```bash
 npm install
 ```
 
-### 3. 데이터베이스 및 Prisma 설정
-
-데이터베이스 스키마를 적용하고 Prisma 클라이언트를 생성합니다.
-
-```bash
-# DB 마이그레이션 실행 (개발 모드)
-npm run prisma:migrate
-
-# Prisma 클라이언트 생성
-npm run prisma:generate
-
-# Prisma Studio 실행 (웹 브라우저에서 DB 관리)
-npm run prisma:studio
-```
-
-### 4. Swagger API 문서 생성
-
-tsoa를 사용하여 Swagger 스펙 및 라우트를 생성합니다.
-
+### 3) TSOA Swagger & 라우트 빌드
 ```bash
 npm run swagger
 ```
 
-### 5. 개발 서버 실행 (`tsx watch`)
-
-소스 코드가 변경될 때마다 자동으로 재시작되는 개발 모드입니다.
-
+### 4) 개발 서버 실행 (Mock DB 자동 연동)
 ```bash
 npm run dev
 ```
+- 서버 접속 주소: `http://localhost:3000`
+- Swagger UI API 문서: `http://localhost:3000/api/docs`
 
-### 6. 프로젝트 빌드 및 실행
-
-TypeScript 코드를 JavaScript로 컴파일하고 빌드된 파일을 실행합니다.
-
+### 5) API 통합 자동화 테스트 실행
 ```bash
-# 프로젝트 빌드 (Swagger 문서 생성 포함)
-npm run build
-
-# 빌드된 프로덕션 서버 실행
-npm run start
+npm test
 ```
 
-### 7. 타입 체크
+---
 
-컴파일 없이 TypeScript 타입 오류만 검사합니다.
+## 🧪 6. 에러 핸들링 및 안전 장치
 
-```bash
-npm run typecheck
-```
+- **자동 생성 방지 (No Auto-Create)**: DB에 유저나 대상 리소스가 존재하지 않을 경우 자동 생성을 금지하고 `404 USER_NOT_FOUND` 예외를 명확히 반환합니다.
+- **AI 서버 격리 (AI Server Fallback)**: AI 통신 장애 발생 시 백엔드가 다운되지 않고 `503 AI_SERVER_UNAVAILABLE` 에러 코드를 제공합니다.
+- **Mock DB 동적 연동**: 개발 및 테스트 모드(`NODE_ENV=development/TEST`)에서는 실운영 DB가 아닌 `nasa_mock_db`로 연결되어 데이터를 안전하게 보호합니다.
 
-## 🧪 테스트 실행
+---
 
-Jest를 사용하여 테스트를 수행합니다.
+## 📝 7. 문서 관리 (Documentation)
 
-### 테스트 실행 명령어
-
-```bash
-# 전체 테스트 실행
-npm run test
-```
+자세한 기능 요구사항 및 백엔드 아키텍처 명세는 `docs/references/v3/` 폴더에서 확인하실 수 있습니다:
+- `3. Functional Specification.md` (기능 상세 명세서)
+- `5. api_docs.md` (API 표준 스펙 및 통신 규약)
+- `6. Buisness Rule.md` (보상 매트릭스 및 비즈니스 룰)
+- `100. backend_implementation_plan.md` (단계별 구체 구현 계획서)
