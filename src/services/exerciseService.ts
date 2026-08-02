@@ -1,6 +1,6 @@
 import { Service } from "typedi";
 import { getPrisma } from "@/loaders/prisma";
-import Logger from "@/loaders/logger";
+import { ensureDefaultPlanet } from "./travelService";
 import type {
   WaterLogResponse,
   WorkoutLogResponse,
@@ -14,6 +14,7 @@ export default class ExerciseService {
    */
   public async logWater(userId: number, intakeMl: number = 250): Promise<WaterLogResponse> {
     const prisma = getPrisma();
+    const planetId = await ensureDefaultPlanet(prisma);
 
     // 1. 수분 로그 DB 추가
     await prisma.water_logs.create({
@@ -46,6 +47,7 @@ export default class ExerciseService {
       create: {
         user_id: userId,
         current_fuel: gainedFuel,
+        current_planet_id: planetId,
       },
     });
 
@@ -61,6 +63,7 @@ export default class ExerciseService {
    */
   public async logWorkout(userId: number, memo?: string): Promise<WorkoutLogResponse> {
     const prisma = getPrisma();
+    const planetId = await ensureDefaultPlanet(prisma);
 
     // 1. 운동 마스터 단건 보장 또는 조회
     let defaultExercise = await prisma.exercises.findFirst({
@@ -98,6 +101,7 @@ export default class ExerciseService {
       create: {
         user_id: userId,
         current_fuel: gainedFuel,
+        current_planet_id: planetId,
       },
     });
 

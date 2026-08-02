@@ -3,6 +3,21 @@ import { getPrisma } from "@/loaders/prisma";
 import Logger from "@/loaders/logger";
 import type { TravelStateResponse, FuelAddResponse } from "@/interfaces";
 
+export const ensureDefaultPlanet = async (prisma: any) => {
+  const planet = await prisma.planets.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      id: 1,
+      name: "아쿠아 웰니스 행성",
+      planet_type: "EXERCISE",
+      required_fuel: 300,
+      description: "최초의 바이오리듬 웰니스 행성",
+    },
+  });
+  return planet.id;
+};
+
 @Service()
 export default class TravelService {
   /**
@@ -10,6 +25,7 @@ export default class TravelService {
    */
   public async getTravelState(userId: number): Promise<TravelStateResponse> {
     const prisma = getPrisma();
+    const planetId = await ensureDefaultPlanet(prisma);
 
     let travelState = await prisma.space_travel_states.findUnique({
       where: { user_id: userId },
@@ -20,6 +36,7 @@ export default class TravelService {
         data: {
           user_id: userId,
           current_fuel: 0,
+          current_planet_id: planetId,
         },
       });
     }
@@ -48,6 +65,7 @@ export default class TravelService {
    */
   public async addFuel(userId: number, actionType?: string): Promise<FuelAddResponse> {
     const prisma = getPrisma();
+    const planetId = await ensureDefaultPlanet(prisma);
 
     let gainedFuel = 10;
     if (actionType === "MEAL_LOG") gainedFuel = 50;
@@ -63,6 +81,7 @@ export default class TravelService {
       create: {
         user_id: userId,
         current_fuel: gainedFuel,
+        current_planet_id: planetId,
       },
     });
 

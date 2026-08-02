@@ -1,6 +1,7 @@
 import { Service, Inject } from "typedi";
 import AiService from "./aiService";
 import { getPrisma } from "@/loaders/prisma";
+import { ensureDefaultPlanet } from "./travelService";
 import Logger from "@/loaders/logger";
 import type {
   FoodAnalyzeResponse,
@@ -46,6 +47,7 @@ export default class FoodService {
     request: MealLogRegisterRequest
   ): Promise<MealLogRegisterResponse> {
     const prisma = getPrisma();
+    const planetId = await ensureDefaultPlanet(prisma);
 
     // 1. 식단 로그 DB 저장
     const meal = await prisma.meals.create({
@@ -75,6 +77,7 @@ export default class FoodService {
         create: {
           user_id: userId,
           current_fuel: gainedFuel,
+          current_planet_id: planetId,
         },
       });
       currentFuel = travelState.current_fuel;
