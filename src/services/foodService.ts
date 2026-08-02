@@ -1,33 +1,103 @@
-import { Service } from "typedi";
-import TravelService from "./travelService";
-import { FoodAnalyzeResponse, MealRegisterRequest } from "../interfaces";
-import Logger from "../loaders/logger";
+import { Service, Inject } from "typedi";
+import AiService from "./aiService";
+import { getPrisma } from "@/loaders/prisma";
+import Logger from "@/loaders/logger";
+import type {
+  FoodAnalyzeResponse,
+  MealLogRegisterRequest,
+  MealLogRegisterResponse,
+} from "@/interfaces";
 
 @Service()
 export default class FoodService {
-  constructor(private travelService: TravelService) {}
+  constructor(@Inject() private aiService: AiService) {}
 
   /**
-   * 사용자가 업로드한 식사 이미지를 분석하여 영양 정보를 추출합니다. (스텁)
+   * 사진 업로드 및 AI 비전 분석 스캔
    */
-  public async analyzeFoodImage(imageBuffer: Buffer, mealType: string): Promise<FoodAnalyzeResponse> {
-    Logger.info(`[FoodService] 식단 비전 분석 요청: mealType=${mealType}`);
+  public async analyzeFoodVision(imageUrl: string, mealType?: string): Promise<FoodAnalyzeResponse> {
+    const aiVisionResult = await this.aiService.analyzeFoodVision(imageUrl, mealType);
 
-    // TODO: 1. 이미지 1024x1024 다운스케이밍 & WebP/JPEG 80% 압축
-    // TODO: 2. AI Vision API 호출 및 영양 정보 추출
+    if (!aiVisionResult.isIdentified) {
+      return {
+        isIdentified: false,
+        fallbackUi: "SHOW_RETRY_AND_MANUAL_INPUT",
+      };
+    }
 
-    throw new Error("Method not implemented.");
+    return {
+      isIdentified: true,
+      foodName: aiVisionResult.foodName,
+      totalCaloriesKcal: aiVisionResult.totalCaloriesKcal,
+      carbohydrateG: aiVisionResult.carbohydrateG,
+      proteinG: aiVisionResult.proteinG,
+      fatG: aiVisionResult.fatG,
+      vitaminPercent: aiVisionResult.vitaminPercent,
+      mineralPercent: aiVisionResult.mineralPercent,
+      comment: aiVisionResult.comment,
+    };
   }
 
   /**
-   * 분석 완료된 식사 데이터를 사용자 기록에 적재하고 연료 보상을 지급합니다. (스텁)
+   * 식단 분석 결과 검수/수정 확정 등록 및 보상 지급
    */
-  public async registerMealLog(userId: number, request: MealRegisterRequest): Promise<{ mealId: number; fuelResult: any }> {
-    Logger.info(`[FoodService] 식단 기록 확정 등록: userId=${userId}`);
+  public async logMeal(
+    userId: number,
+    request: MealLogRegisterRequest
+  ): Promise<MealLogRegisterResponse> {
+    const prisma = getPrisma();
 
-    // TODO: 1. MealModel / MealItem 데이터베이스 트랜잭션 적재
-    // TODO: 2. 우주선 연료(+5%) 보상 연계 처리
+    // 1. 식단 로그 DB 저장
+    const meal = await prisma.meals.create({
+      data: {
+        user_id: userId,
+        meal_type: request.mealType,
+        image_url: request.imageUrl || null,
+        comment: request.foodName,
+        total_calories_kcal: request.totalCaloriesKcal,
+        total_carbohydrate_g: request.carbohydrateG,
+        total_protein_g: request.proteinG,
+        total_fat_g: request.fatG,
+      },
+    });
 
-    throw new Error("Method not implemented.");
+    // 2. 보상 매트릭스 적용 (연료 +50, EXP +30)
+    const gainedFuel = 50;
+    const gainedExp = 30;
+
+    let currentFuel = 50;
+    try {
+      const travelState = await prisma.space_travel_states.upsert({
+        where: { user_id: userId },
+        update: {
+          current_fuel: { increment: gainedFuel },
+        },
+        create: {
+          user_id: userId,
+          current_fuel: gainedFuel,
+        },
+      });
+      currentFuel = travelState.current_fuel;
+
+      await prisma.tammy_statuses.upsert({
+        where: { user_id: userId },
+        update: {
+          current_exp: { increment: gainedExp },
+        },
+        create: {
+          user_id: userId,
+          current_exp: gainedExp,
+        },
+      });
+    } catch (e) {
+      Logger.error(`[FoodService] Failed to update tammy rewards for meal: ${e}`);
+    }
+
+    return {
+      logId: Number(meal.id),
+      gainedFuel,
+      gainedExp,
+      currentFuel,
+    };
   }
 }

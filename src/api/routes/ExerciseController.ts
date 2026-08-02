@@ -1,10 +1,31 @@
-import { Controller, Route, Get, Post, Query, Body } from "tsoa";
+import { Controller, Route, Get, Post, Body, Query } from "tsoa";
 import { Service } from "typedi";
 import ExerciseService from "../../services/exerciseService";
-import {
+import type {
   ExerciseRecommendResponse,
-  ExerciseLogRequest,
+  WorkoutLogRequest,
+  WorkoutLogResponse,
+  WaterLogRequest,
+  WaterLogResponse,
 } from "../../interfaces";
+
+@Service()
+@Route("care")
+export class CareController extends Controller {
+  constructor(private exerciseService: ExerciseService) {
+    super();
+  }
+
+  /**
+   * 1-Tap 수분 섭취 기록 (250ml)
+   */
+  @Post("water")
+  public async logWater(
+    @Body() requestBody: WaterLogRequest
+  ): Promise<WaterLogResponse> {
+    return await this.exerciseService.logWater(requestBody.userId || 1, requestBody.intakeMl);
+  }
+}
 
 @Service()
 @Route("exercise")
@@ -14,23 +35,28 @@ export class ExerciseController extends Controller {
   }
 
   /**
-   * 신체 정보 기반 맞춤 운동 계획을 추천합니다.
+   * 맞춤 운동 추천
    */
   @Get("recommend")
-  public async recommendExercise(
-    @Query() userId: number
-  ): Promise<ExerciseRecommendResponse> {
-    return await this.exerciseService.recommendExercise(userId);
+  public async recommendExercises(@Query() userId: number): Promise<ExerciseRecommendResponse> {
+    return await this.exerciseService.recommendExercises(userId);
+  }
+
+  public async recommendExercise(userId: number): Promise<ExerciseRecommendResponse> {
+    return await this.exerciseService.recommendExercises(userId);
   }
 
   /**
-   * 운동 완수 완료 기록을 적재하고 연료 보상을 지급합니다.
+   * 1-Tap "오늘 운동 완!" 기록
    */
   @Post("log")
-  public async recordWorkout(
-    @Query() userId: number,
-    @Body() requestBody: ExerciseLogRequest
-  ): Promise<{ logId: number; fuelResult: any }> {
-    return await this.exerciseService.recordWorkout(userId, requestBody);
+  public async logWorkout(
+    @Body() requestBody: WorkoutLogRequest
+  ): Promise<WorkoutLogResponse> {
+    return await this.exerciseService.logWorkout(requestBody.userId || 1, requestBody.memo);
+  }
+
+  public async recordWorkout(requestBody: WorkoutLogRequest): Promise<WorkoutLogResponse> {
+    return await this.exerciseService.logWorkout(requestBody.userId || 1, requestBody.memo);
   }
 }

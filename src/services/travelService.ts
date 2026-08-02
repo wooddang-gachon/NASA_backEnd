@@ -1,29 +1,85 @@
 import { Service } from "typedi";
-import { TravelStateResponse, TravelFuelResponse } from "../interfaces";
-import Logger from "../loaders/logger";
+import { getPrisma } from "@/loaders/prisma";
+import Logger from "@/loaders/logger";
+import type { TravelStateResponse, FuelAddResponse } from "@/interfaces";
 
 @Service()
 export default class TravelService {
   /**
-   * 우주여행 상태(연료, 좌표, 위치 행성 등)를 조회합니다. (스텁)
+   * 우주선 & 별여행 탐사 상태 조회
    */
   public async getTravelState(userId: number): Promise<TravelStateResponse> {
-    Logger.info(`[TravelService] 우주 항해 상태 조회: userId=${userId}`);
+    const prisma = getPrisma();
 
-    // TODO: DB 사용자 우주 항해 상태 조회
+    let travelState = await prisma.space_travel_states.findUnique({
+      where: { user_id: userId },
+    });
 
-    throw new Error("Method not implemented.");
+    if (!travelState) {
+      travelState = await prisma.space_travel_states.create({
+        data: {
+          user_id: userId,
+          current_fuel: 0,
+        },
+      });
+    }
+
+    let tammyStatus = await prisma.tammy_statuses.findUnique({
+      where: { user_id: userId },
+    });
+
+    const requiredFuel = 300;
+    const progressPercent = Math.min(
+      Math.floor((travelState.current_fuel / requiredFuel) * 100),
+      100
+    );
+
+    return {
+      currentPlanet: "아쿠아 웰니스 행성",
+      explorationProgressPercent: progressPercent,
+      currentFuel: travelState.current_fuel,
+      requiredFuelForNextPlanet: requiredFuel,
+      tammyRelationshipLevel: tammyStatus?.level || 1,
+    };
   }
 
   /**
-   * 미션 성공에 따른 우주선 연료 충전 및 워프 로직을 수행합니다. (스텁)
+   * 웰니스 행동에 따른 미션 연료 충전 & 행성 워프(Warp) 계산
    */
-  public async addFuel(userId: number, triggerType: string): Promise<TravelFuelResponse> {
-    Logger.info(`[TravelService] 미션 연료 지급: userId=${userId}, triggerType=${triggerType}`);
+  public async addFuel(userId: number, actionType?: string): Promise<FuelAddResponse> {
+    const prisma = getPrisma();
 
-    // TODO: 1. 트리거 타입별 연료 계산 (식단 +5%, 운동 +10% 등)
-    // TODO: 2. 연료 100 도달 시 행성 도달 처리 및 좌표/연료 리셋 트랜잭션
+    let gainedFuel = 10;
+    if (actionType === "MEAL_LOG") gainedFuel = 50;
+    else if (actionType === "WORKOUT_DONE") gainedFuel = 30;
+    else if (actionType === "WATER_INTAKE") gainedFuel = 10;
+    else if (actionType === "CHAT_MESSAGE") gainedFuel = 10;
 
-    throw new Error("Method not implemented.");
+    const travelState = await prisma.space_travel_states.upsert({
+      where: { user_id: userId },
+      update: {
+        current_fuel: { increment: gainedFuel },
+      },
+      create: {
+        user_id: userId,
+        current_fuel: gainedFuel,
+      },
+    });
+
+    const requiredFuel = 300;
+    const isWarped = travelState.current_fuel >= requiredFuel;
+
+    let newPlanetName: string | undefined = undefined;
+    if (isWarped) {
+      newPlanetName = "네뷸라 크리스탈 행성";
+      Logger.info(`[TravelService] User ${userId} warped to a new planet: ${newPlanetName}`);
+    }
+
+    return {
+      gainedFuel,
+      currentFuel: travelState.current_fuel,
+      isWarped,
+      newPlanetName,
+    };
   }
 }

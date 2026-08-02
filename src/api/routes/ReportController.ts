@@ -1,7 +1,7 @@
-import { Controller, Route, Get, Query } from "tsoa";
+import { Controller, Route, Get, Post, Query, Body } from "tsoa";
 import { Service } from "typedi";
 import ReportService from "../../services/reportService";
-import { MonthlyReportResponse } from "../../interfaces";
+import type { DashboardResponse, OndemandReportRequest, OndemandReportResponse } from "../../interfaces";
 
 @Service()
 @Route("reports")
@@ -11,13 +11,30 @@ export class ReportController extends Controller {
   }
 
   /**
-   * 지정한 년월의 건강 데이터를 집계하여 분석 리포트를 제공합니다.
+   * 상시 웰니스 그래프 대시보드 조회
    */
-  @Get("monthly")
-  public async getMonthlyReport(
+  @Get("dashboard")
+  public async getDashboard(
     @Query() userId: number,
-    @Query() yearMonth: string
-  ): Promise<MonthlyReportResponse> {
-    return await this.reportService.generateMonthlyReport(userId, yearMonth);
+    @Query() period?: "WEEKLY" | "MONTHLY"
+  ): Promise<DashboardResponse> {
+    return await this.reportService.getDashboard(userId, period || "WEEKLY");
+  }
+
+  /**
+   * 온디맨드 AI 타미 종합 건강 리포트 동적 생성
+   */
+  @Post("ondemand")
+  public async generateOndemandReport(
+    @Body() requestBody: OndemandReportRequest
+  ): Promise<OndemandReportResponse> {
+    return await this.reportService.generateOndemandReport(requestBody.userId);
+  }
+
+  /**
+   * 호환성용 메서드
+   */
+  public async generateMonthlyReport(userId: number): Promise<OndemandReportResponse> {
+    return await this.reportService.generateOndemandReport(userId);
   }
 }
