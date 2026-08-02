@@ -13,7 +13,10 @@
     "swagger": "tsoa spec-and-routes",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "prisma:mock:push": "DATABASE_URL=\"mysql://root:gusdn414%40@localhost:3306/nasa_mock_db\" prisma db push",
+    "prisma:prod:push": "prisma db push",
+    "prisma:mock:studio": "DATABASE_URL=\"mysql://root:gusdn414%40@localhost:3306/nasa_mock_db\" prisma studio"
   },
   "keywords": [],
   "author": "",

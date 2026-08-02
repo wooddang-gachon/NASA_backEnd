@@ -83,7 +83,7 @@ NASA_backEnd/
 DATABASE_URL="mysql://root:password@localhost:3306/nasa_db"          # 실운영 DB
 MOCK_DATABASE_URL="mysql://root:password@localhost:3306/nasa_mock_db" # 개발/테스트용 Mock DB
 
-# Environment State (.env 파일의 설정에 따라 DB 연결이 동적으로 스위칭됩니다)
+# Environment State (.env 파일 설정에 따라 DB 연결이 동적으로 스위칭됩니다)
 NODE_ENV="development" # "development"일 시 Mock DB 연동 / "production"일 시 실운영 DB 연동
 
 # AI Server Connection
@@ -93,6 +93,22 @@ AI_SERVER_URL="http://localhost:8000"
 ### 2) 패키지 설치
 ```bash
 npm install
+```
+
+---
+
+### 🗄️ [DB 가이드] Prisma DB 테이블 1초 자동 생성 & 동기화
+`schema.prisma` 파일의 23개 데이터 모델을 기반으로 DB 테이블을 1초 만에 자동으로 만들어 줍니다.
+
+```bash
+# 개발/테스트용 Mock DB (nasa_mock_db)에 테이블 자동 생성 및 동기화
+npm run prisma:mock:push
+
+# 실운영 DB (nasa_db)에 테이블 자동 생성 및 동기화
+npm run prisma:prod:push
+
+# Mock DB 웹 데이터 GUI 뷰어 띄우기 (Prisma Studio)
+npm run prisma:mock:studio
 ```
 
 ---
