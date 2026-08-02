@@ -7,14 +7,15 @@ let prisma: PrismaClient;
 
 export const initPrisma = (): PrismaClient => {
   try {
-    // 1. NODE_ENV에 따른 DB 연결 동적 스위칭 (production 모드가 아니면 항상 Mock DB 우선 연결)
-    const isProduction = process.env.NODE_ENV === "production";
+    // 1. .env 파일에 명시된 NODE_ENV 값 기반으로 DB 연결 스위칭
+    const currentEnv = config.nodeEnv.toLowerCase();
+    const isProduction = currentEnv === "production";
     const useMockDb = !isProduction;
 
     if (useMockDb) {
-      Logger.info("⚡  Running in DEV/MOCK mode. Using Mock Database URL (nasa_mock_db). ⚡");
+      Logger.info(`⚡  Running in [${config.nodeEnv}] mode. Using Mock Database URL (nasa_mock_db). ⚡`);
     } else {
-      Logger.info("⚡  Running in PRODUCTION mode. Using Production Database URL (nasa_db). ⚡");
+      Logger.info(`⚡  Running in [PRODUCTION] mode. Using Real Database URL (nasa_db). ⚡`);
     }
 
     const urlString = useMockDb && config.mockDatabaseURL ? config.mockDatabaseURL : config.databaseURL;

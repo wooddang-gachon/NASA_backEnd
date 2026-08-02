@@ -76,15 +76,15 @@ NASA_backEnd/
 ## ⚡ 5. 서버 실행 가이드 (Getting Started)
 
 ### 1) 환경 변수 설정 (`.env`)
-프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 운영/Mock DB 정보를 설정합니다:
+프로젝트 루트의 `.env` 파일에 실행 환경(`NODE_ENV`)과 DB 주소를 설정합니다:
 
 ```env
 # Database Connection URLs
 DATABASE_URL="mysql://root:password@localhost:3306/nasa_db"          # 실운영 DB
 MOCK_DATABASE_URL="mysql://root:password@localhost:3306/nasa_mock_db" # 개발/테스트용 Mock DB
 
-# Environment State (development 설정 시 안전하게 MOCK_DATABASE_URL로 자동 연동)
-NODE_ENV="development"
+# Environment State (.env 파일의 설정에 따라 DB 연결이 동적으로 스위칭됩니다)
+NODE_ENV="development" # "development"일 시 Mock DB 연동 / "production"일 시 실운영 DB 연동
 
 # AI Server Connection
 AI_SERVER_URL="http://localhost:8000"
@@ -98,7 +98,7 @@ npm install
 ---
 
 ### 🟢 [방법 A] 개발 모드 실서버 구동 (Development Run)
-개발 중에 라우터를 자동 재빌드하며 Mock DB(`nasa_mock_db`)에 안전하게 연동하여 백엔드 서버를 띄우는 방식입니다.
+`.env`에 `NODE_ENV="development"`가 설정되어 있을 때 라우터를 자동 재빌드하며 안전하게 **Mock DB (`nasa_mock_db`)**에 연동하여 구동합니다.
 
 ```bash
 # 1. TSOA 라우트 & Swagger 문서 자동 생성
@@ -113,16 +113,16 @@ npm run dev
 ---
 
 ### 🔵 [방법 B] 실제 프로덕션 운영 서버 구동 (Production Run)
-실제 클라우드 서버 배포 시 컴파일된 JavaScript(`dist/`)로 최적의 성능으로 상시 구동하며, **실운영 DB(`nasa_db`)**와 **실제 AI 서버**에 직접 연동하는 정식 프로덕션 실행 방식입니다.
+`.env` 파일에 `NODE_ENV="production"`을 명시한 후 컴파일된 JavaScript(`dist/`)로 최적의 성능으로 상시 가동하며, **실운영 DB(`nasa_db`)**와 **실제 AI 서버**에 직접 연동하는 정식 실행 방식입니다.
 
 ```bash
 # 1. 프로덕션 빌드 (TypeScript 컴파일 & TSOA 라우트 생성)
 npm run build
 
-# 2. 실운영 프로덕션 서버 실행 (Production Start)
+# 2. 실운영 프로덕션 서버 실행
 npm start
 ```
-- **실운영 포트**: `3000` (환경변수 PORT에 따라 가동)
+- **실운영 포트**: `3000`
 - **연동 DB**: `DATABASE_URL` (`nasa_db`)
 
 ---
@@ -140,7 +140,7 @@ npm test
 
 - **자동 생성 방지 (No Auto-Create)**: DB에 유저나 대상 리소스가 존재하지 않을 경우 자동 생성을 금지하고 `404 USER_NOT_FOUND` 예외를 명확히 반환합니다.
 - **AI 서버 격리 (AI Server Fallback)**: AI 통신 장애 발생 시 백엔드가 다운되지 않고 `503 AI_SERVER_UNAVAILABLE` 에러 코드를 제공합니다.
-- **Mock DB 동적 연동**: 개발 및 테스트 모드(`NODE_ENV=development/TEST`)에서는 실운영 DB가 아닌 `nasa_mock_db`로 연결되어 데이터를 안전하게 보호합니다.
+- **Mock DB 동적 연동**: `.env` 파일의 `NODE_ENV` 설정에 따라 실운영 DB와 `nasa_mock_db` 간의 동적 스위칭이 보장됩니다.
 
 ---
 
