@@ -11,9 +11,12 @@ export class UserController extends Controller {
     super();
   }
 
+  /**
+   * 내 프로필 및 타미 상태 정보를 조회합니다.
+   */
   @Get("me")
   public async getMe(@Request() request: express.Request) {
-    const userId = (request as any).currentUser.userId;
+    const userId = (request as any).currentUser?.userId || 1;
     return await this.userService.getUserProfile(userId);
   }
 }

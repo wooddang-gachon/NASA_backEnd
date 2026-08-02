@@ -21,29 +21,7 @@ export default ({ app }: { app: express.Application }) => {
   // TSOA Routes
   const apiRouter = express.Router();
 
-  apiRouter.use(
-    morgan((tokens, req, res) => {
-      const status = tokens.status(req, res);
-      const statusNum = status ? parseInt(status, 10) : 0;
-      
-      const logMessage = [
-        tokens.method(req, res),
-        tokens.url(req, res),
-        status,
-        tokens["response-time"](req, res), "ms"
-      ].join(" ");
-
-      if (statusNum >= 500) {
-        Logger.error(`HTTP Request Failure (5XX): ${logMessage}`);
-      } else if (statusNum >= 400) {
-        Logger.warn(`HTTP Request Warning (4XX): ${logMessage}`);
-      } else {
-        Logger.info(logMessage);
-      }
-      
-      return null;
-    })
-  );
+  apiRouter.use(morgan("dev"));
 
   app.use(config.api.prefix, apiRouter);
   RegisterRoutes(apiRouter);

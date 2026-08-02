@@ -11,7 +11,7 @@ export class ReportController extends Controller {
   }
 
   /**
-   * 지정한 년월에 대한 사용자의 건강 데이터를 종합 분석하여 리포트를 제공합니다.
+   * 지정한 년월의 건강 데이터를 집계하여 분석 리포트를 제공합니다.
    */
   @Get("monthly")
   public async getMonthlyReport(

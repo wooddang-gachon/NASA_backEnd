@@ -1,88 +1,76 @@
-import { space_travel_states, planets } from "@prisma/client";
-
-export class TravelStateResponse {
+export interface TravelStateResponse {
   /**
-   * 현재 연료 게이지 (0 ~ 100%)
-   * @isInt
-   * @minimum 0
-   * @maximum 100
+   * 현재 탐사 중인 행성(타미별) 이름
+   * @example "아쿠아 웰니스 행성"
+   */
+  currentPlanet: string;
+
+  /**
+   * 현재 행성 탐사 진척도 (%)
    * @example 65
    */
-  currentFuel!: number;
+  explorationProgressPercent: number;
 
   /**
-   * 우주선 좌표 X
-   * @example 12.3456
-   */
-  shipCoordinateX!: number;
-
-  /**
-   * 우주선 좌표 Y
-   * @example 78.9012
-   */
-  shipCoordinateY!: number;
-
-  /**
-   * 현재 위치한 행성 ID
-   * @example 2
-   */
-  currentPlanetId!: number;
-
-  /**
-   * 현재 위치한 행성 이름
-   * @example "근육 불끈 행성 💪"
-   */
-  currentPlanetName!: string;
-
-  /**
-   * DB Entity 객체들로부터 DTO 인스턴스를 안전하게 조립하는 정적 팩토리 메서드
-   */
-  public static fromEntity(
-    state: space_travel_states & { current_planet?: planets | null }
-  ): TravelStateResponse {
-    const res = new TravelStateResponse();
-    res.currentFuel = state.current_fuel;
-    res.shipCoordinateX = Number(state.ship_coordinate_x || 0);
-    res.shipCoordinateY = Number(state.ship_coordinate_y || 0);
-    res.currentPlanetId = state.current_planet_id;
-    res.currentPlanetName = state.current_planet?.name || "미지의 행성 🪐";
-    return res;
-  }
-}
-
-export interface TravelFuelRequest {
-  /**
-   * 연료 충전을 트리거한 행위 종류
-   */
-  triggerType: "FOOD_ANALYZED" | "WORKOUT_DONE" | "GOAL_ACHIEVED";
-}
-
-export interface TravelFuelResponse {
-  /**
-   * 새로 더해진 연료 량 (%)
-   * @example 10
-   */
-  addedFuel: number;
-
-  /**
-   * 충전 후 누적 연료 량 (%)
-   * @minimum 0
-   * @maximum 100
-   * @example 75
+   * 현재 보유 우주선 연료 (Fuel)
+   * @example 170
    */
   currentFuel: number;
 
   /**
-   * 목표 행성 도달 여부
-   * @example false
+   * 다음 행성 개척(Warp)에 필요한 목표 연료
+   * @example 300
    */
-  planetArrived: boolean;
+  requiredFuelForNextPlanet: number;
 
   /**
-   * 행성 도착 시 띄워줄 오버레이 카드 정보 (미도달 시 null)
+   * 타미와의 관계 레벨 (Relationship Level)
+   * @example 7
    */
-  arrivalOverlay: {
-    planetName: string;
-    summary: string;
-  } | null;
+  tammyRelationshipLevel: number;
 }
+
+export interface FuelAddRequest {
+  /**
+   * 사용자 ID
+   */
+  userId?: number;
+
+  /**
+   * 트리거 행동 타입
+   * @example "WORKOUT_DONE"
+   */
+  triggerType?: string;
+
+  /**
+   * 연료 충전 계기 행동 타입
+   * @example "WORKOUT_DONE"
+   */
+  actionType?: "CHAT_MESSAGE" | "MEAL_LOG" | "WORKOUT_DONE" | "WATER_INTAKE" | string;
+}
+
+export type TravelFuelRequest = FuelAddRequest;
+
+export interface FuelAddResponse {
+  /**
+   * 충전된 연료량
+   */
+  gainedFuel: number;
+
+  /**
+   * 충전 후 현재 총 연료량
+   */
+  currentFuel: number;
+
+  /**
+   * 행성 개척(Warp) 성공 여부
+   */
+  isWarped: boolean;
+
+  /**
+   * 개척된 신규 행성명 (Warp 발생 시)
+   */
+  newPlanetName?: string;
+}
+
+export type TravelFuelResponse = FuelAddResponse;

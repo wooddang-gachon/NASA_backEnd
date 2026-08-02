@@ -11,7 +11,7 @@ export class TravelController extends Controller {
   }
 
   /**
-   * 우주여행 상태(연료, 좌표, 현재 도달한 행성 정보 등)를 조회합니다.
+   * 우주여행 상태(연료, 좌표, 도달 행성 등)를 조회합니다.
    */
   @Get("state")
   public async getTravelState(@Query() userId: number): Promise<TravelStateResponse> {
@@ -19,13 +19,13 @@ export class TravelController extends Controller {
   }
 
   /**
-   * 미션 성공(식단 분석 완료, 운동 완료 등)에 따라 우주선 연료를 지급합니다.
+   * 미션 성공에 따른 우주선 연료를 충전합니다.
    */
   @Post("fuel")
   public async addFuel(
     @Query() userId: number,
     @Body() requestBody: TravelFuelRequest
   ): Promise<TravelFuelResponse> {
-    return await this.travelService.addFuel(userId, requestBody.triggerType);
+    return await this.travelService.addFuel(userId, requestBody.triggerType || requestBody.actionType || "WORKOUT_DONE");
   }
 }

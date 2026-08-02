@@ -1,69 +1,79 @@
-export interface DailyKcalItem {
+export interface DashboardResponse {
   /**
-   * 날짜 (형식: YYYY-MM-DD)
-   * @pattern ^\d{4}-\d{2}-\d{2}$ 날짜는 YYYY-MM-DD 형식이어야 합니다.
-   * @example "2026-07-01"
+   * 일간/주간 칼로리 추이 (선 차트 데이터)
    */
-  date: string;
+  calorieTrends: Array<{ date: string; caloriesKcal: number }>;
 
   /**
-   * 섭취량
-   * @example 2100
+   * 5대 영양소 밸런스 평균 (%)
    */
-  kcal: number;
-}
-
-export interface WeeklyWorkoutMinItem {
-  /**
-   * 주차 표시
-   * @example "1주차"
-   */
-  week: string;
-
-  /**
-   * 소모한 분
-   * @example 120
-   */
-  minutes: number;
-}
-
-export interface MonthlyReportResponse {
-  /**
-   * 종합 건강 점수 (0 ~ 100점)
-   * @isInt
-   * @minimum 0
-   * @maximum 100
-   * @example 85
-   */
-  healthScore: number;
-
-  /**
-   * 건강 상태 한눈에 진단 요약문
-   * @example "이번 달은 규칙적인 하체 운동으로 소모 칼로리가 급증했습니다. 다만, 탄수화물 비중이 다소 높으니 단백질 섭취를 10g 정도만 늘려보세요."
-   */
-  summaryContent: string;
-
-  /**
-   * 일별 칼로리 데이터
-   */
-  dailyKcal: DailyKcalItem[];
-
-  /**
-   * 월간 탄단지 평균 비율
-   */
-  macros: {
-    carbohydrateG: number;
-    proteinG: number;
-    fatG: number;
+  nutritionBalance: {
+    carbohydratePercent: number;
+    proteinPercent: number;
+    fatPercent: number;
+    vitaminPercent: number;
+    mineralPercent: number;
   };
 
   /**
-   * 주차별 총 운동 시간 흐름
+   * 주간 운동 완료 체크 달성 횟수
+   * @example 4
    */
-  weeklyWorkoutMin: WeeklyWorkoutMinItem[];
+  weeklyWorkoutCompletedDays: number;
+}
+
+export interface OndemandReportRequest {
+  /**
+   * 사용자 ID
+   */
+  userId: number;
+}
+
+export interface OndemandReportResponse {
+  /**
+   * 생성된 리포트 고유 ID
+   */
+  reportId: number;
 
   /**
-   * AI 분석 주요 인사이트 내용 목록
+   * 리포트 생성 일시
    */
-  aiFindings: string[];
+  generatedAt: string;
+
+  /**
+   * AI 종합 리포트 제목
+   * @example "우당탕탕님의 주간 웰니스 & 심리 케어 진단서 🌟"
+   */
+  summaryTitle: string;
+
+  /**
+   * AI 건강 진단 상세 내용
+   */
+  findings: string;
+
+  /**
+   * AI가 추천하는 다음 행동 가이드 목록
+   */
+  nextActionChecks: string[];
+}
+
+export type MonthlyReportResponse = OndemandReportResponse;
+
+/**
+ * BE -> AI Server 내부 통신 요약 요청/응답 타입
+ */
+export interface AiReportInternalPayload {
+  userId: number;
+  weeklyStats: {
+    waterGoalAchievedDays: number;
+    workoutCompletedDays: number;
+    avgCalories: number;
+    dominantEmotions: string[];
+  };
+}
+
+export interface AiReportInternalResponse {
+  summaryTitle: string;
+  findings: string;
+  nextActionChecks: string[];
 }

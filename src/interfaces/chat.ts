@@ -1,41 +1,87 @@
-export interface Action {
+export interface EmotionStatus {
   /**
-   * 프론트엔드가 실행해야 할 액션 종류
-   * @example "LOG_WORKOUT"
+   * 감정 상태 종류
+   * @example "COMFORTING"
    */
-  type: "LOG_WORKOUT" | "LOG_MEAL" | "LOG_WATER" | "LOG_EMOTION" | "ADD_FUEL" | "UPDATE_MEMORY";
-  
+  state: string;
+
   /**
-   * 해당 액션에 따르는 상세 데이터 payload
-   * @example { "exerciseName": "스쿼트", "durationMinutes": 30 }
+   * 타미 캐릭터 표정/모션 종류
+   * @example "PAT_PAT_HEAD"
    */
-  payload: any;
+  motionType: string;
+}
+
+export interface ExtractedMemory {
+  /**
+   * 기억 캡슐 카테고리
+   * @example "EMOTION_STATE"
+   */
+  category: string;
+
+  /**
+   * 추출된 사용자의 상태/취향 내용
+   * @example "업무 스트레스로 심신이 많이 지쳐있는 상태"
+   */
+  content: string;
 }
 
 export interface ChatRequest {
   /**
-   * AI 에이전트(타미)에게 보낼 자연어 메시지입니다.
-   * @minLength 1 메시지는 비어 있을 수 없습니다.
-   * @maxLength 1000 메시지는 최대 1000자까지 전송할 수 있습니다.
-   * @example "오늘 스쿼트 30분 하고 물 한잔 마셨어!"
+   * AI 타미에게 보낼 자연어 메시지
+   * @example "오늘 회사에서 일이 너무 많아서 힘들고 지쳤어 😮‍💨"
    */
   message: string;
 }
 
 export interface ChatResponse {
   /**
-   * AI 요정 타미가 사용자에게 보내는 답변 텍스트입니다.
-   * @example "오늘 스쿼트 30분을 완수하다니 대단해! 물 한 잔도 챙겨 마신 기특한 행동을 기록에 반영했어. 우주선 연료도 10% 더 채웠지롱! 🚀"
+   * AI 타미의 공감 및 케어 답변 텍스트
    */
   reply: string;
 
   /**
-   * 사용자의 입력 발화를 분석하여 자동으로 데이터베이스에 저장 및 동기화된 액션 리스트입니다.
+   * 타미의 감정 표정 및 모션 정보
    */
-  actions?: Action[];
+  emotion: EmotionStatus;
 
   /**
-   * 사용자와의 대화에서 누적된 취향, 목표 체중, 선호 사항 등 장기 기억 요약 정보입니다.
+   * 대화로 획득한 연료
+   * @example 10
    */
-  memory?: any;
+  gainedFuel: number;
+
+  /**
+   * 현재 총 연료
+   * @example 120
+   */
+  currentFuel: number;
+}
+
+/**
+ * BE -> AI Server (Python/FastAPI) 내부 대화 통신 요청 Payload
+ */
+export interface AiChatInternalPayload {
+  userId: number;
+  userMessage: string;
+  recentMemories?: string[];
+}
+
+/**
+ * AI Server -> BE 내부 대화 통신 응답 Payload
+ */
+export interface AiChatInternalResponse {
+  replyText: string;
+  emotion: EmotionStatus;
+  extractedMemory?: ExtractedMemory;
+}
+
+/**
+ * 장기 기억 캡슐 DTO
+ */
+export interface MemoryPillDto {
+  id: number;
+  category: string;
+  memoryContent: string;
+  createdAt: string;
 }

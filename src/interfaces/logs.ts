@@ -1,16 +1,5 @@
 import { EmotionState } from "./enums";
 
-export interface WaterLogRequest {
-  /**
-   * 수분 섭취량 (ml)
-   * @isInt
-   * @minimum 10 최소 10ml 이상 입력할 수 있습니다.
-   * @maximum 2000 최대 2000ml까지 입력할 수 있습니다.
-   * @example 250
-   */
-  intakeMl: number;
-}
-
 export interface EmotionLogRequest {
   /**
    * 감정 상태

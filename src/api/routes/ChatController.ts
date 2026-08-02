@@ -11,7 +11,7 @@ export class ChatController extends Controller {
   }
 
   /**
-   * 사용자의 자연어 발화를 입력받아 AI 에이전트 답변 및 자동 행동(Action)을 트리거합니다.
+   * 사용자의 발화 메시지를 수신하여 AI 답변 및 자동 의도/액션을 처리합니다.
    */
   @Post("")
   public async handleChat(

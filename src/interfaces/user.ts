@@ -111,11 +111,11 @@ export class UserProfileResponse {
     res.nickname = user.nickname;
     res.gender = user.gender;
     res.age = user.age;
-    res.targetWeightKg = user.target_weight_kg;
-    res.preferredExercise = user.preferred_exercise;
-    res.exerciseLocation = user.exercise_location;
-    res.preferredExerciseTime = user.preferred_exercise_time;
-    res.createdAt = user.created_at || new Date();
+    res.targetWeightKg = user.targetWeightKg;
+    res.preferredExercise = user.preferredExercise;
+    res.exerciseLocation = user.exerciseLocation;
+    res.preferredExerciseTime = user.preferredExerciseTime;
+    res.createdAt = user.createdAt || new Date();
     return res;
   }
 }

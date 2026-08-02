@@ -11,7 +11,7 @@ export class FoodController extends Controller {
   }
 
   /**
-   * 음식 사진을 업로드받아 AI 비전 분석을 통해 영양 정보를 파악하고 기록합니다.
+   * 음식 사진을 비전 분석하여 영양 정보 식별 결과를 반환합니다.
    */
   @Post("analyze")
   public async analyzeFood(@Query() mealType: string): Promise<FoodAnalyzeResponse> {
@@ -19,7 +19,7 @@ export class FoodController extends Controller {
   }
 
   /**
-   * 분석 완료된 식사 데이터를 사용자 기록에 영구 적재하고 연료 보상을 지급합니다.
+   * 식사 데이터 기록을 확정 저장하고 연료 보상을 지급합니다.
    */
   @Post("log")
   public async registerMealLog(
