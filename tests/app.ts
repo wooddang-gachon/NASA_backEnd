@@ -10,7 +10,7 @@ export const getTestApp = async (): Promise<express.Application> => {
   app = express();
   await loaders({ expressApp: app });
 
-  // 테스트 실행용 1번 유저 & 기본 행성 사전 준비 (Seed)
+  // 테스트 실행용 1번 유저 & 기본 행성/타미 상태/우주선 상태 사전 준비 (Seed)
   const prisma = getPrisma();
   const planetId = await ensureDefaultPlanet(prisma);
 
@@ -22,18 +22,26 @@ export const getTestApp = async (): Promise<express.Application> => {
       nickname: "우당탕탕",
       gender: "FEMALE",
       age: 26,
-      tammy_statuses: {
-        create: {
-          level: 1,
-          current_exp: 0,
-        },
-      },
-      space_travel_states: {
-        create: {
-          current_fuel: 100,
-          current_planet_id: planetId,
-        },
-      },
+    },
+  });
+
+  await prisma.tammy_statuses.upsert({
+    where: { user_id: 1 },
+    update: {},
+    create: {
+      user_id: 1,
+      level: 1,
+      current_exp: 0,
+    },
+  });
+
+  await prisma.space_travel_states.upsert({
+    where: { user_id: 1 },
+    update: {},
+    create: {
+      user_id: 1,
+      current_fuel: 100,
+      current_planet_id: planetId,
     },
   });
 

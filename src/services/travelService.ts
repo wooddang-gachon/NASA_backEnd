@@ -5,18 +5,26 @@ import { UserNotFoundError } from "@/utils/errors";
 import type { TravelStateResponse, FuelAddResponse } from "@/interfaces";
 
 export const ensureDefaultPlanet = async (prisma: any) => {
-  const planet = await prisma.planets.upsert({
+  let planet = await prisma.planets.findUnique({
     where: { id: 1 },
-    update: {},
-    create: {
-      id: 1,
-      name: "아쿠아 웰니스 행성",
-      planet_type: "EXERCISE",
-      required_fuel: 300,
-      description: "최초의 바이오리듬 웰니스 행성",
-    },
   });
-  return planet.id;
+
+  if (!planet) {
+    try {
+      planet = await prisma.planets.create({
+        data: {
+          id: 1,
+          name: "아쿠아 웰니스 행성",
+          planet_type: "EXERCISE",
+          required_fuel: 300,
+          description: "최초의 바이오리듬 웰니스 행성",
+        },
+      });
+    } catch (e) {
+      planet = await prisma.planets.findFirst();
+    }
+  }
+  return planet ? planet.id : 1;
 };
 
 @Service()

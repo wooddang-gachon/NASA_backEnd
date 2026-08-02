@@ -7,25 +7,20 @@ let prisma: PrismaClient;
 
 export const initPrisma = (): PrismaClient => {
   try {
-    // 1. 테스트 실행 모드(NODE_ENV=TEST) 여부에 따라 DB 연결 주소 동적 스위칭
-    const isTest = process.env.NODE_ENV === "TEST";
+    // 1. NODE_ENV에 따른 DB 연결 동적 스위칭 (production 모드가 아니면 항상 Mock DB 우선 연결)
+    const isProduction = process.env.NODE_ENV === "production";
+    const useMockDb = !isProduction;
 
-    if (isTest) {
-      Logger.info("⚡  Running in TEST mode. Using mock database URL. ⚡");
+    if (useMockDb) {
+      Logger.info("⚡  Running in DEV/MOCK mode. Using Mock Database URL (nasa_mock_db). ⚡");
     } else {
-      Logger.info(
-        "⚡  Running in NORMAL mode. Using production database URL. ⚡",
-      );
+      Logger.info("⚡  Running in PRODUCTION mode. Using Production Database URL (nasa_db). ⚡");
     }
-    const urlString =
-      isTest && config.mockDatabaseURL
-        ? config.mockDatabaseURL
-        : config.databaseURL;
+
+    const urlString = useMockDb && config.mockDatabaseURL ? config.mockDatabaseURL : config.databaseURL;
 
     if (!urlString) {
-      throw new Error(
-        "Database connection URL is not configured in .env file.",
-      );
+      throw new Error("Database connection URL is not configured in .env file.");
     }
 
     const dbUrl = new URL(urlString);
@@ -45,7 +40,7 @@ export const initPrisma = (): PrismaClient => {
       connectionLimit: 10,
     });
 
-    // 3. 어댑터를 주입하여 PrismaClient 초기화 (WASM 기반 컴파일러 연동)
+    // 3. 어댑터를 주입하여 PrismaClient 초기화
     prisma = new PrismaClient({
       adapter,
       log: [
@@ -59,7 +54,7 @@ export const initPrisma = (): PrismaClient => {
     // winston 로거에 쿼리 실시간 바인딩
     (prisma as any).$on("query", (e: any) => {
       Logger.info(
-        `[Prisma Query] ${e.query} - Params: ${e.params} - Duration: ${e.duration}ms`,
+        `[Prisma Query] ${e.query} - Params: ${e.params} - Duration: ${e.duration}ms`
       );
     });
 
@@ -77,4 +72,5 @@ export const getPrisma = (): PrismaClient => {
   }
   return prisma;
 };
+
 export { prisma };
