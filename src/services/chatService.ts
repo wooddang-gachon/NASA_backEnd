@@ -2,6 +2,7 @@ import { Service, Inject } from "typedi";
 import AiService from "./aiService";
 import { getPrisma } from "@/loaders/prisma";
 import Logger from "@/loaders/logger";
+import { UserNotFoundError } from "@/utils/errors";
 import type { ChatResponse, MemoryPillDto } from "@/interfaces";
 
 @Service()
@@ -14,7 +15,16 @@ export default class ChatService {
   public async processChat(userId: number, userMessage: string): Promise<ChatResponse> {
     const prisma = getPrisma();
 
-    // 1. 기존 장기 기억 캡슐 목록 수집 (AI에 대화 맥락으로 제공)
+    // 1. 유저 존재 여부 검증 (자동 생성 금지)
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UserNotFoundError(userId);
+    }
+
+    // 2. 기존 장기 기억 캡슐 목록 수집 (AI 대화 맥락용)
     let recentMemories: string[] = [];
     try {
       const dbMemories = await prisma.long_term_memories.findMany({
@@ -27,10 +37,10 @@ export default class ChatService {
       Logger.warn(`[ChatService] Failed to fetch recent memories for user ${userId}: ${e}`);
     }
 
-    // 2. BE -> AI Server 내부 통신 호출 (AI 대화 및 감정/기억 추출)
+    // 3. BE -> AI Server 내부 통신 호출
     const aiResult = await this.aiService.processChat(userId, userMessage, recentMemories);
 
-    // 3. AI가 신규 기억 캡슐을 추출했다면 DB에 저장 (upsert 사용)
+    // 4. 추출된 신규 기억 캡슐 DB 저장
     if (aiResult.extractedMemory) {
       try {
         await prisma.long_term_memories.upsert({
@@ -55,27 +65,18 @@ export default class ChatService {
       }
     }
 
-    // 4. 대화로 인한 연료(+10 Fuel) 충전 및 타미 상태 갱신
+    // 5. 대화로 인한 연료(+10 Fuel) 충전
     const gainedFuel = 10;
     let currentFuel = 10;
 
-    try {
-      const travelState = await prisma.space_travel_states.upsert({
-        where: { user_id: userId },
-        update: {
-          current_fuel: { increment: gainedFuel },
-        },
-        create: {
-          user_id: userId,
-          current_fuel: gainedFuel,
-        },
-      });
-      currentFuel = travelState.current_fuel;
-    } catch (e) {
-      Logger.error(`[ChatService] Failed to update tammy fuel: ${e}`);
-    }
+    const travelState = await prisma.space_travel_states.update({
+      where: { user_id: userId },
+      data: {
+        current_fuel: { increment: gainedFuel },
+      },
+    });
+    currentFuel = travelState.current_fuel;
 
-    // 5. 최종 대화 응답 반환
     return {
       reply: aiResult.replyText,
       emotion: aiResult.emotion,
@@ -89,6 +90,10 @@ export default class ChatService {
    */
   public async getMemories(userId: number): Promise<MemoryPillDto[]> {
     const prisma = getPrisma();
+
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) throw new UserNotFoundError(userId);
+
     const dbMemories = await prisma.long_term_memories.findMany({
       where: { user_id: userId },
       orderBy: { created_at: "desc" },

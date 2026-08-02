@@ -1,6 +1,7 @@
 import { Service } from "typedi";
 import { getPrisma } from "@/loaders/prisma";
 import Logger from "@/loaders/logger";
+import { UserNotFoundError } from "@/utils/errors";
 
 @Service()
 export default class UserService {
@@ -11,7 +12,7 @@ export default class UserService {
     Logger.info(`[UserService] 프로필 조회: userId=${userId}`);
     const prisma = getPrisma();
 
-    let user = await prisma.users.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId },
       include: {
         tammy_statuses: true,
@@ -19,32 +20,9 @@ export default class UserService {
       },
     });
 
-    // DB에 지정된 유저가 없을 경우 단건 기본 유저 생성
     if (!user) {
-      user = await prisma.users.create({
-        data: {
-          id: userId,
-          nickname: "우당탕탕",
-          gender: "FEMALE",
-          age: 26,
-          tammy_statuses: {
-            create: {
-              level: 1,
-              current_exp: 0,
-            },
-          },
-          space_travel_states: {
-            create: {
-              current_fuel: 0,
-              current_planet_id: 1,
-            },
-          },
-        },
-        include: {
-          tammy_statuses: true,
-          space_travel_states: true,
-        },
-      });
+      Logger.warn(`[UserService] 유저 미존재: userId=${userId}`);
+      throw new UserNotFoundError(userId);
     }
 
     return {

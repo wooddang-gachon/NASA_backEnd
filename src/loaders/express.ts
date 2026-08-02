@@ -6,6 +6,7 @@ import { RegisterRoutes } from "../build/routes";
 import config from "../config";
 import swaggerLoader from "./swagger";
 import Logger from "./logger";
+import { AppError } from "../utils/errors";
 
 export default ({ app }: { app: express.Application }) => {
   app.get("/status", (req: Request, res: Response) => {
@@ -29,40 +30,52 @@ export default ({ app }: { app: express.Application }) => {
   // Swagger UI API 문서 로더 연동 (404 에러 핸들러 전에 등록)
   swaggerLoader({ app: apiRouter as any });
 
-  // 404 error handler
+  // 404 라우트 handler
   app.use((req: Request, res: Response, next: NextFunction) => {
-    const err = new Error("Not Found");
-    (err as any).status = 404;
-    next(err);
+    res.status(404).json({
+      code: "ROUTE_NOT_FOUND",
+      message: `요청하신 경로 (${req.method} ${req.url})를 찾을 수 없습니다.`,
+      status: 404,
+    });
   });
 
-  /// error handlers
+  // 공통 에러 핸들러 미들웨어
   app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    /**
-     * Handle 401 thrown by express-jwt library
-     */
-    if (err.name === "UnauthorizedError") {
-      Logger.warn(`Unauthorized Access: ${err.message}`);
-      return res
-        .status((err as any).status || 401)
-        .send({ message: err.message })
-        .end();
-    }
-    return next(err);
-  });
-  app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    const statusCode = (err as any).status || 500;
-    if (statusCode >= 500) {
-      Logger.error("Server Error Handled:", err);
-    } else {
-      Logger.warn(`Warning Handled: ${err.message}`);
-    }
+    if (err instanceof AppError) {
+      if (err.status >= 500) {
+        Logger.error(`[AppError ${err.status}] ${err.code}: ${err.message}`);
+      } else {
+        Logger.warn(`[AppError ${err.status}] ${err.code}: ${err.message}`);
+      }
 
-    res.status(statusCode);
-    res.json({
-      errors: {
+      return res.status(err.status).json({
+        code: err.code,
         message: err.message,
-      },
+        status: err.status,
+      });
+    }
+
+    // AiServerError 처리
+    if ((err as any).name === "AiServerError") {
+      const status = (err as any).status || 503;
+      const code = (err as any).code || "AI_SERVER_ERROR";
+      Logger.error(`[AiServerError ${status}] ${code}: ${err.message}`);
+
+      return res.status(status).json({
+        code,
+        message: err.message,
+        status,
+      });
+    }
+
+    // 일반 예외 처리
+    const statusCode = (err as any).status || 500;
+    Logger.error(`[Unhandled Error ${statusCode}]: ${err.message}`, err);
+
+    return res.status(statusCode).json({
+      code: (err as any).code || "INTERNAL_SERVER_ERROR",
+      message: err.message || "서버 내부 오류가 발생했습니다.",
+      status: statusCode,
     });
   });
 };

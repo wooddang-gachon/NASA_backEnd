@@ -21,7 +21,8 @@ describe("AI 타미 심리 공감 대화 API 통합 테스트 (CHT Module)", () 
       expect(res.body).toHaveProperty("reply");
       expect(res.body).toHaveProperty("emotion");
     } else {
-      expect(res.body).toHaveProperty("errors");
+      expect(res.body).toHaveProperty("code");
+      expect(res.body.status).toBe(503);
     }
   });
 

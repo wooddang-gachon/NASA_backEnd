@@ -1,6 +1,7 @@
 import { Service } from "typedi";
 import { getPrisma } from "@/loaders/prisma";
-import { ensureDefaultPlanet } from "./travelService";
+import Logger from "@/loaders/logger";
+import { UserNotFoundError } from "@/utils/errors";
 import type {
   WaterLogResponse,
   WorkoutLogResponse,
@@ -14,7 +15,9 @@ export default class ExerciseService {
    */
   public async logWater(userId: number, intakeMl: number = 250): Promise<WaterLogResponse> {
     const prisma = getPrisma();
-    const planetId = await ensureDefaultPlanet(prisma);
+
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) throw new UserNotFoundError(userId);
 
     // 1. 수분 로그 DB 추가
     await prisma.water_logs.create({
@@ -39,15 +42,10 @@ export default class ExerciseService {
 
     // 3. 연료(+10 Fuel) 충전
     const gainedFuel = 10;
-    const travelState = await prisma.space_travel_states.upsert({
+    const travelState = await prisma.space_travel_states.update({
       where: { user_id: userId },
-      update: {
+      data: {
         current_fuel: { increment: gainedFuel },
-      },
-      create: {
-        user_id: userId,
-        current_fuel: gainedFuel,
-        current_planet_id: planetId,
       },
     });
 
@@ -63,7 +61,9 @@ export default class ExerciseService {
    */
   public async logWorkout(userId: number, memo?: string): Promise<WorkoutLogResponse> {
     const prisma = getPrisma();
-    const planetId = await ensureDefaultPlanet(prisma);
+
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) throw new UserNotFoundError(userId);
 
     // 1. 운동 마스터 단건 보장 또는 조회
     let defaultExercise = await prisma.exercises.findFirst({
@@ -93,15 +93,10 @@ export default class ExerciseService {
 
     // 3. 연료(+30 Fuel) 충전
     const gainedFuel = 30;
-    const travelState = await prisma.space_travel_states.upsert({
+    const travelState = await prisma.space_travel_states.update({
       where: { user_id: userId },
-      update: {
+      data: {
         current_fuel: { increment: gainedFuel },
-      },
-      create: {
-        user_id: userId,
-        current_fuel: gainedFuel,
-        current_planet_id: planetId,
       },
     });
 
@@ -116,6 +111,10 @@ export default class ExerciseService {
    * 맞춤 운동 추천 (호환성 유지)
    */
   public async recommendExercises(userId: number): Promise<ExerciseRecommendResponse> {
+    const prisma = getPrisma();
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) throw new UserNotFoundError(userId);
+
     return {
       exercises: ["가벼운 저녁 산책 20분 🍃", "맨몸 스쿼트 15회 3세트 💪", "스트레칭 10분 🧘"],
     };

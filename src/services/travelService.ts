@@ -1,6 +1,7 @@
 import { Service } from "typedi";
 import { getPrisma } from "@/loaders/prisma";
 import Logger from "@/loaders/logger";
+import { UserNotFoundError } from "@/utils/errors";
 import type { TravelStateResponse, FuelAddResponse } from "@/interfaces";
 
 export const ensureDefaultPlanet = async (prisma: any) => {
@@ -25,38 +26,33 @@ export default class TravelService {
    */
   public async getTravelState(userId: number): Promise<TravelStateResponse> {
     const prisma = getPrisma();
-    const planetId = await ensureDefaultPlanet(prisma);
 
-    let travelState = await prisma.space_travel_states.findUnique({
-      where: { user_id: userId },
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+      include: {
+        space_travel_states: true,
+        tammy_statuses: true,
+      },
     });
 
-    if (!travelState) {
-      travelState = await prisma.space_travel_states.create({
-        data: {
-          user_id: userId,
-          current_fuel: 0,
-          current_planet_id: planetId,
-        },
-      });
+    if (!user) {
+      throw new UserNotFoundError(userId);
     }
 
-    let tammyStatus = await prisma.tammy_statuses.findUnique({
-      where: { user_id: userId },
-    });
-
+    const travelState = user.space_travel_states;
+    const currentFuel = travelState?.current_fuel || 0;
     const requiredFuel = 300;
     const progressPercent = Math.min(
-      Math.floor((travelState.current_fuel / requiredFuel) * 100),
+      Math.floor((currentFuel / requiredFuel) * 100),
       100
     );
 
     return {
       currentPlanet: "아쿠아 웰니스 행성",
       explorationProgressPercent: progressPercent,
-      currentFuel: travelState.current_fuel,
+      currentFuel,
       requiredFuelForNextPlanet: requiredFuel,
-      tammyRelationshipLevel: tammyStatus?.level || 1,
+      tammyRelationshipLevel: user.tammy_statuses?.level || 1,
     };
   }
 
@@ -65,7 +61,9 @@ export default class TravelService {
    */
   public async addFuel(userId: number, actionType?: string): Promise<FuelAddResponse> {
     const prisma = getPrisma();
-    const planetId = await ensureDefaultPlanet(prisma);
+
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) throw new UserNotFoundError(userId);
 
     let gainedFuel = 10;
     if (actionType === "MEAL_LOG") gainedFuel = 50;
@@ -73,15 +71,10 @@ export default class TravelService {
     else if (actionType === "WATER_INTAKE") gainedFuel = 10;
     else if (actionType === "CHAT_MESSAGE") gainedFuel = 10;
 
-    const travelState = await prisma.space_travel_states.upsert({
+    const travelState = await prisma.space_travel_states.update({
       where: { user_id: userId },
-      update: {
+      data: {
         current_fuel: { increment: gainedFuel },
-      },
-      create: {
-        user_id: userId,
-        current_fuel: gainedFuel,
-        current_planet_id: planetId,
       },
     });
 

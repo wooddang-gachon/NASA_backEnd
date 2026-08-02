@@ -1,8 +1,8 @@
 import { Service, Inject } from "typedi";
 import AiService from "./aiService";
 import { getPrisma } from "@/loaders/prisma";
-import { ensureDefaultPlanet } from "./travelService";
 import Logger from "@/loaders/logger";
+import { UserNotFoundError } from "@/utils/errors";
 import type {
   FoodAnalyzeResponse,
   MealLogRegisterRequest,
@@ -47,7 +47,10 @@ export default class FoodService {
     request: MealLogRegisterRequest
   ): Promise<MealLogRegisterResponse> {
     const prisma = getPrisma();
-    const planetId = await ensureDefaultPlanet(prisma);
+
+    // 유저 검증 (자동 생성 금지)
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) throw new UserNotFoundError(userId);
 
     // 1. 식단 로그 DB 저장
     const meal = await prisma.meals.create({
@@ -67,40 +70,25 @@ export default class FoodService {
     const gainedFuel = 50;
     const gainedExp = 30;
 
-    let currentFuel = 50;
-    try {
-      const travelState = await prisma.space_travel_states.upsert({
-        where: { user_id: userId },
-        update: {
-          current_fuel: { increment: gainedFuel },
-        },
-        create: {
-          user_id: userId,
-          current_fuel: gainedFuel,
-          current_planet_id: planetId,
-        },
-      });
-      currentFuel = travelState.current_fuel;
+    const travelState = await prisma.space_travel_states.update({
+      where: { user_id: userId },
+      data: {
+        current_fuel: { increment: gainedFuel },
+      },
+    });
 
-      await prisma.tammy_statuses.upsert({
-        where: { user_id: userId },
-        update: {
-          current_exp: { increment: gainedExp },
-        },
-        create: {
-          user_id: userId,
-          current_exp: gainedExp,
-        },
-      });
-    } catch (e) {
-      Logger.error(`[FoodService] Failed to update tammy rewards for meal: ${e}`);
-    }
+    await prisma.tammy_statuses.update({
+      where: { user_id: userId },
+      data: {
+        current_exp: { increment: gainedExp },
+      },
+    });
 
     return {
       logId: Number(meal.id),
       gainedFuel,
       gainedExp,
-      currentFuel,
+      currentFuel: travelState.current_fuel,
     };
   }
 }

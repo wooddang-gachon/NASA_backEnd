@@ -2,6 +2,7 @@ import { Service, Inject } from "typedi";
 import AiService from "./aiService";
 import { getPrisma } from "@/loaders/prisma";
 import Logger from "@/loaders/logger";
+import { UserNotFoundError } from "@/utils/errors";
 import type { DashboardResponse, OndemandReportResponse } from "@/interfaces";
 
 @Service()
@@ -13,6 +14,9 @@ export default class ReportService {
    */
   public async getDashboard(userId: number, period: string = "WEEKLY"): Promise<DashboardResponse> {
     const prisma = getPrisma();
+
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) throw new UserNotFoundError(userId);
 
     const pastDays = period === "MONTHLY" ? 30 : 7;
     const startDate = new Date();
@@ -73,6 +77,9 @@ export default class ReportService {
    */
   public async generateOndemandReport(userId: number): Promise<OndemandReportResponse> {
     const prisma = getPrisma();
+
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) throw new UserNotFoundError(userId);
 
     // 1. 누적 웰니스 데이터 수집
     const dashboardData = await this.getDashboard(userId, "WEEKLY");
