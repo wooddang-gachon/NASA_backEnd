@@ -73,17 +73,17 @@ NASA_backEnd/
 
 ---
 
-## 🚀 5. 시작하기 (Getting Started)
+## ⚡ 5. 서버 실행 가이드 (Getting Started)
 
 ### 1) 환경 변수 설정 (`.env`)
-프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 아래 정보를 설정합니다:
+프로젝트 루트 디렉토리에 `.env` 파일을 생성하고 운영/Mock DB 정보를 설정합니다:
 
 ```env
-# Database URLs
-DATABASE_URL="mysql://root:password@localhost:3306/nasa_db"
-MOCK_DATABASE_URL="mysql://root:password@localhost:3306/nasa_mock_db"
+# Database Connection URLs
+DATABASE_URL="mysql://root:password@localhost:3306/nasa_db"          # 실운영 DB
+MOCK_DATABASE_URL="mysql://root:password@localhost:3306/nasa_mock_db" # 개발/테스트용 Mock DB
 
-# Environment State (development 설정 시 안전하게 MOCK_DATABASE_URL로 자동 스위칭)
+# Environment State (development 설정 시 안전하게 MOCK_DATABASE_URL로 자동 연동)
 NODE_ENV="development"
 
 # AI Server Connection
@@ -95,19 +95,41 @@ AI_SERVER_URL="http://localhost:8000"
 npm install
 ```
 
-### 3) TSOA Swagger & 라우트 빌드
-```bash
-npm run swagger
-```
+---
 
-### 4) 개발 서버 실행 (Mock DB 자동 연동)
+### 🟢 [방법 A] 개발 모드 실서버 구동 (Development Run)
+개발 중에 라우터를 자동 재빌드하며 Mock DB(`nasa_mock_db`)에 안전하게 연동하여 백엔드 서버를 띄우는 방식입니다.
+
 ```bash
+# 1. TSOA 라우트 & Swagger 문서 자동 생성
+npm run swagger
+
+# 2. 개발용 실서버 구동 (3000번 포트)
 npm run dev
 ```
-- 서버 접속 주소: `http://localhost:3000`
-- Swagger UI API 문서: `http://localhost:3000/api/docs`
+- **실서버 접속 주소**: `http://localhost:3000`
+- **Swagger UI 웹 테스트 주소**: `http://localhost:3000/api/docs`
 
-### 5) API 통합 자동화 테스트 실행
+---
+
+### 🔵 [방법 B] 실제 프로덕션 운영 서버 구동 (Production Run)
+실제 클라우드 서버 배포 시 컴파일된 JavaScript(`dist/`)로 최적의 성능으로 상시 구동하며, **실운영 DB(`nasa_db`)**와 **실제 AI 서버**에 직접 연동하는 정식 프로덕션 실행 방식입니다.
+
+```bash
+# 1. 프로덕션 빌드 (TypeScript 컴파일 & TSOA 라우트 생성)
+npm run build
+
+# 2. 실운영 프로덕션 서버 실행 (Production Start)
+NODE_ENV=production npm start
+```
+- **실운영 포트**: `3000` (환경변수 PORT에 따라 가동)
+- **연동 DB**: `DATABASE_URL` (`nasa_db`)
+
+---
+
+### 🧪 [방법 C] API 통합 자동화 테스트 실행 (Testing)
+Supertest + Jest 기반으로 13개 전체 백엔드 API 모듈의 HTTP 응답과 DB/AI 통신을 자동 검증합니다.
+
 ```bash
 npm test
 ```
