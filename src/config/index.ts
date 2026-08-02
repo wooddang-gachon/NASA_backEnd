@@ -23,6 +23,7 @@ export default {
     level: process.env.LOG_LEVEL || "silly",
   },
   ai: {
+    serverUrl: process.env.AI_SERVER_URL || "http://localhost:8000",
     apiKey: process.env.NVIDIA_GLM_5_2_API_KEY || "",
   },
 };
