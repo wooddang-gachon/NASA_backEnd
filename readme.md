@@ -120,7 +120,7 @@ npm run dev
 npm run build
 
 # 2. 실운영 프로덕션 서버 실행 (Production Start)
-NODE_ENV=production npm start
+npm start
 ```
 - **실운영 포트**: `3000` (환경변수 PORT에 따라 가동)
 - **연동 DB**: `DATABASE_URL` (`nasa_db`)

@@ -1,12 +1,12 @@
 {
   "name": "nasa_backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
+  "description": "NASA Wellness Backend API System with Tammy AI Virtual Pet",
+  "main": "dist/app.js",
   "scripts": {
     "test": "jest",
     "dev": "tsx watch src/app.ts",
-    "start": "node dist/app.js",
+    "start": "NODE_ENV=production node dist/app.js",
     "prebuild": "npm run swagger",
     "build": "tsc && tsc-alias",
     "typecheck": "tsc --noEmit",
