@@ -153,6 +153,5 @@ src/build/
 .DS_Store?
 **/._*
 
-docs
 demo
 .agents
