@@ -29,6 +29,36 @@ export interface OndemandReportRequest {
   userId: number;
 }
 
+export interface AsyncReportGenerateRequest {
+  /**
+   * 리포트 집계 기간
+   * @example "WEEKLY"
+   */
+  period?: "WEEKLY" | "MONTHLY";
+}
+
+export interface AsyncReportGenerateResponse {
+  jobId: string;
+  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+  message: string;
+}
+
+export interface ReportJobStatusResponse {
+  jobId: string;
+  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+  reportId?: number;
+  progressPercent: number;
+}
+
+export interface ReportDetailResponse {
+  reportId: number;
+  period: string;
+  summary: string;
+  wellnessScore: number;
+  aiRecommendation: string;
+  createdAt: string;
+}
+
 export interface OndemandReportResponse {
   /**
    * 생성된 리포트 고유 ID

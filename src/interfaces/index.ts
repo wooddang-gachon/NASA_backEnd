@@ -7,3 +7,4 @@ export * from "./travel";
 export * from "./logs";
 export * from "./user";
 export * from "./enums";
+export * from "./notification";

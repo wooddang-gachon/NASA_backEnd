@@ -1,12 +1,22 @@
-import { Controller, Route, Get, Post, Query, Body } from "tsoa";
-import { Service } from "typedi";
+import { Controller, Route, Get, Post, Query, Body, Path, Security, Request } from "tsoa";
+import { Service, Container } from "typedi";
 import ReportService from "../../services/reportService";
-import type { DashboardResponse, OndemandReportRequest, OndemandReportResponse } from "../../interfaces";
+import type {
+  DashboardResponse,
+  OndemandReportRequest,
+  OndemandReportResponse,
+  AsyncReportGenerateRequest,
+  AsyncReportGenerateResponse,
+  ReportJobStatusResponse,
+  ReportDetailResponse,
+} from "../../interfaces";
 
 @Service()
 @Route("reports")
 export class ReportController extends Controller {
-  constructor(private reportService: ReportService) {
+  private reportService = Container.get(ReportService);
+
+  constructor() {
     super();
   }
 
@@ -22,7 +32,42 @@ export class ReportController extends Controller {
   }
 
   /**
-   * 온디맨드 AI 타미 종합 건강 리포트 동적 생성
+   * 온디맨드 AI 종합 리포트 비동기 백그라운드 생성 요청
+   */
+  @Post("generate")
+  @Security("jwt")
+  public async generateReport(
+    @Request() request: any,
+    @Body() requestBody?: AsyncReportGenerateRequest
+  ): Promise<AsyncReportGenerateResponse> {
+    const userId = request.currentUser?.userId || 1;
+    this.setStatus(202);
+    return await this.reportService.generateAsyncReport(userId, requestBody?.period || "WEEKLY");
+  }
+
+  /**
+   * 리포트 백그라운드 생성 작업 상태 조회
+   */
+  @Get("jobs/{jobId}")
+  public async getJobStatus(@Path() jobId: string): Promise<ReportJobStatusResponse> {
+    return await this.reportService.getJobStatus(jobId);
+  }
+
+  /**
+   * 생성 완료된 리포트 상세 조회
+   */
+  @Get("{reportId}")
+  @Security("jwt")
+  public async getReport(
+    @Path() reportId: number,
+    @Request() request: any
+  ): Promise<ReportDetailResponse> {
+    const userId = request.currentUser?.userId || 1;
+    return await this.reportService.getReportById(reportId, userId);
+  }
+
+  /**
+   * 온디맨드 AI 타미 종합 건강 리포트 동적 생성 (동기)
    */
   @Post("ondemand")
   public async generateOndemandReport(

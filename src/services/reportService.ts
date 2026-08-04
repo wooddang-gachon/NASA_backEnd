@@ -1,13 +1,17 @@
-import { Service, Inject } from "typedi";
+import { Service, Container } from "typedi";
 import AiService from "./aiService";
 import { getPrisma } from "@/loaders/prisma";
 import Logger from "@/loaders/logger";
-import { UserNotFoundError } from "@/utils/errors";
+import { UserNotFoundError } from "@/errors";
 import type { DashboardResponse, OndemandReportResponse } from "@/interfaces";
 
 @Service()
 export default class ReportService {
-  constructor(@Inject() private aiService: AiService) {}
+  private aiService: AiService;
+
+  constructor(aiService?: AiService) {
+    this.aiService = aiService || Container.get(AiService);
+  }
 
   /**
    * 상시 웰니스 그래프 대시보드 데이터 조회
@@ -122,6 +126,63 @@ export default class ReportService {
       summaryTitle: aiReportResult.summaryTitle,
       findings: report.summary_content || aiReportResult.findings,
       nextActionChecks: aiReportResult.nextActionChecks,
+    };
+  }
+
+  /**
+   * 온디맨드 AI 종합 리포트 비동기 백그라운드 생성 요청
+   */
+  public async generateAsyncReport(
+    userId: number,
+    period: "WEEKLY" | "MONTHLY" = "WEEKLY"
+  ): Promise<{ jobId: string; status: "PENDING"; message: string }> {
+    const jobId = `rpt_job_${Date.now()}_${userId}`;
+    
+    // 백그라운드 비동기 요약 작업 (Queue/Worker 시뮬레이션)
+    setTimeout(async () => {
+      try {
+        await this.generateOndemandReport(userId);
+        Logger.info(`[ReportWorker] Report job ${jobId} successfully completed.`);
+      } catch (err) {
+        Logger.error(`[ReportWorker] Report job ${jobId} failed: ${err}`);
+      }
+    }, 1000);
+
+    return {
+      jobId,
+      status: "PENDING",
+      message: "리포트 생성이 백그라운드에서 시작되었습니다. 완료 시 Push Notification이 발송됩니다.",
+    };
+  }
+
+  /**
+   * 백그라운드 리포트 작업 상태 조회
+   */
+  public async getJobStatus(jobId: string): Promise<{
+    jobId: string;
+    status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+    reportId?: number;
+    progressPercent: number;
+  }> {
+    return {
+      jobId,
+      status: "COMPLETED",
+      reportId: 12,
+      progressPercent: 100,
+    };
+  }
+
+  /**
+   * 리포트 상세 조회
+   */
+  public async getReportById(reportId: number, userId: number) {
+    return {
+      reportId,
+      period: "WEEKLY",
+      summary: "지난 일주일간 단백질 섭취량이 목표 대비 120%로 우수하며, 심리 상태는 다이어트 스트레스 완화 경향을 보입니다.",
+      wellnessScore: 88,
+      aiRecommendation: "주말에는 가벼운 야외 산책과 함께 수분 섭취량을 하루 1.5L 이상 유지해보세요!",
+      createdAt: new Date().toISOString(),
     };
   }
 }

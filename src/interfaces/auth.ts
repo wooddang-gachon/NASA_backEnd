@@ -10,7 +10,7 @@ export interface UserSignUpRequest {
    * 보안성이 뛰어난 비밀번호입니다. (최소 8자, 최대 30자)
    * @minLength 8 비밀번호는 최소 8자 이상이어야 합니다.
    * @maxLength 30 비밀번호는 최대 30자를 초과할 수 없습니다.
-   * @example "password123!"
+   * @example "Password123!"
    */
   password: string;
 
@@ -18,9 +18,21 @@ export interface UserSignUpRequest {
    * 사용자 닉네임입니다. (최소 2자, 최대 20자)
    * @minLength 2
    * @maxLength 20
-   * @example "우주여행자"
+   * @example "우주탐험가"
    */
   nickname: string;
+
+  /**
+   * 일일 목표 수분 섭취량 (ml)
+   * @example 2000
+   */
+  targetDailyWaterMl?: number;
+
+  /**
+   * 일일 목표 칼로리 (kcal)
+   * @example 2000
+   */
+  targetDailyCaloriesKcal?: number;
 }
 
 export interface UserLoginRequest {
@@ -32,27 +44,77 @@ export interface UserLoginRequest {
 
   /**
    * 로그인용 비밀번호
-   * @example "password123!"
+   * @example "Password123!"
    */
   password: string;
 }
 
+export interface UserAuthProfile {
+  id: number;
+  email: string;
+  nickname: string;
+  authProvider: "LOCAL" | "KAKAO" | "GOOGLE" | "APPLE";
+}
+
 export interface UserLoginResponse {
+  user: UserAuthProfile;
   /**
-   * 인증 성공 후 발급되는 JWT 엑세스 토큰입니다.
-   * @example "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+   * 인증 성공 후 발급되는 JWT Access Token
+   * @example "eyJhbGciOiJIUzI1Ni..."
    */
   accessToken: string;
-
   /**
-   * 로그인에 성공한 사용자 ID
-   * @example 1
+   * 토큰 갱신용 JWT Refresh Token
+   * @example "eyJhbGciOiJIUzI1Ni..."
    */
-  userId: number;
+  refreshToken: string;
+}
 
+export interface UserLogoutRequest {
   /**
-   * 사용자 닉네임
-   * @example "우주여행자"
+   * 무효화 처리할 Refresh Token
+   * @example "eyJhbGciOiJIUzI1Ni..."
    */
+  refreshToken: string;
+}
+
+export interface UserLogoutResponse {
+  success: boolean;
+  message: string;
+}
+
+export interface TokenRefreshRequest {
+  /**
+   * Access Token 재발급용 Refresh Token
+   * @example "eyJhbGciOiJIUzI1Ni..."
+   */
+  refreshToken: string;
+}
+
+export interface TokenRefreshResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface UserAuthMeResponse {
+  id: number;
+  email: string;
   nickname: string;
+  authProvider: "LOCAL" | "KAKAO" | "GOOGLE" | "APPLE";
+  targetDailyWaterMl?: number;
+  targetDailyCaloriesKcal?: number;
+  createdAt: string;
+}
+
+export interface UserWithdrawRequest {
+  /**
+   * 탈퇴 사유
+   * @example "개인 사정"
+   */
+  reason?: string;
+}
+
+export interface UserWithdrawResponse {
+  success: boolean;
+  message: string;
 }

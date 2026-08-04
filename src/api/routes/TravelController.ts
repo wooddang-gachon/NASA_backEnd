@@ -1,12 +1,14 @@
 import { Controller, Route, Get, Post, Body, Query } from "tsoa";
-import { Service } from "typedi";
+import { Service, Container } from "typedi";
 import TravelService from "../../services/travelService";
 import type { TravelStateResponse, TravelFuelRequest, TravelFuelResponse } from "../../interfaces";
 
 @Service()
 @Route("travel")
 export class TravelController extends Controller {
-  constructor(private travelService: TravelService) {
+  private travelService = Container.get(TravelService);
+
+  constructor() {
     super();
   }
 

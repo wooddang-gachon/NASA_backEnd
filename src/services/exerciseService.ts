@@ -1,7 +1,7 @@
 import { Service } from "typedi";
 import { getPrisma } from "@/loaders/prisma";
 import Logger from "@/loaders/logger";
-import { UserNotFoundError } from "@/utils/errors";
+import { UserNotFoundError } from "@/errors";
 import type {
   WaterLogResponse,
   WorkoutLogResponse,

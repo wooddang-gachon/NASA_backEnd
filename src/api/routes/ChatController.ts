@@ -1,12 +1,14 @@
 import { Controller, Route, Post, Get, Delete, Body, Query, Path } from "tsoa";
-import { Service } from "typedi";
+import { Service, Container } from "typedi";
 import ChatService from "../../services/chatService";
 import type { ChatRequest, ChatResponse, MemoryPillDto } from "../../interfaces";
 
 @Service()
 @Route("ai")
 export class ChatController extends Controller {
-  constructor(private chatService: ChatService) {
+  private chatService = Container.get(ChatService);
+
+  constructor() {
     super();
   }
 
@@ -32,7 +34,9 @@ export class ChatController extends Controller {
 @Service()
 @Route("chat")
 export class MemoryController extends Controller {
-  constructor(private chatService: ChatService) {
+  private chatService = Container.get(ChatService);
+
+  constructor() {
     super();
   }
 

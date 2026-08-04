@@ -1,7 +1,7 @@
 import { Service } from "typedi";
 import { getPrisma } from "@/loaders/prisma";
 import Logger from "@/loaders/logger";
-import { UserNotFoundError } from "@/utils/errors";
+import { UserNotFoundError } from "@/errors";
 
 @Service()
 export default class UserService {
@@ -37,6 +37,33 @@ export default class UserService {
         currentExp: user.tammy_statuses?.current_exp || 0,
         currentFuel: user.space_travel_states?.current_fuel || 0,
       },
+    };
+  }
+
+  /**
+   * 타미 경험치/지수 변동 성장 일지 히스토리 조회 (tammy_status_logs 연동)
+   */
+  public async getTammyHistory(userId: number): Promise<any> {
+    const prisma = getPrisma();
+
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) throw new UserNotFoundError(userId);
+
+    const logs = await prisma.tammy_status_logs.findMany({
+      where: { user_id: userId },
+      orderBy: { created_at: "desc" },
+      take: 20,
+    });
+
+    return {
+      logs: logs.map((l: any) => ({
+        id: Number(l.id),
+        changeReason: l.change_reason,
+        deltaExp: l.delta_exp,
+        snapshotLevel: l.snapshot_level,
+        snapshotTotalExp: l.snapshot_total_exp,
+        createdAt: l.created_at.toISOString(),
+      })),
     };
   }
 }

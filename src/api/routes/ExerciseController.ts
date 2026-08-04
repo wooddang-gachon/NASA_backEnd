@@ -1,5 +1,5 @@
 import { Controller, Route, Get, Post, Body, Query } from "tsoa";
-import { Service } from "typedi";
+import { Service, Container } from "typedi";
 import ExerciseService from "../../services/exerciseService";
 import type {
   ExerciseRecommendResponse,
@@ -12,7 +12,9 @@ import type {
 @Service()
 @Route("care")
 export class CareController extends Controller {
-  constructor(private exerciseService: ExerciseService) {
+  private exerciseService = Container.get(ExerciseService);
+
+  constructor() {
     super();
   }
 
@@ -30,7 +32,9 @@ export class CareController extends Controller {
 @Service()
 @Route("exercise")
 export class ExerciseController extends Controller {
-  constructor(private exerciseService: ExerciseService) {
+  private exerciseService = Container.get(ExerciseService);
+
+  constructor() {
     super();
   }
 

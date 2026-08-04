@@ -5,8 +5,7 @@ import morgan from "morgan";
 import { RegisterRoutes } from "../build/routes";
 import config from "../config";
 import swaggerLoader from "./swagger";
-import Logger from "./logger";
-import { AppError } from "../utils/errors";
+import { globalErrorHandler } from "../api/middlewares/errorHandler";
 
 export default ({ app }: { app: express.Application }) => {
   app.get("/status", (req: Request, res: Response) => {
@@ -39,43 +38,6 @@ export default ({ app }: { app: express.Application }) => {
     });
   });
 
-  // 공통 에러 핸들러 미들웨어
-  app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    if (err instanceof AppError) {
-      if (err.status >= 500) {
-        Logger.error(`[AppError ${err.status}] ${err.code}: ${err.message}`);
-      } else {
-        Logger.warn(`[AppError ${err.status}] ${err.code}: ${err.message}`);
-      }
-
-      return res.status(err.status).json({
-        code: err.code,
-        message: err.message,
-        status: err.status,
-      });
-    }
-
-    // AiServerError 처리
-    if ((err as any).name === "AiServerError") {
-      const status = (err as any).status || 503;
-      const code = (err as any).code || "AI_SERVER_ERROR";
-      Logger.error(`[AiServerError ${status}] ${code}: ${err.message}`);
-
-      return res.status(status).json({
-        code,
-        message: err.message,
-        status,
-      });
-    }
-
-    // 일반 예외 처리
-    const statusCode = (err as any).status || 500;
-    Logger.error(`[Unhandled Error ${statusCode}]: ${err.message}`, err);
-
-    return res.status(statusCode).json({
-      code: (err as any).code || "INTERNAL_SERVER_ERROR",
-      message: err.message || "서버 내부 오류가 발생했습니다.",
-      status: statusCode,
-    });
-  });
+  // 공통 전역 에러 핸들러 미들웨어
+  app.use(globalErrorHandler);
 };
