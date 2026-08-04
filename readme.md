@@ -139,9 +139,8 @@ npm run build
 npm run prisma:prod:push
 npm run seed
 
-# 3. 실운영 프로덕션 서버 구동
-NODE_ENV=production npm start
-# 또는 npm start (.env에 NODE_ENV="production" 명시 시)
+# 3. 실운영 프로덕션 서버 구동 (스크립트 내 NODE_ENV=production 자동 세팅)
+npm start
 ```
 - **실운영 포트**: `3000`
 - **연동 DB**: `DATABASE_URL` (`nasa_db`)
