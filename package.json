@@ -5,8 +5,8 @@
   "main": "dist/app.js",
   "scripts": {
     "test": "jest",
-    "dev": "tsx watch src/app.ts",
-    "start": "node dist/app.js",
+    "dev": "NODE_ENV=development tsx watch src/app.ts",
+    "start": "NODE_ENV=production node dist/app.js",
     "prebuild": "npm run swagger",
     "build": "tsc && tsc-alias",
     "typecheck": "tsc --noEmit",
