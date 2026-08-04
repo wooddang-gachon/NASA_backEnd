@@ -62,7 +62,6 @@ export default class FoodService {
       data: {
         user_id: userId,
         meal_type: request.mealType,
-        image_url: request.imageUrl || (request.imageUrls && request.imageUrls[0]) || null,
         comment: request.foodName,
         total_calories_kcal: request.totalCaloriesKcal,
         total_carbohydrate_g: request.carbohydrateG,

@@ -25,4 +25,5 @@ export default {
     serverUrl: process.env.AI_SERVER_URL || "http://localhost:8000",
     apiKey: process.env.NVIDIA_GLM_5_2_API_KEY || "",
   },
+  jwtSecret: process.env.JWT_SECRET || "nasa_wellness_tammy_secret_key_2026",
 };

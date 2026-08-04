@@ -19,6 +19,7 @@ export const getTestApp = async (): Promise<express.Application> => {
     update: {},
     create: {
       id: 1,
+      email: "testuser@example.com",
       nickname: "우당탕탕",
       gender: "FEMALE",
       age: 26,

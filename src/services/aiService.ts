@@ -1,6 +1,7 @@
 import { Service } from "typedi";
 import config from "@/config";
 import Logger from "@/loaders/logger";
+import { AiServerError } from "@/errors";
 import type {
   AiChatInternalPayload,
   AiChatInternalResponse,
@@ -8,18 +9,6 @@ import type {
   AiReportInternalPayload,
   AiReportInternalResponse,
 } from "@/interfaces";
-
-export class AiServerError extends Error {
-  public code: string;
-  public status: number;
-
-  constructor(message: string, code: string = "AI_SERVER_ERROR", status: number = 503) {
-    super(message);
-    this.name = "AiServerError";
-    this.code = code;
-    this.status = status;
-  }
-}
 
 @Service()
 export default class AiService {

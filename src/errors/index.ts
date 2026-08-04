@@ -72,3 +72,12 @@ export class UserNotFoundError extends NotFoundError {
     );
   }
 }
+
+/**
+ * 503 Service Unavailable Exception (AI Server Failure)
+ */
+export class AiServerError extends AppError {
+  constructor(message: string = "AI 서버 연동에 실패하였습니다.", code: string = "AI_SERVER_UNAVAILABLE", status: number = 503) {
+    super(message, code, status);
+  }
+}

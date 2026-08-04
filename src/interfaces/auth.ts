@@ -22,6 +22,24 @@ export interface UserSignUpRequest {
    */
   nickname: string;
 
+  /** 성별 (MALE, FEMALE, UNKNOWN) */
+  gender?: string;
+
+  /** 나이 */
+  age?: number;
+
+  /** 목표 체중 (kg) */
+  targetWeightKg?: number;
+
+  /** 선호 운동 타입 */
+  preferredExercise?: string;
+
+  /** 운동 장소 (실내, 실외 등) */
+  exerciseLocation?: string;
+
+  /** 선호 운동 시간대 */
+  preferredExerciseTime?: string;
+
   /**
    * 일일 목표 수분 섭취량 (ml)
    * @example 2000
@@ -76,6 +94,9 @@ export interface UserLogoutRequest {
    * @example "eyJhbGciOiJIUzI1Ni..."
    */
   refreshToken: string;
+
+  /** 사용자 ID (선택) */
+  userId?: number;
 }
 
 export interface UserLogoutResponse {
