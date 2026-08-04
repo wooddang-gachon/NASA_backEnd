@@ -129,17 +129,23 @@ npm run dev
 ---
 
 ### 🔵 [방법 B] 실제 프로덕션 운영 서버 구동 (Production Run)
-`.env` 파일에 `NODE_ENV="production"`을 명시한 후 컴파일된 JavaScript(`dist/`)로 최적의 성능으로 상시 가동하며, **실운영 DB(`nasa_db`)**와 **실제 AI 서버**에 직접 연동하는 정식 실행 방식입니다.
+프로덕션 환경에서는 TypeScript 트랜스파일링 없이 정적 JavaScript 파일(`dist/`)로 최적의 성능으로 상시 가동하며, **실운영 DB(`nasa_db`)**와 직접 연동됩니다.
 
 ```bash
-# 1. 프로덕션 빌드 (TypeScript 컴파일 & TSOA 라우트 생성)
+# 1. 프로덕션 정적 파일 빌드 (TSOA 라우트 갱신 + tsc 컴파일 + tsc-alias 변환)
 npm run build
 
-# 2. 실운영 프로덕션 서버 실행
-npm start
+# 2. (선택) 상용 DB 스키마 동기화 & 가짜/시드 데이터 주입
+npm run prisma:prod:push
+npm run seed
+
+# 3. 실운영 프로덕션 서버 구동
+NODE_ENV=production npm start
+# 또는 npm start (.env에 NODE_ENV="production" 명시 시)
 ```
 - **실운영 포트**: `3000`
 - **연동 DB**: `DATABASE_URL` (`nasa_db`)
+- **실행 모드**: 고성능 JS 정적 컴파일 프로세스 가동 (`dist/app.js`)
 
 ---
 
