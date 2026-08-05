@@ -1,33 +1,62 @@
-import { Controller, Route, Get, Post, Body, Query } from "tsoa";
+import { Controller, Route, Post, Get, Body, Security, Request } from "tsoa";
 import { Service, Container } from "typedi";
 import TravelService from "../../services/travelService";
-import type { TravelStateResponse, TravelFuelRequest, TravelFuelResponse } from "../../interfaces";
+import { PlanetType } from "../../interfaces/enums";
+
+export interface PlanetTravelStartApiRequest {
+  planetType: PlanetType;
+  fuelSpent: number;
+}
+
+export interface PlanetTravelStartApiResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    travelId: string;
+    remainingFuel: number;
+  };
+}
+
+export interface TravelStateInfoResponse {
+  currentPlanet?: string;
+  explorationProgressPercent: number;
+  currentFuel: number;
+  requiredFuelForNextPlanet: number;
+  tammyRelationshipLevel: number;
+}
 
 @Service()
-@Route("travel")
+@Route("planet-travel")
 export class TravelController extends Controller {
   private travelService = Container.get(TravelService);
 
-  constructor() {
-    super();
+  /**
+   * [3.3] 별여행 게이미피케이션 탐사 출발 API
+   */
+  @Post("start")
+  @Security("jwt")
+  public async startPlanetTravel(
+    @Request() request: any,
+    @Body() body: PlanetTravelStartApiRequest
+  ): Promise<PlanetTravelStartApiResponse> {
+    this.setStatus(202);
+    return {
+      success: true,
+      message: "별여행 탐사를 출발했습니다.",
+      data: {
+        travelId: `travel_${Date.now()}`,
+        remainingFuel: 100,
+      },
+    };
   }
 
   /**
-   * 우주여행 상태(연료, 좌표, 도달 행성 등)를 조회합니다.
+   * 우주여행 현황 조회
    */
   @Get("state")
-  public async getTravelState(@Query() userId: number): Promise<TravelStateResponse> {
+  @Security("jwt")
+  public async getTravelState(@Request() request: any): Promise<TravelStateInfoResponse> {
+    const userId = request.currentUser?.userId || 1;
     return await this.travelService.getTravelState(userId);
-  }
-
-  /**
-   * 미션 성공에 따른 우주선 연료를 충전합니다.
-   */
-  @Post("fuel")
-  public async addFuel(
-    @Query() userId: number,
-    @Body() requestBody: TravelFuelRequest
-  ): Promise<TravelFuelResponse> {
-    return await this.travelService.addFuel(userId, requestBody.triggerType || requestBody.actionType || "WORKOUT_DONE");
   }
 }

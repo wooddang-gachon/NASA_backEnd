@@ -1,10 +1,16 @@
 export {
+  AuthProvider,
+  UserStatus,
   Gender,
+  LogCategory,
   PlanetType,
+  TravelStatus,
   Sender,
   MealType,
   EmotionState,
   ActivityType,
   TriggerType,
-  ProactiveStatus
+  ProactiveStatus,
+  ActionType,
+  ChangeReason,
 } from "@prisma/client";

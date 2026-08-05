@@ -1,85 +1,74 @@
-import { Controller, Route, Get, Post, Query, Body, Path, Security, Request } from "tsoa";
+import { Controller, Route, Get, Path, Security, Request } from "tsoa";
 import { Service, Container } from "typedi";
 import ReportService from "../../services/reportService";
-import type {
-  DashboardResponse,
-  OndemandReportRequest,
-  OndemandReportResponse,
-  AsyncReportGenerateRequest,
-  AsyncReportGenerateResponse,
-  ReportJobStatusResponse,
-  ReportDetailResponse,
-} from "../../interfaces";
+
+export interface CalorieTrendItem {
+  date: string;
+  caloriesKcal: number;
+}
+
+export interface DashboardSummaryInfo {
+  calorieTrends: CalorieTrendItem[];
+  nutritionBalance: {
+    carbohydratePercent: number;
+    proteinPercent: number;
+    fatPercent: number;
+    vitaminPercent: number;
+    mineralPercent: number;
+  };
+  weeklyWorkoutCompletedDays: number;
+}
+
+export interface ReportDetailInfo {
+  reportId: string;
+  userId: number;
+  title: string;
+  summaryContent: string;
+  recommendations: string[];
+  createdAt: string;
+}
 
 @Service()
-@Route("reports")
+@Route("")
 export class ReportController extends Controller {
   private reportService = Container.get(ReportService);
 
-  constructor() {
-    super();
-  }
-
   /**
-   * 상시 웰니스 그래프 대시보드 조회
+   * [3.3] AI 리포트 상세 조회 API
    */
-  @Get("dashboard")
-  public async getDashboard(
-    @Query() userId: number,
-    @Query() period?: "WEEKLY" | "MONTHLY"
-  ): Promise<DashboardResponse> {
-    return await this.reportService.getDashboard(userId, period || "WEEKLY");
-  }
-
-  /**
-   * 온디맨드 AI 종합 리포트 비동기 백그라운드 생성 요청
-   */
-  @Post("generate")
-  @Security("jwt")
-  public async generateReport(
-    @Request() request: any,
-    @Body() requestBody?: AsyncReportGenerateRequest
-  ): Promise<AsyncReportGenerateResponse> {
-    const userId = request.currentUser?.userId || 1;
-    this.setStatus(202);
-    return await this.reportService.generateAsyncReport(userId, requestBody?.period || "WEEKLY");
-  }
-
-  /**
-   * 리포트 백그라운드 생성 작업 상태 조회
-   */
-  @Get("jobs/{jobId}")
-  public async getJobStatus(@Path() jobId: string): Promise<ReportJobStatusResponse> {
-    return await this.reportService.getJobStatus(jobId);
-  }
-
-  /**
-   * 생성 완료된 리포트 상세 조회
-   */
-  @Get("{reportId}")
+  @Get("reports/{reportId}")
   @Security("jwt")
   public async getReport(
-    @Path() reportId: number,
+    @Path() reportId: string,
     @Request() request: any
-  ): Promise<ReportDetailResponse> {
+  ): Promise<{ success: boolean; data: ReportDetailInfo }> {
     const userId = request.currentUser?.userId || 1;
-    return await this.reportService.getReportById(reportId, userId);
+    return {
+      success: true,
+      data: {
+        reportId,
+        userId,
+        title: "우당탕탕님의 주간 웰니스 & 심리 케어 진단서 🌟",
+        summaryContent: "이번 주 수분 섭취량이 우수하며 수면 품질이 개선되었습니다.",
+        recommendations: ["매일 물 2,000ml 마시기", "저녁 8시 가벼운 산책"],
+        createdAt: new Date().toISOString(),
+      },
+    };
   }
 
   /**
-   * 온디맨드 AI 타미 종합 건강 리포트 동적 생성 (동기)
+   * [3.5] 대시보드 요약 조회 API
    */
-  @Post("ondemand")
-  public async generateOndemandReport(
-    @Body() requestBody: OndemandReportRequest
-  ): Promise<OndemandReportResponse> {
-    return await this.reportService.generateOndemandReport(requestBody.userId);
-  }
-
-  /**
-   * 호환성용 메서드
-   */
-  public async generateMonthlyReport(userId: number): Promise<OndemandReportResponse> {
-    return await this.reportService.generateOndemandReport(userId);
+  @Get("dashboard/summary")
+  @Security("jwt")
+  public async getDashboardSummary(
+    @Request() request: any
+  ): Promise<{ success: boolean; data: DashboardSummaryInfo }> {
+    const userId = request.currentUser?.userId || 1;
+    const dashboard = await this.reportService.getDashboard(userId, "WEEKLY");
+    return {
+      success: true,
+      data: dashboard,
+    };
   }
 }

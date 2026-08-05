@@ -14,8 +14,8 @@ export interface UserSignUpRequest {
   preferredExercise?: string;
   exerciseLocation?: string;
   preferredExerciseTime?: string;
-  targetDailyWaterMl?: number;
-  targetDailyCaloriesKcal?: number;
+  waterGoalMl?: number;
+  calorieGoalKcal?: number;
 }
 
 export interface UserLoginRequest {
@@ -60,8 +60,9 @@ export interface UserAuthMeResponse {
   email: string;
   nickname: string;
   authProvider: "LOCAL" | "KAKAO" | "GOOGLE" | "APPLE";
-  targetDailyWaterMl?: number;
-  targetDailyCaloriesKcal?: number;
+  waterGoalMl?: number;
+  calorieGoalKcal?: number;
+  currentFuel?: number;
   createdAt: string;
 }
 
@@ -79,12 +80,14 @@ export interface UserProfileResponse {
   nickname: string;
   gender: string | null;
   age: number | null;
-  targetWeightKg: number;
-  preferredExercise: string;
+  targetWeightKg: number | null;
+  preferredExercise: string | null;
+  waterGoalMl: number;
+  calorieGoalKcal: number;
+  currentFuel: number;
   tammyStatus: {
     level: number;
     currentExp: number;
-    currentFuel: number;
   };
 }
 
@@ -101,12 +104,15 @@ export function toUserCreateInput(
     password_hash: passwordHash,
     auth_provider: "LOCAL",
     nickname: data.nickname,
-    gender: (data.gender as any) || "UNKNOWN",
+    gender: (data.gender as any) || null,
     age: data.age || 20,
     target_weight_kg: data.targetWeightKg ? String(data.targetWeightKg) : null,
     preferred_exercise: data.preferredExercise || null,
     exercise_location: data.exerciseLocation || null,
     preferred_exercise_time: data.preferredExerciseTime || null,
+    water_goal_ml: data.waterGoalMl || 2000,
+    calorie_goal_kcal: data.calorieGoalKcal || 2000,
+    current_fuel: 0,
     status: "ACTIVE",
     tammy_statuses: {
       create: {
@@ -116,14 +122,6 @@ export function toUserCreateInput(
         health_index: 50,
         activity_index: 50,
         happiness_index: 50,
-      },
-    },
-    space_travel_states: {
-      create: {
-        current_planet_id: 1,
-        current_fuel: 0,
-        ship_coordinate_x: 0,
-        ship_coordinate_y: 0,
       },
     },
   };
@@ -144,8 +142,9 @@ export function toUserAuthMeResponse(user: users): UserAuthMeResponse {
     email: user.email,
     nickname: user.nickname,
     authProvider: user.auth_provider,
-    targetDailyWaterMl: 2000,
-    targetDailyCaloriesKcal: 2000,
+    waterGoalMl: user.water_goal_ml ?? 2000,
+    calorieGoalKcal: user.calorie_goal_kcal ?? 2000,
+    currentFuel: user.current_fuel ?? 0,
     createdAt: user.created_at.toISOString(),
   };
 }
@@ -168,6 +167,9 @@ export class UserModel {
   public preferredExercise?: string | null;
   public exerciseLocation?: string | null;
   public preferredExerciseTime?: string | null;
+  public waterGoalMl?: number | null;
+  public calorieGoalKcal?: number | null;
+  public currentFuel?: number | null;
   public refreshToken?: string | null;
   public status!: "ACTIVE" | "INACTIVE" | "WITHDRAWN";
   public lastLoginAt?: Date | null;
@@ -176,19 +178,5 @@ export class UserModel {
 
   constructor(init?: Partial<UserModel>) {
     Object.assign(this, init);
-  }
-
-  /**
-   * ID로 사용자 정보를 조회합니다. (스텁)
-   */
-  public static async findById(id: number): Promise<UserModel | null> {
-    throw new Error("Method not implemented.");
-  }
-
-  /**
-   * 이메일로 사용자 정보를 조회합니다. (스텁)
-   */
-  public static async findByEmail(email: string): Promise<User | null> {
-    throw new Error("Method not implemented.");
   }
 }

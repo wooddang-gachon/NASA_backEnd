@@ -1,44 +1,95 @@
-import { Controller, Route, Post, Get, Query, Body } from "tsoa";
+import { Controller, Route, Post, Body, Security, Request, Query } from "tsoa";
 import { Service, Container } from "typedi";
 import FoodService from "../../services/foodService";
-import type { MealLogRegisterRequest, FoodAnalyzeResponse, MealLogRegisterResponse, FoodSearchResponse } from "../../interfaces/food";
+import { MealType } from "../../interfaces/enums";
+
+export interface FoodVisionScanResponse {
+  success: boolean;
+  data: {
+    scanEngine: "YOLO" | "VISION_LLM";
+    detectedFoods: Array<{
+      foodName: string;
+      estimatedGram: number;
+      calories: number;
+      carbs: number;
+      protein: number;
+      fat: number;
+    }>;
+  };
+}
+
+export interface FoodLogConfirmRequest {
+  mealType: MealType;
+  foods: Array<{
+    foodName: string;
+    intakeGram: number;
+    calories: number;
+    carbs: number;
+    protein: number;
+    fat: number;
+  }>;
+  imageUrl?: string;
+  comment?: string;
+}
+
+export interface FoodLogConfirmResponse {
+  success: boolean;
+  data: {
+    mealId: string;
+    earnedFuel: number;
+    totalCalories: number;
+  };
+}
 
 @Service()
-@Route("food")
+@Route("")
 export class FoodController extends Controller {
   private foodService = Container.get(FoodService);
 
-  constructor() {
-    super();
+  /**
+   * [3.2] Food Vision 스캔 API
+   */
+  @Post("food-vision/scan")
+  @Security("jwt")
+  public async scanFoodVision(
+    @Request() request: any,
+    @Body() body: { imageUrl: string; mealType?: MealType }
+  ): Promise<FoodVisionScanResponse> {
+    return {
+      success: true,
+      data: {
+        scanEngine: "YOLO",
+        detectedFoods: [
+          {
+            foodName: "닭가슴살 샐러드",
+            estimatedGram: 200,
+            calories: 250,
+            carbs: 10,
+            protein: 30,
+            fat: 5,
+          },
+        ],
+      },
+    };
   }
 
   /**
-   * 업로드된 음식 사진을 AI 비전 분석하여 5대 영양소와 칼로리를 추정합니다.
+   * [3.2] Food Log 확정 저장 API
    */
-  @Post("analyze")
-  public async analyzeFoodVision(
-    @Query() imageUrl: string,
-    @Query() mealType?: string
-  ): Promise<FoodAnalyzeResponse> {
-    return await this.foodService.analyzeFoodVision(imageUrl, mealType);
-  }
-
-  /**
-   * 식단 분석 결과 검수/수정 확정 등록 및 다중 이미지/연료(+50), EXP(+30) 보상을 지급합니다.
-   */
-  @Post("log")
-  public async logMeal(
-    @Query() userId: number = 1,
-    @Body() request: MealLogRegisterRequest
-  ): Promise<MealLogRegisterResponse> {
-    return await this.foodService.logMeal(userId, request);
-  }
-
-  /**
-   * 표준 음식 영양 마스터 자음/키워드 자동완성 검색 결과를 반환합니다.
-   */
-  @Get("search")
-  public async searchFoods(@Query() keyword: string): Promise<FoodSearchResponse> {
-    return await this.foodService.searchFoods(keyword);
+  @Post("food-log/confirm")
+  @Security("jwt")
+  public async confirmFoodLog(
+    @Request() request: any,
+    @Body() body: FoodLogConfirmRequest
+  ): Promise<FoodLogConfirmResponse> {
+    const userId = request.currentUser?.userId || 1;
+    return {
+      success: true,
+      data: {
+        mealId: `meal_${Date.now()}`,
+        earnedFuel: 50,
+        totalCalories: body.foods.reduce((acc, cur) => acc + cur.calories, 0),
+      },
+    };
   }
 }

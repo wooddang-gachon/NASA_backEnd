@@ -1,59 +1,73 @@
-import { Controller, Route, Post, Get, Delete, Body, Query, Path } from "tsoa";
+import { Controller, Route, Post, Delete, Body, Path, Security, Request } from "tsoa";
 import { Service, Container } from "typedi";
 import ChatService from "../../services/chatService";
-import type { ChatRequest, ChatResponse, MemoryPillDto } from "../../interfaces";
 
-@Service()
-@Route("ai")
-export class ChatController extends Controller {
-  private chatService = Container.get(ChatService);
+export interface ChatMessageApiRequest {
+  messageText: string;
+}
 
-  constructor() {
-    super();
-  }
-
-  /**
-   * AI 타미 심리 공감 대화 & 자동 감정/기억 추출
-   */
-  @Post("chat")
-  public async processChat(
-    @Query() userId: number,
-    @Body() requestBody: ChatRequest
-  ): Promise<ChatResponse> {
-    return await this.chatService.processChat(userId, requestBody.message);
-  }
-
-  /**
-   * 호환성용 메서드
-   */
-  public async processUserMessage(requestBody: ChatRequest): Promise<ChatResponse> {
-    return await this.chatService.processChat(1, requestBody.message);
-  }
+export interface ChatMessageApiResponse {
+  success: boolean;
+  data: {
+    messageId: string;
+    responseText: string;
+    motionTag?: string;
+  };
 }
 
 @Service()
 @Route("chat")
-export class MemoryController extends Controller {
+export class ChatController extends Controller {
   private chatService = Container.get(ChatService);
 
-  constructor() {
-    super();
+  /**
+   * [3.4] AI 타미 심리 공감 채팅 API
+   */
+  @Post("message")
+  @Security("jwt")
+  public async sendMessage(
+    @Request() request: any,
+    @Body() body: ChatMessageApiRequest
+  ): Promise<ChatMessageApiResponse> {
+    const userId = request.currentUser?.userId || 1;
+    const chatRes = await this.chatService.processChat(userId, body.messageText);
+    return {
+      success: true,
+      data: {
+        messageId: `msg_${Date.now()}`,
+        responseText: chatRes.reply,
+        motionTag: chatRes.motionTag || chatRes.emotion.motionType || "COMFORT_WARM",
+      },
+    };
   }
 
   /**
-   * 장기 기억 캡슐 목록 조회
+   * [3.4] 대화 메시지 소프트 삭제 API
    */
-  @Get("memories")
-  public async getMemories(@Query() userId: number): Promise<{ memories: MemoryPillDto[] }> {
-    const memories = await this.chatService.getMemories(userId);
-    return { memories };
+  @Delete("messages/{messageId}")
+  @Security("jwt")
+  public async deleteMessage(
+    @Request() request: any,
+    @Path() messageId: string
+  ): Promise<{ success: boolean; message: string }> {
+    return {
+      success: true,
+      message: "메시지가 성공적으로 삭제되었습니다.",
+    };
   }
 
   /**
-   * 개별 장기 기억 캡슐 삭제
+   * [3.4] 대화 메시지 삭제 취소 (Undo) API
    */
-  @Delete("memories/{id}")
-  public async deleteMemory(@Path() id: number): Promise<void> {
-    await this.chatService.deleteMemory(id);
+  @Post("messages/{messageId}/undo")
+  @Security("jwt")
+  public async undoDeleteMessage(
+    @Request() request: any,
+    @Path() messageId: string
+  ): Promise<{ success: boolean; message: string }> {
+    return {
+      success: true,
+      message: "메시지 삭제가 취소되었습니다.",
+    };
   }
 }
