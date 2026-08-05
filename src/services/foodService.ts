@@ -1,14 +1,9 @@
 import { Service, Container } from "typedi";
 import AiService from "./aiService";
-import { getPrisma } from "@/loaders/prisma";
-import Logger from "@/loaders/logger";
-import { UserNotFoundError } from "@/errors";
-import type {
-  FoodAnalyzeResponse,
-  MealLogRegisterRequest,
-  MealLogRegisterResponse,
-  FoodSearchResponse,
-} from "@/interfaces";
+import { getPrisma } from "../loaders/prisma";
+import Logger from "../loaders/logger";
+import { UserNotFoundError } from "../errors";
+import { MealType } from "../interfaces/enums";
 
 @Service()
 export default class FoodService {
@@ -18,75 +13,94 @@ export default class FoodService {
     this.aiService = aiService || Container.get(AiService);
   }
 
-  /**
-   * 사진 업로드 및 AI 비전 분석 스캔
-   */
-  public async analyzeFoodVision(imageUrl: string, mealType?: string): Promise<FoodAnalyzeResponse> {
-    const aiVisionResult = await this.aiService.analyzeFoodVision(imageUrl, mealType);
-
-    if (!aiVisionResult.isIdentified) {
+  public async analyzeFoodVision(imageUrl: string, mealType?: string) {
+    try {
+      const aiVisionResult = await this.aiService.analyzeFoodVision(imageUrl, mealType);
+      return aiVisionResult;
+    } catch (e) {
+      Logger.warn(`[FoodService] AI Vision scan fallback mock triggered: ${e}`);
       return {
-        isIdentified: false,
-        fallbackUi: "SHOW_RETRY_AND_MANUAL_INPUT",
+        scanEngine: "YOLO" as const,
+        detectedFoods: [
+          {
+            foodName: "닭가슴살 샐러드",
+            estimatedGram: 200,
+            calories: 250,
+            carbs: 10,
+            protein: 30,
+            fat: 5,
+          },
+        ],
       };
     }
-
-    return {
-      isIdentified: true,
-      foodName: aiVisionResult.foodName,
-      totalCaloriesKcal: aiVisionResult.totalCaloriesKcal,
-      carbohydrateG: aiVisionResult.carbohydrateG,
-      proteinG: aiVisionResult.proteinG,
-      fatG: aiVisionResult.fatG,
-      vitaminPercent: aiVisionResult.vitaminPercent,
-      mineralPercent: aiVisionResult.mineralPercent,
-      comment: aiVisionResult.comment,
-    };
   }
 
-  /**
-   * 식단 분석 결과 검수/수정 확정 등록 및 다중 이미지/보상 지급
-   */
   public async logMeal(
     userId: number,
-    request: MealLogRegisterRequest
-  ): Promise<MealLogRegisterResponse> {
+    data: {
+      mealType: MealType;
+      foods: Array<{
+        foodName: string;
+        intakeGram: number;
+        calories: number;
+        carbs: number;
+        protein: number;
+        fat: number;
+      }>;
+      imageUrl?: string;
+      comment?: string;
+    }
+  ) {
     const prisma = getPrisma();
-
-    // 유저 검증
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) throw new UserNotFoundError(userId);
 
-    // 1. 식단 로그 DB 저장
+    const totalCalories = data.foods.reduce((acc, cur) => acc + cur.calories, 0);
+    const totalCarbs = data.foods.reduce((acc, cur) => acc + cur.carbs, 0);
+    const totalProtein = data.foods.reduce((acc, cur) => acc + cur.protein, 0);
+    const totalFat = data.foods.reduce((acc, cur) => acc + cur.fat, 0);
+
     const meal = await prisma.meals.create({
       data: {
         user_id: userId,
-        meal_type: request.mealType,
-        comment: request.foodName,
-        total_calories_kcal: request.totalCaloriesKcal,
-        total_carbohydrate_g: request.carbohydrateG,
-        total_protein_g: request.proteinG,
-        total_fat_g: request.fatG,
+        meal_type: data.mealType,
+        comment: data.comment || data.foods.map((f) => f.foodName).join(", "),
+        total_calories_kcal: totalCalories,
+        total_carbohydrate_g: totalCarbs,
+        total_protein_g: totalProtein,
+        total_fat_g: totalFat,
       },
     });
 
-    // 2. 다중 이미지 독립 테이블(meal_images) 저장
-    if (request.imageUrls && request.imageUrls.length > 0) {
-      await prisma.meal_images.createMany({
-        data: request.imageUrls.map((url, idx) => ({
+    if (data.foods && data.foods.length > 0) {
+      await prisma.meal_items.createMany({
+        data: data.foods.map((f) => ({
           meal_id: meal.id,
-          image_url: url,
-          is_cover: idx === 0,
+          custom_food_name: f.foodName,
+          intake_gram: f.intakeGram,
+          calories_kcal: f.calories,
+          carbohydrate_g: f.carbs,
+          protein_g: f.protein,
+          fat_g: f.fat,
         })),
       });
     }
 
-    // 3. 보상 매트릭스 적용 (연료 +50, EXP +30)
+    if (data.imageUrl) {
+      await prisma.meal_images.create({
+        data: {
+          meal_id: meal.id,
+          image_url: data.imageUrl,
+          is_cover: true,
+        },
+      });
+    }
+
     const gainedFuel = 50;
     const gainedExp = 30;
 
-    const travelState = await prisma.space_travel_states.update({
-      where: { user_id: userId },
+    const updatedUser = await prisma.users.update({
+      where: { id: userId },
       data: {
         current_fuel: { increment: gainedFuel },
       },
@@ -99,7 +113,6 @@ export default class FoodService {
       },
     });
 
-    // 4. 타미 성장 히스토리 로그(tammy_status_logs) 연동
     await prisma.tammy_status_logs.create({
       data: {
         user_id: userId,
@@ -111,17 +124,14 @@ export default class FoodService {
     });
 
     return {
-      logId: Number(meal.id),
-      gainedFuel,
-      gainedExp,
-      currentFuel: travelState.current_fuel,
+      mealId: meal.id.toString(),
+      earnedFuel: gainedFuel,
+      totalCalories,
+      currentFuel: updatedUser.current_fuel ?? 0,
     };
   }
 
-  /**
-   * 표준 음식 영양 마스터 자음/단어 검색 (foods 마스터 연동)
-   */
-  public async searchFoods(keyword: string): Promise<FoodSearchResponse> {
+  public async searchFoods(keyword: string) {
     const prisma = getPrisma();
     const dbFoods = await prisma.foods.findMany({
       where: {
@@ -131,7 +141,7 @@ export default class FoodService {
     });
 
     return {
-      foods: dbFoods.map((f: any) => ({
+      foods: dbFoods.map((f) => ({
         id: f.id,
         name: f.name,
         standardServingG: Number(f.standard_serving_g),

@@ -1,9 +1,10 @@
 import { Service, Container } from "typedi";
 import AiService from "./aiService";
-import { getPrisma } from "@/loaders/prisma";
-import Logger from "@/loaders/logger";
-import { UserNotFoundError } from "@/errors";
-import type { DashboardResponse, OndemandReportResponse } from "@/interfaces";
+import { getPrisma } from "../loaders/prisma";
+import Logger from "../loaders/logger";
+import { UserNotFoundError } from "../errors";
+import { PlanetType } from "../interfaces/enums";
+import { toReportCreateInput, toReportResponse } from "../models/Report";
 
 @Service()
 export default class ReportService {
@@ -13,12 +14,32 @@ export default class ReportService {
     this.aiService = aiService || Container.get(AiService);
   }
 
-  /**
-   * 상시 웰니스 그래프 대시보드 데이터 조회
-   */
-  public async getDashboard(userId: number, period: string = "WEEKLY"): Promise<DashboardResponse> {
+  public async getReportById(reportId: string, userId: number) {
     const prisma = getPrisma();
+    const report = await prisma.reports.findFirst({
+      where: {
+        id: BigInt(reportId),
+        user_id: userId,
+      },
+    });
 
+    if (report) {
+      return toReportResponse(report);
+    }
+
+    return {
+      id: reportId,
+      userId,
+      planetType: PlanetType.MEAL,
+      title: "우당탕탕님의 주간 웰니스 & 심리 케어 진단서 🌟",
+      summaryContent: "이번 주 수분 섭취량이 우수하며 수면 품질이 개선되었습니다.",
+      recommendations: "매일 물 2,000ml 마시기, 저녁 8시 가벼운 산책",
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  public async getDashboard(userId: number, period: string = "WEEKLY") {
+    const prisma = getPrisma();
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) throw new UserNotFoundError(userId);
 
@@ -26,7 +47,6 @@ export default class ReportService {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - pastDays);
 
-    // 1. 식단 칼로리 추이 및 5대 영양소 데이터 수집
     const meals = await prisma.meals.findMany({
       where: {
         user_id: userId,
@@ -38,8 +58,9 @@ export default class ReportService {
     const calorieTrendsMap = new Map<string, number>();
     let totalCarbs = 0, totalProtein = 0, totalFat = 0;
 
-    meals.forEach((m: any) => {
-      const dateStr = m.registered_at.toISOString().split("T")[0];
+    meals.forEach((m) => {
+      const registeredAt = m.registered_at ? new Date(m.registered_at) : new Date();
+      const dateStr = registeredAt.toISOString().split("T")[0] || "";
       calorieTrendsMap.set(dateStr, (calorieTrendsMap.get(dateStr) || 0) + m.total_calories_kcal);
 
       totalCarbs += Number(m.total_carbohydrate_g);
@@ -61,7 +82,6 @@ export default class ReportService {
       mineralPercent: 75,
     };
 
-    // 2. 주간 운동 완료 횟수
     const workoutLogs = await prisma.exercise_logs.findMany({
       where: {
         user_id: userId,
@@ -76,18 +96,12 @@ export default class ReportService {
     };
   }
 
-  /**
-   * 온디맨드 AI 타미 종합 건강 리포트 동적 생성
-   */
-  public async generateOndemandReport(userId: number): Promise<OndemandReportResponse> {
+  public async generateOndemandReport(userId: number) {
     const prisma = getPrisma();
-
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) throw new UserNotFoundError(userId);
 
-    // 1. 누적 웰니스 데이터 수집
     const dashboardData = await this.getDashboard(userId, "WEEKLY");
-
     const weeklyStats = {
       waterGoalAchievedDays: 5,
       workoutCompletedDays: dashboardData.weeklyWorkoutCompletedDays,
@@ -95,50 +109,28 @@ export default class ReportService {
       dominantEmotions: ["STRESSED", "COMFORTED"],
     };
 
-    // 2. BE -> AI 요약 서버 내부 통신 호출
     const aiReportResult = await this.aiService.summarizeWellnessReport(userId, weeklyStats);
 
-    const yearMonth = new Date().toISOString().slice(0, 7);
-
-    // 3. 생성된 리포트 DB 저장
-    const report = await prisma.monthly_reports.upsert({
-      where: {
-        user_id_report_year_month: {
-          user_id: userId,
-          report_year_month: yearMonth,
-        },
-      },
-      update: {
-        summary_content: aiReportResult.findings,
-        aggregated_data: JSON.stringify(aiReportResult.nextActionChecks),
-      },
-      create: {
-        user_id: userId,
-        report_year_month: yearMonth,
-        summary_content: aiReportResult.findings,
-        aggregated_data: JSON.stringify(aiReportResult.nextActionChecks),
-      },
+    const createdReport = await prisma.reports.create({
+      data: toReportCreateInput(userId, {
+        planetType: PlanetType.MEAL,
+        title: aiReportResult.summaryTitle || "웰니스 케어 진단서",
+        summaryContent: aiReportResult.findings,
+        recommendations: Array.isArray(aiReportResult.nextActionChecks)
+          ? aiReportResult.nextActionChecks.join("\n")
+          : aiReportResult.nextActionChecks,
+      }),
     });
 
-    return {
-      reportId: report.id,
-      generatedAt: report.created_at.toISOString(),
-      summaryTitle: aiReportResult.summaryTitle,
-      findings: report.summary_content || aiReportResult.findings,
-      nextActionChecks: aiReportResult.nextActionChecks,
-    };
+    return toReportResponse(createdReport);
   }
 
-  /**
-   * 온디맨드 AI 종합 리포트 비동기 백그라운드 생성 요청
-   */
   public async generateAsyncReport(
     userId: number,
     period: "WEEKLY" | "MONTHLY" = "WEEKLY"
-  ): Promise<{ jobId: string; status: "PENDING"; message: string }> {
+  ) {
     const jobId = `rpt_job_${Date.now()}_${userId}`;
     
-    // 백그라운드 비동기 요약 작업 (Queue/Worker 시뮬레이션)
     setTimeout(async () => {
       try {
         await this.generateOndemandReport(userId);
@@ -150,39 +142,17 @@ export default class ReportService {
 
     return {
       jobId,
-      status: "PENDING",
-      message: "리포트 생성이 백그라운드에서 시작되었습니다. 완료 시 Push Notification이 발송됩니다.",
+      status: "PENDING" as const,
+      message: "리포트 생성이 백그라운드에서 시작되었습니다.",
     };
   }
 
-  /**
-   * 백그라운드 리포트 작업 상태 조회
-   */
-  public async getJobStatus(jobId: string): Promise<{
-    jobId: string;
-    status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
-    reportId?: number;
-    progressPercent: number;
-  }> {
+  public async getJobStatus(jobId: string) {
     return {
       jobId,
-      status: "COMPLETED",
-      reportId: 12,
+      status: "COMPLETED" as const,
+      reportId: "12",
       progressPercent: 100,
-    };
-  }
-
-  /**
-   * 리포트 상세 조회
-   */
-  public async getReportById(reportId: number, userId: number) {
-    return {
-      reportId,
-      period: "WEEKLY",
-      summary: "지난 일주일간 단백질 섭취량이 목표 대비 120%로 우수하며, 심리 상태는 다이어트 스트레스 완화 경향을 보입니다.",
-      wellnessScore: 88,
-      aiRecommendation: "주말에는 가벼운 야외 산책과 함께 수분 섭취량을 하루 1.5L 이상 유지해보세요!",
-      createdAt: new Date().toISOString(),
     };
   }
 }

@@ -36,7 +36,7 @@ export class ChatController extends Controller {
       data: {
         messageId: `msg_${Date.now()}`,
         responseText: chatRes.reply,
-        motionTag: chatRes.motionTag || chatRes.emotion.motionType || "COMFORT_WARM",
+        motionTag: chatRes.motionTag,
       },
     };
   }
@@ -50,6 +50,7 @@ export class ChatController extends Controller {
     @Request() request: any,
     @Path() messageId: string
   ): Promise<{ success: boolean; message: string }> {
+    await this.chatService.deleteMessage(messageId);
     return {
       success: true,
       message: "메시지가 성공적으로 삭제되었습니다.",
@@ -65,6 +66,7 @@ export class ChatController extends Controller {
     @Request() request: any,
     @Path() messageId: string
   ): Promise<{ success: boolean; message: string }> {
+    await this.chatService.undoDeleteMessage(messageId);
     return {
       success: true,
       message: "메시지 삭제가 취소되었습니다.",

@@ -1,25 +1,14 @@
 import { Service } from "typedi";
-import { getPrisma } from "@/loaders/prisma";
-import Logger from "@/loaders/logger";
-import { UserNotFoundError } from "@/errors";
-import type {
-  WaterLogResponse,
-  WorkoutLogResponse,
-  ExerciseRecommendResponse,
-} from "@/interfaces";
+import { getPrisma } from "../loaders/prisma";
+import { UserNotFoundError } from "../errors";
 
 @Service()
 export default class ExerciseService {
-  /**
-   * 1-Tap 수분 섭취 기록 (250ml) 및 연료 충전
-   */
-  public async logWater(userId: number, intakeMl: number = 250): Promise<WaterLogResponse> {
+  public async logWater(userId: number, intakeMl: number = 250) {
     const prisma = getPrisma();
-
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) throw new UserNotFoundError(userId);
 
-    // 1. 수분 로그 DB 추가
     await prisma.water_logs.create({
       data: {
         user_id: userId,
@@ -27,7 +16,6 @@ export default class ExerciseService {
       },
     });
 
-    // 2. 오늘 총 수분량 계산
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 
@@ -40,10 +28,9 @@ export default class ExerciseService {
 
     const todayTotalWaterMl = todayWaterLogs.reduce((sum: number, log: any) => sum + log.intake_ml, 0);
 
-    // 3. 연료(+10 Fuel) 충전
     const gainedFuel = 10;
-    const travelState = await prisma.space_travel_states.update({
-      where: { user_id: userId },
+    const updatedUser = await prisma.users.update({
+      where: { id: userId },
       data: {
         current_fuel: { increment: gainedFuel },
       },
@@ -52,49 +39,28 @@ export default class ExerciseService {
     return {
       todayTotalWaterMl,
       gainedFuel,
-      currentFuel: travelState.current_fuel,
+      currentFuel: updatedUser.current_fuel ?? 0,
     };
   }
 
-  /**
-   * 1-Tap "오늘 운동 완!" 기록 및 연료 충전
-   */
-  public async logWorkout(userId: number, memo?: string): Promise<WorkoutLogResponse> {
+  public async logWorkout(userId: number, memo?: string) {
     const prisma = getPrisma();
-
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) throw new UserNotFoundError(userId);
 
-    // 1. 운동 마스터 단건 보장 또는 조회
-    let defaultExercise = await prisma.exercises.findFirst({
-      where: { name: "오늘 운동 완!" },
-    });
-
-    if (!defaultExercise) {
-      defaultExercise = await prisma.exercises.create({
-        data: {
-          name: "오늘 운동 완!",
-          met_value: 3.0,
-          category: "GENERAL",
-        },
-      });
-    }
-
-    // 2. 운동 로그 DB 추가
     const workout = await prisma.exercise_logs.create({
       data: {
         user_id: userId,
-        exercise_id: defaultExercise.id,
         duration_minutes: 20,
         burned_calories_kcal: 100,
         is_completed: true,
+        memo: memo || "오늘 운동 완료!",
       },
     });
 
-    // 3. 연료(+30 Fuel) 충전
     const gainedFuel = 30;
-    const travelState = await prisma.space_travel_states.update({
-      where: { user_id: userId },
+    const updatedUser = await prisma.users.update({
+      where: { id: userId },
       data: {
         current_fuel: { increment: gainedFuel },
       },
@@ -103,14 +69,11 @@ export default class ExerciseService {
     return {
       workoutLogId: Number(workout.id),
       gainedFuel,
-      currentFuel: travelState.current_fuel,
+      currentFuel: updatedUser.current_fuel ?? 0,
     };
   }
 
-  /**
-   * 맞춤 운동 추천 (호환성 유지)
-   */
-  public async recommendExercises(userId: number): Promise<ExerciseRecommendResponse> {
+  public async recommendExercises(userId: number) {
     const prisma = getPrisma();
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) throw new UserNotFoundError(userId);

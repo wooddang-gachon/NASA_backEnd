@@ -1,5 +1,6 @@
 import { Controller, Route, Post, Body, Security, Request } from "tsoa";
-import { Service } from "typedi";
+import { Service, Container } from "typedi";
+import QuickLogService from "../../services/quickLogService";
 import { LogCategory } from "../../interfaces/enums";
 
 export interface QuickLogApiRequest {
@@ -23,6 +24,8 @@ export interface QuickLogApiResponse {
 @Service()
 @Route("quick-log")
 export class QuickLogController extends Controller {
+  private quickLogService = Container.get(QuickLogService);
+
   /**
    * [3.1] 1-Tap 퀵버튼 데일리 기록 API
    */
@@ -34,13 +37,6 @@ export class QuickLogController extends Controller {
   ): Promise<QuickLogApiResponse> {
     const userId = request.currentUser?.userId || 1;
     this.setStatus(201);
-    return {
-      success: true,
-      data: {
-        logId: `log_${Date.now()}`,
-        earnedFuel: 10,
-        totalFuel: 100,
-      },
-    };
+    return await this.quickLogService.createQuickLog(userId, requestBody);
   }
 }

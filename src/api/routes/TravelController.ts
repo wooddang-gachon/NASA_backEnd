@@ -39,15 +39,9 @@ export class TravelController extends Controller {
     @Request() request: any,
     @Body() body: PlanetTravelStartApiRequest
   ): Promise<PlanetTravelStartApiResponse> {
+    const userId = request.currentUser?.userId || 1;
     this.setStatus(202);
-    return {
-      success: true,
-      message: "별여행 탐사를 출발했습니다.",
-      data: {
-        travelId: `travel_${Date.now()}`,
-        remainingFuel: 100,
-      },
-    };
+    return await this.travelService.startPlanetTravel(userId, body);
   }
 
   /**

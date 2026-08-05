@@ -1,4 +1,4 @@
-import { Controller, Route, Post, Body, Security, Request, Query } from "tsoa";
+import { Controller, Route, Post, Body, Security, Request } from "tsoa";
 import { Service, Container } from "typedi";
 import FoodService from "../../services/foodService";
 import { MealType } from "../../interfaces/enums";
@@ -55,21 +55,10 @@ export class FoodController extends Controller {
     @Request() request: any,
     @Body() body: { imageUrl: string; mealType?: MealType }
   ): Promise<FoodVisionScanResponse> {
+    const res = await this.foodService.analyzeFoodVision(body.imageUrl, body.mealType);
     return {
       success: true,
-      data: {
-        scanEngine: "YOLO",
-        detectedFoods: [
-          {
-            foodName: "닭가슴살 샐러드",
-            estimatedGram: 200,
-            calories: 250,
-            carbs: 10,
-            protein: 30,
-            fat: 5,
-          },
-        ],
-      },
+      data: res as any,
     };
   }
 
@@ -83,12 +72,13 @@ export class FoodController extends Controller {
     @Body() body: FoodLogConfirmRequest
   ): Promise<FoodLogConfirmResponse> {
     const userId = request.currentUser?.userId || 1;
+    const res = await this.foodService.logMeal(userId, body);
     return {
       success: true,
       data: {
-        mealId: `meal_${Date.now()}`,
-        earnedFuel: 50,
-        totalCalories: body.foods.reduce((acc, cur) => acc + cur.calories, 0),
+        mealId: res.mealId,
+        earnedFuel: res.earnedFuel,
+        totalCalories: res.totalCalories,
       },
     };
   }

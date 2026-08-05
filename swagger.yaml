@@ -6,6 +6,12 @@ components:
   requestBodies: {}
   responses: {}
   schemas:
+    _36_Enums.Gender:
+      type: string
+      enum:
+        - MALE
+        - FEMALE
+        - OTHER
     PlanetTravelStartApiResponse:
       properties:
         success:
@@ -655,7 +661,56 @@ paths:
           description: Ok
           content:
             application/json:
-              schema: {}
+              schema:
+                properties:
+                  tammyStatus:
+                    properties:
+                      currentExp:
+                        type: number
+                        format: double
+                      level:
+                        type: number
+                        format: double
+                    required:
+                      - currentExp
+                      - level
+                    type: object
+                  currentFuel:
+                    type: number
+                    format: double
+                  calorieGoalKcal:
+                    type: number
+                    format: double
+                  waterGoalMl:
+                    type: number
+                    format: double
+                  preferredExercise:
+                    type: string
+                  targetWeightKg:
+                    type: number
+                    format: double
+                  age:
+                    type: number
+                    format: double
+                  gender:
+                    $ref: "#/components/schemas/_36_Enums.Gender"
+                  nickname:
+                    type: string
+                  userId:
+                    type: number
+                    format: double
+                required:
+                  - tammyStatus
+                  - currentFuel
+                  - calorieGoalKcal
+                  - waterGoalMl
+                  - preferredExercise
+                  - targetWeightKg
+                  - age
+                  - gender
+                  - nickname
+                  - userId
+                type: object
       description: 내 프로필 및 타미 상태 정보를 조회합니다.
       security: []
       parameters:
@@ -674,7 +729,31 @@ paths:
           description: Ok
           content:
             application/json:
-              schema: {}
+              schema:
+                properties:
+                  logs:
+                    items:
+                      properties:
+                        createdAt: {}
+                        snapshotTotalExp: {}
+                        snapshotLevel: {}
+                        deltaExp: {}
+                        changeReason: {}
+                        id:
+                          type: number
+                          format: double
+                      required:
+                        - createdAt
+                        - snapshotTotalExp
+                        - snapshotLevel
+                        - deltaExp
+                        - changeReason
+                        - id
+                      type: object
+                    type: array
+                required:
+                  - logs
+                type: object
       description: 타미 경험치/지수 변동 성장 일지 히스토리를 조회합니다.
       security: []
       parameters:

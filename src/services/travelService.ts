@@ -1,54 +1,60 @@
 import { Service } from "typedi";
-import { getPrisma } from "@/loaders/prisma";
-import Logger from "@/loaders/logger";
-import { UserNotFoundError } from "@/errors";
-import type { TravelStateResponse, FuelAddResponse } from "@/interfaces";
-
-export const ensureDefaultPlanet = async (prisma: any) => {
-  let planet = await prisma.planets.findUnique({
-    where: { id: 1 },
-  });
-
-  if (!planet) {
-    try {
-      planet = await prisma.planets.create({
-        data: {
-          id: 1,
-          name: "아쿠아 웰니스 행성",
-          planet_type: "EXERCISE",
-          required_fuel: 300,
-          description: "최초의 바이오리듬 웰니스 행성",
-        },
-      });
-    } catch (e) {
-      planet = await prisma.planets.findFirst();
-    }
-  }
-  return planet ? planet.id : 1;
-};
+import { getPrisma } from "../loaders/prisma";
+import Logger from "../loaders/logger";
+import { UserNotFoundError } from "../errors";
+import { PlanetTravelStartRequest } from "../interfaces/travel";
+import { toPlanetTravelCreateInput } from "../models/PlanetTravel";
 
 @Service()
 export default class TravelService {
-  /**
-   * 우주선 & 별여행 탐사 상태 조회
-   */
-  public async getTravelState(userId: number): Promise<TravelStateResponse> {
+  public async startPlanetTravel(userId: number, data: PlanetTravelStartRequest) {
     const prisma = getPrisma();
+    Logger.info(`[TravelService] Starting planet travel for userId ${userId}, planetType: ${data.planetType}`);
 
+    const user = await prisma.users.findUnique({ where: { id: userId } });
+    if (!user) throw new UserNotFoundError(userId);
+
+    const currentFuel = user.current_fuel ?? 0;
+    if (currentFuel < data.fuelSpent) {
+      throw new Error(`보유 연료가 부족합니다. (현재: ${currentFuel}, 필요: ${data.fuelSpent})`);
+    }
+
+    const updatedUser = await prisma.users.update({
+      where: { id: userId },
+      data: {
+        current_fuel: {
+          decrement: data.fuelSpent,
+        },
+      },
+    });
+
+    const travel = await prisma.planet_travels.create({
+      data: toPlanetTravelCreateInput(userId, data),
+    });
+
+    return {
+      success: true,
+      message: "별여행 탐사를 출발했습니다.",
+      data: {
+        travelId: travel.id.toString(),
+        remainingFuel: updatedUser.current_fuel ?? 0,
+        status: travel.status,
+      },
+    };
+  }
+
+  public async getTravelState(userId: number) {
+    const prisma = getPrisma();
     const user = await prisma.users.findUnique({
       where: { id: userId },
       include: {
-        space_travel_states: true,
         tammy_statuses: true,
       },
     });
 
-    if (!user) {
-      throw new UserNotFoundError(userId);
-    }
+    if (!user) throw new UserNotFoundError(userId);
 
-    const travelState = user.space_travel_states;
-    const currentFuel = travelState?.current_fuel || 0;
+    const currentFuel = user.current_fuel ?? 0;
     const requiredFuel = 300;
     const progressPercent = Math.min(
       Math.floor((currentFuel / requiredFuel) * 100),
@@ -64,12 +70,8 @@ export default class TravelService {
     };
   }
 
-  /**
-   * 웰니스 행동에 따른 미션 연료 충전 & 행성 워프(Warp) 계산
-   */
-  public async addFuel(userId: number, actionType?: string): Promise<FuelAddResponse> {
+  public async addFuel(userId: number, actionType?: string) {
     const prisma = getPrisma();
-
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) throw new UserNotFoundError(userId);
 
@@ -79,15 +81,16 @@ export default class TravelService {
     else if (actionType === "WATER_INTAKE") gainedFuel = 10;
     else if (actionType === "CHAT_MESSAGE") gainedFuel = 10;
 
-    const travelState = await prisma.space_travel_states.update({
-      where: { user_id: userId },
+    const updatedUser = await prisma.users.update({
+      where: { id: userId },
       data: {
         current_fuel: { increment: gainedFuel },
       },
     });
 
     const requiredFuel = 300;
-    const isWarped = travelState.current_fuel >= requiredFuel;
+    const currentFuel = updatedUser.current_fuel ?? 0;
+    const isWarped = currentFuel >= requiredFuel;
 
     let newPlanetName: string | undefined = undefined;
     if (isWarped) {
@@ -97,7 +100,7 @@ export default class TravelService {
 
     return {
       gainedFuel,
-      currentFuel: travelState.current_fuel,
+      currentFuel,
       isWarped,
       newPlanetName,
     };
