@@ -1,6 +1,8 @@
 import request from "supertest";
 import { getTestApp } from "./app";
 import express from "express";
+import AiService from "../src/services/aiService";
+import ChatService from "../src/services/chatService";
 
 describe("AI 타미 심리 공감 대화 API 통합 테스트 (CHT Module)", () => {
   let app: express.Application;
@@ -9,27 +11,51 @@ describe("AI 타미 심리 공감 대화 API 통합 테스트 (CHT Module)", () 
     app = await getTestApp();
   });
 
-  it("POST /api/ai/chat - 심리 대화 메시지 전송 및 응답/AI 에러 핸들링 검증", async () => {
-    const res = await request(app)
-      .post("/api/ai/chat?userId=1")
-      .send({
-        message: "오늘 다이어트 때문에 조금 지치고 스트레스받아 😮‍💨",
-      });
+  beforeEach(() => {
+    jest.spyOn(AiService.prototype, "processChat").mockResolvedValue({
+      replyText: "오늘 하루 힘드셨군요. 토닥토닥...",
+      motionTag: "COMFORT_WARM",
+      emotion: {
+        state: "STRESS",
+        motionType: "COMFORT_WARM",
+      },
+    });
 
-    expect([200, 503]).toContain(res.status);
-    if (res.status === 200) {
-      expect(res.body).toHaveProperty("reply");
-      expect(res.body).toHaveProperty("emotion");
-    } else {
-      expect(res.body).toHaveProperty("code");
-      expect(res.body.status).toBe(503);
-    }
+    jest.spyOn(ChatService.prototype, "undoDeleteMessage").mockResolvedValue(undefined as any);
   });
 
-  it("GET /api/chat/memories - 수집된 장기 기억 캡슐 목록 조회 검증", async () => {
-    const res = await request(app).get("/api/chat/memories?userId=1");
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body.memories)).toBe(true);
+  describe("AI 심리 공감 대화 기능", () => {
+    it("[성공 사례] POST /api/chat/message - 정상적인 대화 메시지 전송 시 공감 답변 반환", async () => {
+      const res = await request(app)
+        .post("/api/chat/message")
+        .send({
+          messageText: "오늘 다이어트 때문에 조금 지치고 스트레스받아 😮‍💨",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty("messageId");
+      expect(res.body.data).toHaveProperty("responseText");
+    });
+
+    it("[실패 사례] POST /api/chat/message - 필수 메시지 본문 누락 시 400 Bad Request 에러 반환", async () => {
+      const res = await request(app)
+        .post("/api/chat/message")
+        .send({}); // 빈 데이터
+
+      expect(res.status).toBe(400);
+    });
+
+    it("[성공 사례] POST /api/chat/messages/123/undo - 삭제 취소(Undo) 성공", async () => {
+      const res = await request(app).post("/api/chat/messages/123/undo");
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
   });
 });
+

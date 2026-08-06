@@ -1,18 +1,25 @@
 export interface PushTokenRegisterRequest {
   /**
-   * 푸시 알림 발송 디바이스 토큰 (FCM/APNs)
-   * @example "fcm_device_token_example_12345"
+   * 클라이언트 앱에서 FCM/APNs SDK를 통해 발급받은 디바이스 토큰
+   * @example "fcm_device_token_sample_12345"
    */
   deviceToken: string;
 
   /**
-   * 클라이언트 플랫폼 타입
+   * 기기 운영체제 타입 (IOS | ANDROID | WEB)
    * @example "IOS"
    */
-  platform: "IOS" | "ANDROID";
+  deviceType?: "IOS" | "ANDROID" | "WEB";
 }
 
 export interface PushTokenRegisterResponse {
   success: boolean;
   message: string;
+}
+
+export interface SendPushNotificationRequest {
+  userId: number;
+  title: string;
+  body: string;
+  data?: Record<string, string>;
 }

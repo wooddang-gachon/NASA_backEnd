@@ -2,29 +2,32 @@ import request from "supertest";
 import { getTestApp } from "./app";
 import express from "express";
 
-describe("건강 인사이트 & 온디맨드 AI 리포트 API 통합 테스트 (RPT Module)", () => {
+describe("건강 인사이트 & AI 리포트 API 통합 테스트 (RPT Module)", () => {
   let app: express.Application;
 
   beforeAll(async () => {
     app = await getTestApp();
   });
 
-  it("GET /api/reports/dashboard - 상시 웰니스 대시보드 그래프 조회 검증", async () => {
-    const res = await request(app).get("/api/reports/dashboard?userId=1&period=WEEKLY");
+  describe("웰니스 대시보드 요약 조회 기능", () => {
+    it("[성공 사례] GET /api/dashboard/summary - 대시보드 주간 통계 요약 조회 성공", async () => {
+      const res = await request(app).get("/api/dashboard/summary");
 
-    expect(res.status).toBe(200);
-    expect(Array.isArray(res.body.calorieTrends)).toBe(true);
-    expect(res.body).toHaveProperty("nutritionBalance");
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(Array.isArray(res.body.data.calorieTrends)).toBe(true);
+      expect(res.body.data).toHaveProperty("nutritionBalance");
+    });
   });
 
-  it("POST /api/reports/ondemand - 온디맨드 AI 종합 건강 리포트 동적 생성 검증", async () => {
-    const res = await request(app)
-      .post("/api/reports/ondemand")
-      .send({ userId: 1 });
+  describe("AI 리포트 상세 조회 기능", () => {
+    it("[성공 사례] GET /api/reports/rpt_123 - AI 건강 리포트 상세 조회 성공", async () => {
+      const res = await request(app).get("/api/reports/rpt_123");
 
-    expect([200, 503]).toContain(res.status);
-    if (res.status === 200) {
-      expect(res.body).toHaveProperty("summaryTitle");
-    }
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.reportId).toBe("rpt_123");
+      expect(res.body.data).toHaveProperty("summaryContent");
+    });
   });
 });

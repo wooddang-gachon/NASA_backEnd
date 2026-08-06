@@ -9,6 +9,7 @@ import type {
   TokenRefreshResponse,
   UserWithdrawRequest,
   UserWithdrawResponse,
+  SocialLoginRequest,
 } from "../../interfaces";
 
 @Service()
@@ -40,6 +41,14 @@ export class AuthController extends Controller {
   @Post("login")
   public async login(@Body() requestBody: UserLoginRequest): Promise<UserLoginResponse> {
     return await this.authService.login(requestBody);
+  }
+
+  /**
+   * [3.6] 구글 / 카카오 / 애플 소셜 로그인 API
+   */
+  @Post("social-login")
+  public async socialLogin(@Body() requestBody: SocialLoginRequest): Promise<UserLoginResponse> {
+    return await this.authService.socialLogin(requestBody);
   }
 
   /**

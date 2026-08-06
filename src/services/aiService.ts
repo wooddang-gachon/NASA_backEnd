@@ -1,7 +1,10 @@
 import { Service } from "typedi";
+import fs from "fs";
+import path from "path";
 import config from "@/config";
 import Logger from "@/loaders/logger";
 import { AiServerError } from "@/errors";
+import { compressImageBuffer } from "../utils/imageCompressor";
 import type {
   AiChatInternalPayload,
   AiChatInternalResponse,
@@ -67,10 +70,39 @@ export default class AiService {
   ): Promise<AiVisionInternalResponse> {
     try {
       Logger.info(`[AiService] Requesting food vision analysis for image ${imageUrl}`);
+
+      let base64CompressedImage: string | undefined;
+
+      // 로컬 업로드 이미지인 경우 저화질(512x512, q=60)로 경량화 압축하여 AI 서버로 전달
+      const cleanPath = imageUrl.startsWith("/") ? imageUrl.substring(1) : imageUrl;
+      const localFilePath = path.join(process.cwd(), cleanPath);
+
+      if (fs.existsSync(localFilePath)) {
+        try {
+          const rawBuffer = fs.readFileSync(localFilePath);
+          const compressedBuffer = await compressImageBuffer(rawBuffer, {
+            maxWidth: 512,
+            maxHeight: 512,
+            quality: 60,
+            format: "jpeg",
+          });
+          base64CompressedImage = `data:image/jpeg;base64,${compressedBuffer.toString("base64")}`;
+          Logger.info(
+            `[AiService] Compressed image for AI server (${rawBuffer.length} B -> ${compressedBuffer.length} B)`
+          );
+        } catch (compressErr) {
+          Logger.warn(`[AiService] Image compression fallback: ${compressErr}`);
+        }
+      }
+
       const response = await fetch(`${config.ai.serverUrl}/v1/vision/analyze-food`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl, mealType }),
+        body: JSON.stringify({
+          imageUrl,
+          mealType,
+          base64Image: base64CompressedImage,
+        }),
       });
 
       if (!response.ok) {

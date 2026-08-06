@@ -1,12 +1,15 @@
-import { Controller, Route, Post, Body, Security, Request } from "tsoa";
+import { Controller, Route, Post, Body, Security, Request, UploadedFile, FormField } from "tsoa";
 import { Service, Container } from "typedi";
 import FoodService from "../../services/foodService";
 import { MealType } from "../../interfaces/enums";
+import path from "path";
+import fs from "fs";
 
 export interface FoodVisionScanResponse {
   success: boolean;
   data: {
     scanEngine: "YOLO" | "VISION_LLM";
+    imageUrl?: string;
     detectedFoods: Array<{
       foodName: string;
       estimatedGram: number;
@@ -47,7 +50,7 @@ export class FoodController extends Controller {
   private foodService = Container.get(FoodService);
 
   /**
-   * [3.2] Food Vision 스캔 API
+   * [3.2] Food Vision 스캔 API (URL 기반)
    */
   @Post("food-vision/scan")
   @Security("jwt")
@@ -59,6 +62,42 @@ export class FoodController extends Controller {
     return {
       success: true,
       data: res as any,
+    };
+  }
+
+  /**
+   * [3.2] Food Vision 파일 직접 업로드 & 스캔 API (multipart/form-data)
+   */
+  @Post("food-vision/upload-and-scan")
+  @Security("jwt")
+  public async uploadAndScanFoodVision(
+    @UploadedFile("file") file: Express.Multer.File,
+    @FormField("mealType") mealType?: MealType
+  ): Promise<FoodVisionScanResponse> {
+    if (!file) {
+      throw new Error("업로드할 이미지 파일(file)이 누락되었습니다.");
+    }
+
+    const uploadsDir = path.join(process.cwd(), "uploads");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const ext = path.extname(file.originalname) || ".jpg";
+    const filename = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+
+    fs.writeFileSync(filePath, file.buffer);
+
+    const imageUrl = `/uploads/${filename}`;
+    const res = await this.foodService.analyzeFoodVision(imageUrl, mealType);
+
+    return {
+      success: true,
+      data: {
+        ...(res as any),
+        imageUrl,
+      },
     };
   }
 

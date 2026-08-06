@@ -1,7 +1,7 @@
 import { Service } from "typedi";
 import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
-import { UserNotFoundError } from "../errors";
+import { UserNotFoundError, BadRequestError } from "../errors";
 import { PlanetTravelStartRequest } from "../interfaces/travel";
 import { toPlanetTravelCreateInput } from "../models/PlanetTravel";
 
@@ -16,7 +16,7 @@ export default class TravelService {
 
     const currentFuel = user.current_fuel ?? 0;
     if (currentFuel < data.fuelSpent) {
-      throw new Error(`보유 연료가 부족합니다. (현재: ${currentFuel}, 필요: ${data.fuelSpent})`);
+      throw new BadRequestError(`보유 연료가 부족합니다. (현재: ${currentFuel}, 필요: ${data.fuelSpent})`, "INSUFFICIENT_FUEL");
     }
 
     const updatedUser = await prisma.users.update({

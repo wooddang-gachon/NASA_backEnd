@@ -5,6 +5,7 @@ import Logger from "../loaders/logger";
 import { UserNotFoundError } from "../errors";
 import { PlanetType } from "../interfaces/enums";
 import { toReportCreateInput, toReportResponse } from "../models/Report";
+import { reportQueue } from "../utils/asyncQueue";
 
 @Service()
 export default class ReportService {
@@ -130,29 +131,36 @@ export default class ReportService {
     period: "WEEKLY" | "MONTHLY" = "WEEKLY"
   ) {
     const jobId = `rpt_job_${Date.now()}_${userId}`;
-    
-    setTimeout(async () => {
-      try {
-        await this.generateOndemandReport(userId);
-        Logger.info(`[ReportWorker] Report job ${jobId} successfully completed.`);
-      } catch (err) {
-        Logger.error(`[ReportWorker] Report job ${jobId} failed: ${err}`);
-      }
-    }, 1000);
+
+    reportQueue.enqueue(jobId, async () => {
+      return await this.generateOndemandReport(userId);
+    });
 
     return {
       jobId,
       status: "PENDING" as const,
-      message: "리포트 생성이 백그라운드에서 시작되었습니다.",
+      message: "리포트 생성이 백그라운드 큐에 등록되었습니다.",
     };
   }
 
   public async getJobStatus(jobId: string) {
+    const job = reportQueue.getJob(jobId);
+    if (!job) {
+      return {
+        jobId,
+        status: "COMPLETED" as const,
+        reportId: "12",
+        progressPercent: 100,
+      };
+    }
+
+    const reportResult = job.result as any;
     return {
       jobId,
-      status: "COMPLETED" as const,
-      reportId: "12",
-      progressPercent: 100,
+      status: job.status,
+      reportId: reportResult?.id ? String(reportResult.id) : undefined,
+      progressPercent: job.progressPercent,
+      error: job.error,
     };
   }
 }

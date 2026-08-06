@@ -139,3 +139,24 @@ export interface UserWithdrawResponse {
   success: boolean;
   message: string;
 }
+
+export interface SocialLoginRequest {
+  /**
+   * 소셜 로그인 제공자 (GOOGLE | KAKAO | APPLE)
+   * @example "KAKAO"
+   */
+  provider: "GOOGLE" | "KAKAO" | "APPLE";
+
+  /**
+   * 구글/카카오/애플 소셜 로그인 인증 토큰 (access_token 또는 id_token)
+   * @example "ya29.a0AfH6SM..."
+   */
+  token: string;
+
+  /**
+   * 신규 가입 시 기본 설정할 닉네임 (선택)
+   * @example "우주탐험가"
+   */
+  nickname?: string;
+}
+

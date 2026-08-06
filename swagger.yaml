@@ -12,6 +12,25 @@ components:
         - MALE
         - FEMALE
         - OTHER
+    ImageUploadResponse:
+      properties:
+        success:
+          type: boolean
+        data:
+          properties:
+            filename:
+              type: string
+            imageUrl:
+              type: string
+          required:
+            - filename
+            - imageUrl
+          type: object
+      required:
+        - success
+        - data
+      type: object
+      additionalProperties: false
     PlanetTravelStartApiResponse:
       properties:
         success:
@@ -292,6 +311,8 @@ components:
                   - foodName
                 type: object
               type: array
+            imageUrl:
+              type: string
             scanEngine:
               type: string
               enum:
@@ -604,6 +625,29 @@ components:
         - password
       type: object
       additionalProperties: false
+    SocialLoginRequest:
+      properties:
+        provider:
+          type: string
+          enum:
+            - GOOGLE
+            - KAKAO
+            - APPLE
+          description: 소셜 로그인 제공자 (GOOGLE | KAKAO | APPLE)
+          example: KAKAO
+        token:
+          type: string
+          description: 구글/카카오/애플 소셜 로그인 인증 토큰 (access_token 또는 id_token)
+          example: ya29.a0AfH6SM...
+        nickname:
+          type: string
+          description: 신규 가입 시 기본 설정할 닉네임 (선택)
+          example: 우주탐험가
+      required:
+        - provider
+        - token
+      type: object
+      additionalProperties: false
     TokenRefreshResponse:
       properties:
         accessToken:
@@ -764,6 +808,32 @@ paths:
             default: 1
             format: double
             type: number
+  /upload/image:
+    post:
+      operationId: UploadImage
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImageUploadResponse"
+      description: "[파일 업로드] 로컬 이미지 단일 파일 업로드 API (multipart/form-data)"
+      security:
+        - jwt: []
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+                - file
   /planet-travel/start:
     post:
       operationId: StartPlanetTravel
@@ -921,7 +991,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FoodVisionScanResponse"
-      description: "[3.2] Food Vision 스캔 API"
+      description: "[3.2] Food Vision 스캔 API (URL 기반)"
       security:
         - jwt: []
       parameters: []
@@ -938,6 +1008,34 @@ paths:
               required:
                 - imageUrl
               type: object
+  /food-vision/upload-and-scan:
+    post:
+      operationId: UploadAndScanFoodVision
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FoodVisionScanResponse"
+      description: "[3.2] Food Vision 파일 직접 업로드 & 스캔 API (multipart/form-data)"
+      security:
+        - jwt: []
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                mealType:
+                  $ref: "#/components/schemas/MealType"
+              required:
+                - file
   /food-log/confirm:
     post:
       operationId: ConfirmFoodLog
@@ -1146,6 +1244,25 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/UserLoginRequest"
+  /auth/social-login:
+    post:
+      operationId: SocialLogin
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLoginResponse"
+      description: "[3.6] 구글 / 카카오 / 애플 소셜 로그인 API"
+      security: []
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SocialLoginRequest"
   /auth/refresh:
     post:
       operationId: Refresh

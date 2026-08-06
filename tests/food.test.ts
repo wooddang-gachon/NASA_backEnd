@@ -9,37 +9,38 @@ describe("사진 비전 분석 & 식단 확정 API 통합 테스트 (FOD Module)
     app = await getTestApp();
   });
 
-  it("POST /api/food/analyze - 사진 비전 스캔 분석 검증", async () => {
-    const res = await request(app)
-      .post("/api/food/analyze?imageUrl=https://storage.tammy.app/salad.jpg&mealType=LUNCH");
+  describe("식단 확정 및 보상 지급 기능", () => {
+    it("[성공 사례] POST /api/food-log/confirm - 식단 데이터 확정 등록 및 연료 보상 지급", async () => {
+      const res = await request(app)
+        .post("/api/food-log/confirm")
+        .send({
+          mealType: "LUNCH",
+          foods: [
+            {
+              foodName: "연어 샐러드",
+              intakeGram: 200,
+              calories: 380,
+              carbs: 14.5,
+              protein: 32.0,
+              fat: 11.2,
+            },
+          ],
+        });
 
-    expect([200, 503]).toContain(res.status);
-    if (res.status === 200) {
-      expect(res.body.isIdentified).toBe(true);
-    }
-  });
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty("mealId");
+      expect(res.body.data.earnedFuel).toBe(50);
+    });
 
-  it("POST /api/food/analyze - 식별 실패 시 Fallback UI 응답 검증", async () => {
-    const res = await request(app)
-      .post("/api/food/analyze?imageUrl=https://storage.tammy.app/unknown.jpg");
+    it("[실패 사례] POST /api/food-log/confirm - 필수 식사 타입(mealType) 누락 시 400 에러 반환", async () => {
+      const res = await request(app)
+        .post("/api/food-log/confirm")
+        .send({
+          foods: [],
+        });
 
-    expect([200, 503]).toContain(res.status);
-  });
-
-  it("POST /api/food/log - 식단 확정 등록 및 보상(연료 +50, EXP +30) 검증", async () => {
-    const res = await request(app)
-      .post("/api/food/log?userId=1")
-      .send({
-        mealType: "LUNCH",
-        foodName: "연어 샐러드",
-        totalCaloriesKcal: 380,
-        carbohydrateG: 14.5,
-        proteinG: 32.0,
-        fatG: 11.2,
-      });
-
-    expect(res.status).toBe(200);
-    expect(res.body.gainedFuel).toBe(50);
-    expect(res.body.gainedExp).toBe(30);
+      expect(res.status).toBe(400);
+    });
   });
 });

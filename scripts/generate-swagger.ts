@@ -7,6 +7,14 @@ import { execSync } from "child_process";
 console.log("🔄 TSOA OpenAPI spec-and-routes 생성 중...");
 execSync("npx tsoa spec-and-routes", { stdio: "inherit" });
 
+// ESM 호환 패치: const multer = require('multer'); -> import multer from 'multer';
+const routesPath = path.join(process.cwd(), "src", "build", "routes.ts");
+if (fs.existsSync(routesPath)) {
+  let routesContent = fs.readFileSync(routesPath, "utf8");
+  routesContent = routesContent.replace("const multer = require('multer');", "import multer from 'multer';");
+  fs.writeFileSync(routesPath, routesContent, "utf8");
+}
+
 // 2. src/build/swagger.json 파일 경로 읽기
 const jsonPath = path.join(process.cwd(), "src", "build", "swagger.json");
 

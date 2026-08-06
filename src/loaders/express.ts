@@ -7,7 +7,15 @@ import config from "../config";
 import swaggerLoader from "./swagger";
 import { globalErrorHandler } from "../api/middlewares/errorHandler";
 
+import fs from "fs";
+import path from "path";
+
 export default ({ app }: { app: express.Application }) => {
+  const uploadsDir = path.join(process.cwd(), "uploads");
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
   app.get("/status", (req: Request, res: Response) => {
     res.status(200).end();
   });
@@ -17,6 +25,7 @@ export default ({ app }: { app: express.Application }) => {
 
   app.use(cors());
   app.use(express.json());
+  app.use("/uploads", express.static(uploadsDir));
 
   // TSOA Routes
   const apiRouter = express.Router();

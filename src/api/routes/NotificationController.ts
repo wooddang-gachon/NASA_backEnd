@@ -1,31 +1,27 @@
 import { Controller, Route, Post, Body, Security, Request } from "tsoa";
-import { Service } from "typedi";
-
-export interface PushTokenRegisterApiRequest {
-  pushToken: string;
-  deviceOs?: "IOS" | "ANDROID";
-}
-
-export interface PushTokenRegisterApiResponse {
-  success: boolean;
-  message: string;
-}
+import { Service, Container } from "typedi";
+import NotificationService from "../../services/notificationService";
+import type {
+  PushTokenRegisterRequest,
+  PushTokenRegisterResponse,
+} from "../../interfaces";
 
 @Service()
 @Route("notifications")
 export class NotificationController extends Controller {
+  private notificationService = Container.get(NotificationService);
+
   /**
-   * [3.5] FCM/APNs 푸시 토큰 등록 API
+   * [3.6 / RPT-003] 디바이스 푸시 토큰 등록 API (리포트 생성 완료 알림용)
    */
   @Post("push-token")
   @Security("jwt")
   public async registerPushToken(
     @Request() request: any,
-    @Body() body: PushTokenRegisterApiRequest
-  ): Promise<PushTokenRegisterApiResponse> {
-    return {
-      success: true,
-      message: "푸시 토큰이 성공적으로 등록되었습니다.",
-    };
+    @Body() requestBody: PushTokenRegisterRequest
+  ): Promise<PushTokenRegisterResponse> {
+    const userId = request.currentUser?.userId || 1;
+    this.setStatus(200);
+    return await this.notificationService.registerPushToken(userId, requestBody);
   }
 }
