@@ -1,3 +1,5 @@
+import { MealType } from "../interfaces/enums";
+
 export interface Food {
   id: number;
   name: string;
@@ -6,21 +8,31 @@ export interface Food {
   carbohydrateG: number;
   proteinG: number;
   fatG: number;
+  category?: string | null;
   createdAt?: Date;
 }
 
-export interface MealImage {
+export interface MealFood {
   id: number;
   mealId: number;
-  imageUrl: string;
-  orderIndex: number;
+  foodId?: number | null;
+  foodName: string;
+  servingG: number;
+  caloriesKcal: number;
+  carbohydrateG: number;
+  proteinG: number;
+  fatG: number;
 }
 
-export class FoodModel {
-  /**
-   * 키워드로 표준 음식 데이터 검색 (스텁)
-   */
-  public static async searchByName(keyword: string): Promise<Food[]> {
-    throw new Error("Method not implemented.");
-  }
+export interface Meal {
+  id: number;
+  userId: number;
+  mealType: MealType;
+  totalCaloriesKcal: number;
+  totalCarbohydrateG: number;
+  totalProteinG: number;
+  totalFatG: number;
+  imageUrl?: string | null;
+  recordedAt?: Date;
+  foods?: MealFood[];
 }

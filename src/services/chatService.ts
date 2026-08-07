@@ -1,67 +1,79 @@
-import { Service, Container } from "typedi";
+import { Service, Inject } from "typedi";
 import AiService from "./aiService";
 import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
 import { UserNotFoundError } from "../errors";
 import { Sender } from "../interfaces/enums";
+import { ChatMapper } from "../mappers";
+import { ChatMessageApiResponse, MemoryPillDto } from "../dto";
 
 @Service()
 export default class ChatService {
-  private aiService: AiService;
+  @Inject(type => AiService)
+  private aiService!: AiService;
 
-  constructor(aiService?: AiService) {
-    this.aiService = aiService || Container.get(AiService);
-  }
-
-  public async processChat(userId: number, userMessage: string) {
+  public async processChat(userId: number, userMessage: string): Promise<ChatMessageApiResponse> {
     const prisma = getPrisma();
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) throw new UserNotFoundError(userId);
 
     await prisma.chat_messages.create({
-      data: {
-        user_id: userId,
-        sender: Sender.USER,
-        message_text: userMessage,
-      },
+      data: ChatMapper.toUserMessageInput(userId, userMessage),
     });
 
-    let recentMemories: string[] = [];
+    let history: { role: "user" | "tammy"; text: string; createdAt?: string }[] = [];
     try {
-      const dbMemories = await prisma.long_term_memories.findMany({
+      const dbRecentMsgs = await prisma.chat_messages.findMany({
         where: { user_id: userId },
-        take: 5,
-        orderBy: { updated_at: "desc" },
+        take: 10,
+        orderBy: { created_at: "desc" },
       });
-      recentMemories = dbMemories.map((m) => m.memory_content);
+      history = dbRecentMsgs
+        .reverse()
+        .map((m) => ({
+          role: m.sender === Sender.USER ? ("user" as const) : ("tammy" as const),
+          text: m.message_text,
+          createdAt: m.created_at ? new Date(m.created_at).toISOString() : undefined,
+        }));
     } catch (e) {
-      Logger.warn(`[ChatService] Failed to fetch recent memories for user ${userId}: ${e}`);
+      Logger.warn(`[ChatService] Failed to fetch chat history for user ${userId}: ${e}`);
     }
 
-    const aiResult = await this.aiService.processChat(userId, userMessage, recentMemories);
+    let aiResult;
+    try {
+      aiResult = await this.aiService.processChat(userId, userMessage, user.nickname, history);
+    } catch (e) {
+      Logger.warn(`[ChatService] AI Chat server unavailable fallback mock triggered: ${e}`);
+      aiResult = {
+        replyText: `안녕하세요 ${user.nickname || "탐험가"}님! 타미가 통신 신호를 수신했어요 📡 지금은 임시 통신 모드이지만, "${userMessage}" 메시지 잘 받았습니다!`,
+        motionTag: "HAPPY",
+        emotion: {
+          state: "HAPPY",
+          motionType: "HAPPY",
+        },
+        extractedMemory: {
+          category: "일상기록",
+          content: userMessage,
+        },
+      };
+    }
 
     const tammyMsg = await prisma.chat_messages.create({
-      data: {
-        user_id: userId,
-        sender: Sender.TAMMY_AI,
-        message_text: aiResult.replyText,
-        motion_tag: aiResult.motionTag || aiResult.emotion?.motionType || "COMFORT_WARM",
-      },
+      data: ChatMapper.toTammyMessageInput(userId, aiResult.replyText, aiResult.motionTag || aiResult.emotion?.motionType),
     });
 
     const archive = await prisma.chat_message_archives.create({
-      data: {
-        user_id: userId,
-        chat_message_id: tammyMsg.id,
-        sender: Sender.TAMMY_AI,
-        message_text: aiResult.replyText,
-        raw_payload: JSON.parse(JSON.stringify(aiResult)),
-        created_at: new Date(),
-      },
+      data: ChatMapper.toArchiveInput(userId, tammyMsg.id, aiResult.replyText, aiResult),
     });
 
     if (aiResult.extractedMemory) {
       try {
+        const memoryInput = ChatMapper.toLongTermMemoryInput(
+          userId,
+          aiResult.extractedMemory.category,
+          aiResult.extractedMemory.content,
+          archive.id
+        );
         await prisma.long_term_memories.upsert({
           where: {
             user_id_category: {
@@ -70,15 +82,10 @@ export default class ChatService {
             },
           },
           update: {
-            memory_content: aiResult.extractedMemory.content,
-            chat_message_archive_id: archive.id,
+            memory_content: memoryInput.memory_content,
+            chat_message_archive_id: memoryInput.chat_message_archive_id,
           },
-          create: {
-            user_id: userId,
-            category: aiResult.extractedMemory.category,
-            memory_content: aiResult.extractedMemory.content,
-            chat_message_archive_id: archive.id,
-          },
+          create: memoryInput,
         });
       } catch (e) {
         Logger.error(`[ChatService] Failed to save long term memory: ${e}`);
@@ -93,13 +100,7 @@ export default class ChatService {
       },
     });
 
-    return {
-      reply: aiResult.replyText,
-      emotion: aiResult.emotion,
-      motionTag: tammyMsg.motion_tag || "COMFORT_WARM",
-      gainedFuel,
-      currentFuel: updatedUser.current_fuel ?? 0,
-    };
+    return ChatMapper.toResponse(aiResult, tammyMsg, gainedFuel, updatedUser.current_fuel ?? 0);
   }
 
   public async deleteMessage(messageId: string) {
@@ -118,7 +119,7 @@ export default class ChatService {
     });
   }
 
-  public async getMemories(userId: number) {
+  public async getMemories(userId: number): Promise<MemoryPillDto[]> {
     const prisma = getPrisma();
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) throw new UserNotFoundError(userId);
@@ -128,12 +129,7 @@ export default class ChatService {
       orderBy: { updated_at: "desc" },
     });
 
-    return dbMemories.map((m) => ({
-      id: m.id,
-      category: m.category,
-      memoryContent: m.memory_content,
-      createdAt: m.updated_at.toISOString(),
-    }));
+    return ChatMapper.toMemoryPillDtoList(dbMemories);
   }
 
   public async deleteMemory(memoryId: number): Promise<void> {

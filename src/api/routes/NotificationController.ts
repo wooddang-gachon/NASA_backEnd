@@ -1,27 +1,33 @@
-import { Controller, Route, Post, Body, Security, Request } from "tsoa";
+import { Controller, Route, Post, Body, Security, Request, Tags } from "tsoa";
 import { Service, Container } from "typedi";
 import NotificationService from "../../services/notificationService";
+import { getAuthenticatedUserId, type AuthenticatedRequest } from "../../interfaces/express";
+import { ApiResponse } from "../../dto";
 import type {
   PushTokenRegisterRequest,
   PushTokenRegisterResponse,
-} from "../../interfaces";
+} from "../../dto";
 
 @Service()
+@Tags("8. Notification - 푸시 알림 및 디바이스 토큰")
 @Route("notifications")
 export class NotificationController extends Controller {
   private notificationService = Container.get(NotificationService);
 
   /**
-   * [3.6 / RPT-003] 디바이스 푸시 토큰 등록 API (리포트 생성 완료 알림용)
+   * 모바일 앱 디바이스의 FCM 푸시 알림 토큰을 등록하여 탐사 결과 알림을 발송받습니다.
+   * @summary FCM 디바이스 푸시 토큰 등록
    */
   @Post("push-token")
   @Security("jwt")
   public async registerPushToken(
-    @Request() request: any,
+    @Request() request: AuthenticatedRequest,
     @Body() requestBody: PushTokenRegisterRequest
-  ): Promise<PushTokenRegisterResponse> {
-    const userId = request.currentUser?.userId || 1;
+  ): Promise<ApiResponse<PushTokenRegisterResponse>> {
+    const userId = getAuthenticatedUserId(request);
     this.setStatus(200);
-    return await this.notificationService.registerPushToken(userId, requestBody);
+    const result = await this.notificationService.registerPushToken(userId, requestBody);
+    return ApiResponse.success(result, "푸시 토큰 등록이 완료되었습니다.");
   }
 }
+

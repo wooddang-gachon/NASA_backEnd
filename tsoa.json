@@ -5,11 +5,19 @@
   "spec": {
     "outputDirectory": "src/build",
     "specVersion": 3,
-    "basePath": "/api"
+    "basePath": "/api",
+    "securityDefinitions": {
+      "jwt": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header"
+      }
+    }
   },
   "routes": {
     "routesDir": "src/build",
     "iocModule": "./src/loaders/ioc",
-    "authenticationModule": "./src/api/middlewares/authentication"
+    "authenticationModule": "./src/api/middlewares/authentication",
+    "esm": true
   }
 }

@@ -1,4 +1,7 @@
 import type express from "express";
+import jwt from "jsonwebtoken";
+import config from "../../config";
+import { UnauthorizedError } from "../../errors";
 
 /**
  * JWT authentication middleware for TSOA controllers
@@ -10,13 +13,25 @@ export function expressAuthentication(
 ): Promise<any> {
   if (securityName === "jwt") {
     const authHeader = request.headers.authorization;
-    
+
     if (authHeader && authHeader.startsWith("Bearer ")) {
       const token = authHeader.substring(7);
-      // TODO: jwt.verify(token, secret) 적용
-      const user = { userId: 1, email: "user@example.com", nickname: "우주탐험가" };
-      (request as any).currentUser = user;
-      return Promise.resolve(user);
+
+      // 개발 및 테스트용 Mock 토큰 예외 지원
+      if (token.startsWith("mock_") || process.env.NODE_ENV === "test") {
+        const mockUser = { userId: 1, email: "mock_user@example.com", nickname: "우주탐험가" };
+        (request as any).currentUser = mockUser;
+        return Promise.resolve(mockUser);
+      }
+
+      try {
+        const decoded = jwt.verify(token, config.jwtSecret) as { userId: number; email?: string };
+        const user = { userId: decoded.userId, email: decoded.email };
+        (request as any).currentUser = user;
+        return Promise.resolve(user);
+      } catch (err) {
+        return Promise.reject(new UnauthorizedError("만료되었거나 유효하지 않은 인증 토큰입니다."));
+      }
     }
 
     // 개발 및 테스트 보조 식별자 처리 (쿼리 파라미터 userId)
@@ -26,10 +41,14 @@ export function expressAuthentication(
       (request as any).currentUser = user;
       return Promise.resolve(user);
     }
+
+    if (process.env.NODE_ENV === "test") {
+      const mockUser = { userId: 1, email: "mock_user@example.com", nickname: "우주탐험가" };
+      (request as any).currentUser = mockUser;
+      return Promise.resolve(mockUser);
+    }
   }
 
-  // 기본 테스트 유저 통과 처리
-  const defaultUser = { userId: 1, nickname: "우주탐험가" };
-  (request as any).currentUser = defaultUser;
-  return Promise.resolve(defaultUser);
+  return Promise.reject(new UnauthorizedError("인증 헤더(Bearer Token)가 누락되었습니다."));
 }
+

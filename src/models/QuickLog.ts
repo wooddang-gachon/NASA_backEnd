@@ -1,32 +1,37 @@
-import { LogCategory, quick_logs } from "@prisma/client";
-import { QuickLogCreateRequest, QuickLogResponse } from "../interfaces/logs";
+import { LogCategory, EmotionState } from "../interfaces/enums";
 
-export function toQuickLogCreateInput(
-  userId: number,
-  data: QuickLogCreateRequest,
-  earnedFuel: number = 10
-) {
-  return {
-    user_id: userId,
-    category: data.category,
-    amount: data.amount ?? null,
-    emotion_type: data.emotionType ?? null,
-    journal_content: data.journalContent ?? null,
-    duration_minutes: data.durationMinutes ?? null,
-    earned_fuel: earnedFuel,
-  };
+export interface QuickLog {
+  id: number;
+  userId: number;
+  category: LogCategory;
+  amount?: number | null;
+  emotionType?: EmotionState | string | null;
+  journalContent?: string | null;
+  durationMinutes?: number | null;
+  earnedFuel: number;
+  createdAt?: Date;
 }
 
-export function toQuickLogResponse(log: quick_logs): QuickLogResponse {
-  return {
-    id: log.id.toString(),
-    userId: log.user_id,
-    category: log.category,
-    amount: log.amount,
-    emotionType: log.emotion_type,
-    journalContent: log.journal_content,
-    durationMinutes: log.duration_minutes,
-    earnedFuel: log.earned_fuel,
-    createdAt: log.created_at.toISOString(),
-  };
+export interface ExerciseLog {
+  id?: number;
+  userId: number;
+  exerciseName: string;
+  durationMinutes: number;
+  caloriesBurnedKcal?: number | null;
+  recordedAt?: Date;
+}
+
+export interface WaterLog {
+  id?: number;
+  userId: number;
+  intakeMl: number;
+  recordedAt?: Date;
+}
+
+export interface EmotionLog {
+  id?: number;
+  userId: number;
+  emotionState: EmotionState;
+  causeSummary?: string | null;
+  recordedAt?: Date;
 }

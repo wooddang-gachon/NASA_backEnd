@@ -1,42 +1,30 @@
-import { Controller, Route, Post, Body, Security, Request } from "tsoa";
+import { Controller, Route, Post, Body, Security, Request, Tags } from "tsoa";
 import { Service, Container } from "typedi";
 import QuickLogService from "../../services/quickLogService";
-import { LogCategory } from "../../interfaces/enums";
-
-export interface QuickLogApiRequest {
-  category: LogCategory;
-  amount?: number;
-  emotionType?: string;
-  journalContent?: string;
-  exerciseName?: string;
-  durationMinutes?: number;
-}
-
-export interface QuickLogApiResponse {
-  success: boolean;
-  data: {
-    logId: string;
-    earnedFuel: number;
-    totalFuel: number;
-  };
-}
+import { getAuthenticatedUserId, type AuthenticatedRequest } from "../../interfaces/express";
+import { QuickLogApiRequest, QuickLogApiResponse } from "../../dto";
+import { ApiResponse } from "../../dto";
 
 @Service()
+@Tags("3. QuickLog - 1-Tap 웰니스 퀵기록")
 @Route("quick-log")
 export class QuickLogController extends Controller {
   private quickLogService = Container.get(QuickLogService);
 
   /**
-   * [3.1] 1-Tap 퀵버튼 데일리 기록 API
+   * 수분 섭취, 기분/감정, 일기 작성, 운동 완료 등 데일리 웰니스 항목을 1-Tap으로 원터치 기록하고 우주 연료(Fuel)를 적립합니다.
+   * @summary 1-Tap 웰니스 퀵기록 생성
    */
   @Post("")
   @Security("jwt")
   public async createQuickLog(
-    @Request() request: any,
+    @Request() request: AuthenticatedRequest,
     @Body() requestBody: QuickLogApiRequest
-  ): Promise<QuickLogApiResponse> {
-    const userId = request.currentUser?.userId || 1;
+  ): Promise<ApiResponse<QuickLogApiResponse>> {
+    const userId = getAuthenticatedUserId(request);
     this.setStatus(201);
-    return await this.quickLogService.createQuickLog(userId, requestBody);
+    const result = await this.quickLogService.createQuickLog(userId, requestBody);
+    return ApiResponse.success(result.data, "퀵기록이 성공적으로 등록되었습니다.", 201);
   }
 }
+

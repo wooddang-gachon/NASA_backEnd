@@ -1,44 +1,30 @@
-import { Controller, Route, Post, Delete, Body, Path, Security, Request } from "tsoa";
+import { Controller, Route, Post, Delete, Body, Path, Security, Request, Tags } from "tsoa";
 import { Service, Container } from "typedi";
 import ChatService from "../../services/chatService";
+import { getAuthenticatedUserId, type AuthenticatedRequest } from "../../interfaces/express";
+import { ApiResponse } from "../../dto";
 
-export interface ChatMessageApiRequest {
-  messageText: string;
-}
-
-export interface ChatMessageApiResponse {
-  success: boolean;
-  data: {
-    messageId: string;
-    responseText: string;
-    motionTag?: string;
-  };
-}
+import { ChatMessageApiRequest } from "../../dto";
 
 @Service()
+@Tags("5. TammyChat - AI 타미 심리 공감 대화")
 @Route("chat")
 export class ChatController extends Controller {
   private chatService = Container.get(ChatService);
 
   /**
-   * [3.4] AI 타미 심리 공감 채팅 API
+   * AI 버추얼 펫 타미(TAMMY)와 실시간 심리 공감 대화를 나누고, 모션 태그 응답 수령 및 장기 기억 캡슐을 생성합니다.
+   * @summary AI 타미 심리 공감 메시지 전송
    */
   @Post("message")
   @Security("jwt")
   public async sendMessage(
-    @Request() request: any,
+    @Request() request: AuthenticatedRequest,
     @Body() body: ChatMessageApiRequest
-  ): Promise<ChatMessageApiResponse> {
-    const userId = request.currentUser?.userId || 1;
-    const chatRes = await this.chatService.processChat(userId, body.messageText);
-    return {
-      success: true,
-      data: {
-        messageId: `msg_${Date.now()}`,
-        responseText: chatRes.reply,
-        motionTag: chatRes.motionTag,
-      },
-    };
+  ): Promise<ApiResponse<any>> {
+    const userId = getAuthenticatedUserId(request);
+    const result = await this.chatService.processChat(userId, body.messageText);
+    return ApiResponse.success(result, "메시지가 성공적으로 전달되었습니다.");
   }
 
   /**
@@ -47,14 +33,11 @@ export class ChatController extends Controller {
   @Delete("messages/{messageId}")
   @Security("jwt")
   public async deleteMessage(
-    @Request() request: any,
+    @Request() request: AuthenticatedRequest,
     @Path() messageId: string
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<ApiResponse<null>> {
     await this.chatService.deleteMessage(messageId);
-    return {
-      success: true,
-      message: "메시지가 성공적으로 삭제되었습니다.",
-    };
+    return ApiResponse.success(null as any, "메시지가 성공적으로 삭제되었습니다.");
   }
 
   /**
@@ -63,13 +46,11 @@ export class ChatController extends Controller {
   @Post("messages/{messageId}/undo")
   @Security("jwt")
   public async undoDeleteMessage(
-    @Request() request: any,
+    @Request() request: AuthenticatedRequest,
     @Path() messageId: string
-  ): Promise<{ success: boolean; message: string }> {
+  ): Promise<ApiResponse<null>> {
     await this.chatService.undoDeleteMessage(messageId);
-    return {
-      success: true,
-      message: "메시지 삭제가 취소되었습니다.",
-    };
+    return ApiResponse.success(null as any, "메시지 삭제가 취소되었습니다.");
   }
 }
+

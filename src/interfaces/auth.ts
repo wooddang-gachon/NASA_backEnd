@@ -27,30 +27,6 @@ export interface UserSignUpRequest {
 
   /** 나이 */
   age?: number;
-
-  /** 목표 체중 (kg) */
-  targetWeightKg?: number;
-
-  /** 선호 운동 타입 */
-  preferredExercise?: string;
-
-  /** 운동 장소 (실내, 실외 등) */
-  exerciseLocation?: string;
-
-  /** 선호 운동 시간대 */
-  preferredExerciseTime?: string;
-
-  /**
-   * 일일 목표 수분 섭취량 (ml)
-   * @example 2000
-   */
-  targetDailyWaterMl?: number;
-
-  /**
-   * 일일 목표 칼로리 (kcal)
-   * @example 2000
-   */
-  targetDailyCaloriesKcal?: number;
 }
 
 export interface UserLoginRequest {

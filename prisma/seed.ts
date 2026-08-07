@@ -12,10 +12,6 @@ async function main() {
       nickname: "우주탐험가",
       gender: "FEMALE",
       age: 25,
-      target_weight_kg: 52.0,
-      preferred_exercise: "야외 산책, 필라테스",
-      exercise_location: "실외",
-      preferred_exercise_time: "저녁 8시",
     },
     create: {
       email: "user@example.com",
@@ -24,10 +20,6 @@ async function main() {
       nickname: "우주탐험가",
       gender: "FEMALE",
       age: 25,
-      target_weight_kg: 52.0,
-      preferred_exercise: "야외 산책, 필라테스",
-      exercise_location: "실외",
-      preferred_exercise_time: "저녁 8시",
       status: "ACTIVE",
     },
   });

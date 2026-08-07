@@ -1,104 +1,31 @@
-import { Controller, Route, Post, Body, Security, Request, UploadedFile, FormField } from "tsoa";
+import { Controller, Route, Post, Body, Security, Request, UploadedFile, FormField, Tags } from "tsoa";
 import { Service, Container } from "typedi";
 import FoodService from "../../services/foodService";
 import { MealType } from "../../interfaces/enums";
-import path from "path";
-import fs from "fs";
+import type { AuthenticatedRequest } from "../../interfaces/express";
+import { getAuthenticatedUserId } from "../../interfaces/express";
+import { ApiResponse } from "../../dto";
 
-export interface FoodVisionScanResponse {
-  success: boolean;
-  data: {
-    scanEngine: "YOLO" | "VISION_LLM";
-    imageUrl?: string;
-    detectedFoods: Array<{
-      foodName: string;
-      estimatedGram: number;
-      calories: number;
-      carbs: number;
-      protein: number;
-      fat: number;
-    }>;
-  };
-}
-
-export interface FoodLogConfirmRequest {
-  mealType: MealType;
-  foods: Array<{
-    foodName: string;
-    intakeGram: number;
-    calories: number;
-    carbs: number;
-    protein: number;
-    fat: number;
-  }>;
-  imageUrl?: string;
-  comment?: string;
-}
-
-export interface FoodLogConfirmResponse {
-  success: boolean;
-  data: {
-    mealId: string;
-    earnedFuel: number;
-    totalCalories: number;
-  };
-}
+import { FoodLogConfirmRequest } from "../../dto";
 
 @Service()
+@Tags("4. FoodVision - 식단 스캔 & 영양성분 기록")
 @Route("")
 export class FoodController extends Controller {
   private foodService = Container.get(FoodService);
 
   /**
-   * [3.2] Food Vision 스캔 API (URL 기반)
+   * 촬영하거나 선택한 식단 사진 이미지 파일(multipart/form-data)을 업로드하고 AI 비전 모델로 5대 영양 성분을 스캔 분석합니다.
+   * @summary 식단 사진 파일 업로드 & AI 비전 분석 스캔
    */
   @Post("food-vision/scan")
   @Security("jwt")
   public async scanFoodVision(
-    @Request() request: any,
-    @Body() body: { imageUrl: string; mealType?: MealType }
-  ): Promise<FoodVisionScanResponse> {
-    const res = await this.foodService.analyzeFoodVision(body.imageUrl, body.mealType);
-    return {
-      success: true,
-      data: res as any,
-    };
-  }
-
-  /**
-   * [3.2] Food Vision 파일 직접 업로드 & 스캔 API (multipart/form-data)
-   */
-  @Post("food-vision/upload-and-scan")
-  @Security("jwt")
-  public async uploadAndScanFoodVision(
     @UploadedFile("file") file: Express.Multer.File,
     @FormField("mealType") mealType?: MealType
-  ): Promise<FoodVisionScanResponse> {
-    if (!file) {
-      throw new Error("업로드할 이미지 파일(file)이 누락되었습니다.");
-    }
-
-    const uploadsDir = path.join(process.cwd(), "uploads");
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    const ext = path.extname(file.originalname) || ".jpg";
-    const filename = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
-    const filePath = path.join(uploadsDir, filename);
-
-    fs.writeFileSync(filePath, file.buffer);
-
-    const imageUrl = `/uploads/${filename}`;
-    const res = await this.foodService.analyzeFoodVision(imageUrl, mealType);
-
-    return {
-      success: true,
-      data: {
-        ...(res as any),
-        imageUrl,
-      },
-    };
+  ): Promise<ApiResponse<any>> {
+    const data = await this.foodService.uploadAndAnalyzeFoodVision(file, mealType);
+    return ApiResponse.success(data, "식단 이미지 업로드 및 분석이 성공적으로 완료되었습니다.");
   }
 
   /**
@@ -107,18 +34,26 @@ export class FoodController extends Controller {
   @Post("food-log/confirm")
   @Security("jwt")
   public async confirmFoodLog(
-    @Request() request: any,
+    @Request() request: AuthenticatedRequest,
     @Body() body: FoodLogConfirmRequest
-  ): Promise<FoodLogConfirmResponse> {
-    const userId = request.currentUser?.userId || 1;
-    const res = await this.foodService.logMeal(userId, body);
-    return {
-      success: true,
-      data: {
-        mealId: res.mealId,
-        earnedFuel: res.earnedFuel,
-        totalCalories: res.totalCalories,
-      },
+  ): Promise<ApiResponse<any>> {
+    const userId = getAuthenticatedUserId(request);
+    const firstFood = body.foods && body.foods.length > 0 ? body.foods[0] : null;
+    const res = await this.foodService.logMeal(userId, {
+      mealType: body.mealType as MealType,
+      foodName: body.foodName || (firstFood ? firstFood.foodName : "식단 기록"),
+      intakeGram: body.intakeGram || (firstFood ? firstFood.gram : 100),
+      imageUrl: body.imageUrl,
+      comment: body.comment,
+    });
+    const data = {
+      mealId: res.mealId,
+      earnedFuel: res.earnedFuel,
+      totalCalories: res.totalCalories,
     };
+    return ApiResponse.success(data, "식단 기록 확정 저장이 완료되었습니다.");
   }
 }
+
+
+

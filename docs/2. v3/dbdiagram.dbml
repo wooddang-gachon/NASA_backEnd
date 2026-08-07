@@ -84,10 +84,6 @@ Table users {
   nickname varchar(50) [not null, note: '사용자 닉네임']
   gender Gender [note: '성별']
   age int [note: '나이']
-  target_weight_kg decimal(5,2) [note: '목표 체중(kg)']
-  preferred_exercise varchar(100)
-  exercise_location varchar(50)
-  preferred_exercise_time varchar(50)
   refresh_token text [note: 'JWT Refresh Token']
   status UserStatus [not null, default: 'ACTIVE', note: '계정 상태']
   last_login_at timestamp [note: '최근 로그인 일시']

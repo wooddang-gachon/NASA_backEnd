@@ -156,3 +156,4 @@ src/build/
 demo
 .agents
 *service-account*.json
+uploads/

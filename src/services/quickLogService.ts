@@ -1,8 +1,8 @@
 import { Service } from "typedi";
 import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
-import { QuickLogCreateRequest } from "../interfaces/logs";
-import { toQuickLogCreateInput } from "../models/QuickLog";
+import { QuickLogCreateRequest } from "../dto";
+import { QuickLogMapper } from "../mappers";
 
 @Service()
 export default class QuickLogService {
@@ -12,7 +12,7 @@ export default class QuickLogService {
     const earnedFuel = 10;
 
     const log = await prisma.quick_logs.create({
-      data: toQuickLogCreateInput(userId, data, earnedFuel),
+      data: QuickLogMapper.toCreateInput(userId, data, earnedFuel),
     });
 
     const updatedUser = await prisma.users.update({
@@ -26,11 +26,7 @@ export default class QuickLogService {
 
     return {
       success: true,
-      data: {
-        logId: log.id.toString(),
-        earnedFuel: log.earned_fuel,
-        totalFuel: updatedUser.current_fuel ?? 0,
-      },
+      data: QuickLogMapper.toApiResponse(log, updatedUser.current_fuel ?? 0),
     };
   }
 }

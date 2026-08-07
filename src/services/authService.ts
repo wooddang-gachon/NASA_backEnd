@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import config from "@/config";
 import { getPrisma } from "@/loaders/prisma";
 import { ConflictError, UnauthorizedError, UserNotFoundError } from "@/errors";
-import { toUserCreateInput, toUserAuthProfile, toUserAuthMeResponse } from "@/models/User";
+import { UserMapper } from "@/mappers";
 import type {
   UserSignUpRequest,
   UserLoginRequest,
@@ -17,11 +17,39 @@ import type {
   UserWithdrawRequest,
   UserWithdrawResponse,
   SocialLoginRequest,
-} from "../interfaces";
+} from "@/dto";
 
 @Service()
 export default class AuthService {
   private jwtSecret = config.jwtSecret || "nasa_wellness_tammy_secret_key_2026";
+
+  /**
+   * JWT 토큰 발급 및 DB Refresh Token/마지막 로그인 일시 갱신 공통 헬퍼
+   */
+  private async generateAndSaveTokens(user: { id: number; email: string }) {
+    const prisma = getPrisma();
+
+    const accessToken = jwt.sign(
+      { userId: user.id, email: user.email },
+      this.jwtSecret,
+      { expiresIn: "1h" }
+    );
+    const refreshToken = jwt.sign(
+      { userId: user.id },
+      this.jwtSecret,
+      { expiresIn: "14d" }
+    );
+
+    await prisma.users.update({
+      where: { id: user.id },
+      data: {
+        refresh_token: refreshToken,
+        last_login_at: new Date(),
+      },
+    });
+
+    return { accessToken, refreshToken };
+  }
 
   /**
    * 사용자 회원가입 처리 (실제 DB 유저 생성 & 초기 펫/우주선 상태 세팅)
@@ -40,37 +68,15 @@ export default class AuthService {
     // 2. 비밀번호 보안 암호화 (argon2)
     const passwordHash = await argon2.hash(data.password);
 
-    // 3. DB 유저 생성 및 펫/우주선 상태 초기화 (userMapper 매퍼 활용)
+    // 3. DB 유저 생성 및 펫/우주선 상태 초기화
     const user = await prisma.users.create({
-      data: toUserCreateInput(data, passwordHash),
+      data: UserMapper.toUserCreateInput(data, passwordHash),
     });
 
-    // 4. JWT 토큰 생성
-    const accessToken = jwt.sign(
-      { userId: user.id, email: user.email },
-      this.jwtSecret,
-      { expiresIn: "1h" }
-    );
-    const refreshToken = jwt.sign(
-      { userId: user.id },
-      this.jwtSecret,
-      { expiresIn: "14d" }
-    );
+    // 4. JWT 토큰 생성 및 DB 저장
+    const tokens = await this.generateAndSaveTokens(user);
 
-    // 5. Refresh Token DB 업데이트
-    await prisma.users.update({
-      where: { id: user.id },
-      data: {
-        refresh_token: refreshToken,
-        last_login_at: new Date(),
-      },
-    });
-
-    return {
-      user: toUserAuthProfile(user),
-      accessToken,
-      refreshToken,
-    };
+    return UserMapper.toLoginResponse(user, tokens);
   }
 
   /**
@@ -93,32 +99,10 @@ export default class AuthService {
       throw new UnauthorizedError("이메일 또는 비밀번호가 올바르지 않습니다.");
     }
 
-    // 3. JWT 토큰 생성
-    const accessToken = jwt.sign(
-      { userId: user.id, email: user.email },
-      this.jwtSecret,
-      { expiresIn: "1h" }
-    );
-    const refreshToken = jwt.sign(
-      { userId: user.id },
-      this.jwtSecret,
-      { expiresIn: "14d" }
-    );
+    // 3. JWT 토큰 생성 및 DB 저장
+    const tokens = await this.generateAndSaveTokens(user);
 
-    // 4. Refresh Token 및 마지막 로그인 일시 갱신
-    await prisma.users.update({
-      where: { id: user.id },
-      data: {
-        refresh_token: refreshToken,
-        last_login_at: new Date(),
-      },
-    });
-
-    return {
-      user: toUserAuthProfile(user),
-      accessToken,
-      refreshToken,
-    };
+    return UserMapper.toLoginResponse(user, tokens);
   }
 
   /**
@@ -194,7 +178,7 @@ export default class AuthService {
       throw new UserNotFoundError(userId);
     }
 
-    return toUserAuthMeResponse(user);
+    return UserMapper.toUserAuthMeResponse(user);
   }
 
   /**
@@ -250,23 +234,7 @@ export default class AuthService {
     if (!user) {
       // 2. 신규 사용자 자동 생성 및 초기 펫 상태 세팅
       user = await prisma.users.create({
-        data: {
-          email,
-          auth_provider: data.provider,
-          nickname,
-          status: "ACTIVE",
-          current_fuel: 0,
-          tammy_statuses: {
-            create: {
-              level: 1,
-              current_exp: 0,
-              empathy_index: 50,
-              health_index: 50,
-              activity_index: 50,
-              happiness_index: 50,
-            },
-          },
-        },
+        data: UserMapper.toSocialUserCreateInput(email, data.provider, nickname),
       });
     } else {
       // 소셜 제공자 정보 갱신
@@ -279,32 +247,10 @@ export default class AuthService {
       });
     }
 
-    // 3. JWT Access Token 및 Refresh Token 발급
-    const accessToken = jwt.sign(
-      { userId: user.id, email: user.email },
-      this.jwtSecret,
-      { expiresIn: "1h" }
-    );
-    const refreshToken = jwt.sign(
-      { userId: user.id },
-      this.jwtSecret,
-      { expiresIn: "14d" }
-    );
+    // 3. JWT 토큰 생성 및 DB 저장
+    const tokens = await this.generateAndSaveTokens(user);
 
-    // 4. DB에 Refresh Token 업데이트
-    await prisma.users.update({
-      where: { id: user.id },
-      data: {
-        refresh_token: refreshToken,
-        last_login_at: new Date(),
-      },
-    });
-
-    return {
-      user: toUserAuthProfile(user),
-      accessToken,
-      refreshToken,
-    };
+    return UserMapper.toLoginResponse(user, tokens);
   }
 
   /**

@@ -33,18 +33,13 @@ export interface ChatResponse {
   motionTag?: string;
 }
 
-export interface AiChatInternalPayload {
-  userId: number;
-  userMessage: string;
-  recentMemories?: string[];
+export interface ChatTurn {
+  role: "user" | "tammy";
+  text: string;
+  createdAt?: string;
 }
 
-export interface AiChatInternalResponse {
-  replyText: string;
-  emotion: EmotionStatus;
-  motionTag?: string;
-  extractedMemory?: ExtractedMemory;
-}
+
 
 export interface MemoryPillDto {
   id: number;

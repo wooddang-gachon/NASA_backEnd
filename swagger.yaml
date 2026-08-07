@@ -12,45 +12,213 @@ components:
         - MALE
         - FEMALE
         - OTHER
-    ImageUploadResponse:
+    Gender:
+      $ref: "#/components/schemas/_36_Enums.Gender"
+    TammyStatusDto:
       properties:
-        success:
-          type: boolean
-        data:
-          properties:
-            filename:
-              type: string
-            imageUrl:
-              type: string
-          required:
-            - filename
-            - imageUrl
-          type: object
+        level:
+          type: number
+          format: double
+        currentExp:
+          type: number
+          format: double
       required:
-        - success
-        - data
+        - level
+        - currentExp
       type: object
       additionalProperties: false
-    PlanetTravelStartApiResponse:
+    UserProfileResponseData:
+      properties:
+        userId:
+          type: number
+          format: double
+        nickname:
+          type: string
+        gender:
+          anyOf:
+            - $ref: "#/components/schemas/Gender"
+            - type: string
+          nullable: true
+        age:
+          type: number
+          format: double
+          nullable: true
+        currentFuel:
+          type: number
+          format: double
+          nullable: true
+        tammyStatus:
+          $ref: "#/components/schemas/TammyStatusDto"
+        createdAt:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+      required:
+        - userId
+        - nickname
+      type: object
+      additionalProperties: false
+    ApiResponse_UserProfileResponseData_:
       properties:
         success:
           type: boolean
         message:
           type: string
         data:
-          properties:
-            remainingFuel:
-              type: number
-              format: double
-            travelId:
-              type: string
-          required:
-            - remainingFuel
-            - travelId
-          type: object
+          allOf:
+            - $ref: "#/components/schemas/UserProfileResponseData"
+          nullable: true
+        code:
+          type: number
+          format: double
       required:
         - success
         - message
+        - data
+        - code
+      type: object
+      additionalProperties: false
+    TammyHistoryLogItem:
+      properties:
+        id:
+          type: number
+          format: double
+        changeReason:
+          type: string
+        deltaExp:
+          type: number
+          format: double
+        snapshotLevel:
+          type: number
+          format: double
+        snapshotTotalExp:
+          type: number
+          format: double
+        createdAt:
+          anyOf:
+            - type: string
+              format: date-time
+            - type: string
+      required:
+        - id
+        - changeReason
+        - deltaExp
+        - snapshotLevel
+        - snapshotTotalExp
+        - createdAt
+      type: object
+      additionalProperties: false
+    TammyHistoryResponse:
+      properties:
+        logs:
+          items:
+            $ref: "#/components/schemas/TammyHistoryLogItem"
+          type: array
+      required:
+        - logs
+      type: object
+      additionalProperties: false
+    ApiResponse_TammyHistoryResponse_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          allOf:
+            - $ref: "#/components/schemas/TammyHistoryResponse"
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
+      type: object
+      additionalProperties: false
+    _36_Enums.TravelStatus:
+      type: string
+      enum:
+        - IN_PROGRESS
+        - COMPLETED
+        - FAILED
+    TravelStatus:
+      $ref: "#/components/schemas/_36_Enums.TravelStatus"
+    TravelResultSummary:
+      properties:
+        id:
+          anyOf:
+            - type: string
+            - type: number
+              format: double
+        userId:
+          type: number
+          format: double
+        title:
+          type: string
+        summaryContent:
+          type: string
+        recommendations:
+          items:
+            type: string
+          type: array
+      required:
+        - id
+        - userId
+        - title
+        - summaryContent
+        - recommendations
+      type: object
+      additionalProperties: false
+    PlanetTravelStartApiResponse:
+      properties:
+        travelId:
+          anyOf:
+            - type: string
+            - type: number
+              format: double
+        travelResultId:
+          anyOf:
+            - type: string
+            - type: number
+              format: double
+        remainingFuel:
+          type: number
+          format: double
+        status:
+          anyOf:
+            - $ref: "#/components/schemas/TravelStatus"
+            - type: string
+        travelResult:
+          $ref: "#/components/schemas/TravelResultSummary"
+      required:
+        - travelId
+        - travelResultId
+        - remainingFuel
+        - status
+      type: object
+      additionalProperties: false
+    ApiResponse_PlanetTravelStartApiResponse_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          allOf:
+            - $ref: "#/components/schemas/PlanetTravelStartApiResponse"
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
       type: object
       additionalProperties: false
     _36_Enums.PlanetType:
@@ -66,7 +234,15 @@ components:
     PlanetTravelStartApiRequest:
       properties:
         planetType:
-          $ref: "#/components/schemas/PlanetType"
+          anyOf:
+            - $ref: "#/components/schemas/PlanetType"
+            - type: string
+              enum:
+                - MEAL
+                - WATER
+                - EMOTION
+                - LIFESTYLE
+                - RETROSPECT
         fuelSpent:
           type: number
           format: double
@@ -98,10 +274,38 @@ components:
         - tammyRelationshipLevel
       type: object
       additionalProperties: false
-    ReportDetailInfo:
+    ApiResponse_TravelStateInfoResponse_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          allOf:
+            - $ref: "#/components/schemas/TravelStateInfoResponse"
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
+      type: object
+      additionalProperties: false
+    TravelResultDetailInfo:
       properties:
         reportId:
-          type: string
+          anyOf:
+            - type: string
+            - type: number
+              format: double
+        travelResultId:
+          anyOf:
+            - type: string
+            - type: number
+              format: double
         userId:
           type: number
           format: double
@@ -114,14 +318,34 @@ components:
             type: string
           type: array
         createdAt:
-          type: string
+          anyOf:
+            - type: string
+            - type: string
+              format: date-time
       required:
-        - reportId
-        - userId
         - title
         - summaryContent
         - recommendations
-        - createdAt
+      type: object
+      additionalProperties: false
+    ApiResponse_TravelResultDetailInfo_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          allOf:
+            - $ref: "#/components/schemas/TravelResultDetailInfo"
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
       type: object
       additionalProperties: false
     CalorieTrendItem:
@@ -136,6 +360,31 @@ components:
         - caloriesKcal
       type: object
       additionalProperties: false
+    NutritionBalanceInfo:
+      properties:
+        carbohydratePercent:
+          type: number
+          format: double
+        proteinPercent:
+          type: number
+          format: double
+        fatPercent:
+          type: number
+          format: double
+        vitaminPercent:
+          type: number
+          format: double
+        mineralPercent:
+          type: number
+          format: double
+      required:
+        - carbohydratePercent
+        - proteinPercent
+        - fatPercent
+        - vitaminPercent
+        - mineralPercent
+      type: object
+      additionalProperties: false
     DashboardSummaryInfo:
       properties:
         calorieTrends:
@@ -143,29 +392,7 @@ components:
             $ref: "#/components/schemas/CalorieTrendItem"
           type: array
         nutritionBalance:
-          properties:
-            mineralPercent:
-              type: number
-              format: double
-            vitaminPercent:
-              type: number
-              format: double
-            fatPercent:
-              type: number
-              format: double
-            proteinPercent:
-              type: number
-              format: double
-            carbohydratePercent:
-              type: number
-              format: double
-          required:
-            - mineralPercent
-            - vitaminPercent
-            - fatPercent
-            - proteinPercent
-            - carbohydratePercent
-          type: object
+          $ref: "#/components/schemas/NutritionBalanceInfo"
         weeklyWorkoutCompletedDays:
           type: number
           format: double
@@ -175,28 +402,24 @@ components:
         - weeklyWorkoutCompletedDays
       type: object
       additionalProperties: false
-    QuickLogApiResponse:
+    ApiResponse_DashboardSummaryInfo_:
       properties:
         success:
           type: boolean
+        message:
+          type: string
         data:
-          properties:
-            totalFuel:
-              type: number
-              format: double
-            earnedFuel:
-              type: number
-              format: double
-            logId:
-              type: string
-          required:
-            - totalFuel
-            - earnedFuel
-            - logId
-          type: object
+          allOf:
+            - $ref: "#/components/schemas/DashboardSummaryInfo"
+          nullable: true
+        code:
+          type: number
+          format: double
       required:
         - success
+        - message
         - data
+        - code
       type: object
       additionalProperties: false
     _36_Enums.LogCategory:
@@ -208,15 +431,80 @@ components:
         - EXERCISE
     LogCategory:
       $ref: "#/components/schemas/_36_Enums.LogCategory"
+    QuickLogApiResponse:
+      properties:
+        logId:
+          anyOf:
+            - type: string
+            - type: number
+              format: double
+        category:
+          anyOf:
+            - $ref: "#/components/schemas/LogCategory"
+            - type: string
+        earnedFuel:
+          type: number
+          format: double
+        totalFuel:
+          type: number
+          format: double
+        createdAt:
+          type: string
+      required:
+        - logId
+        - category
+        - earnedFuel
+        - totalFuel
+      type: object
+      additionalProperties: false
+    ApiResponse_QuickLogApiResponse_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          allOf:
+            - $ref: "#/components/schemas/QuickLogApiResponse"
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
+      type: object
+      additionalProperties: false
+    _36_Enums.EmotionState:
+      type: string
+      enum:
+        - HAPPY
+        - SAD
+        - ANGRY
+        - STRESSED
+        - CALM
+    EmotionState:
+      $ref: "#/components/schemas/_36_Enums.EmotionState"
     QuickLogApiRequest:
       properties:
         category:
-          $ref: "#/components/schemas/LogCategory"
+          anyOf:
+            - $ref: "#/components/schemas/LogCategory"
+            - type: string
+              enum:
+                - WATER
+                - EMOTION
+                - JOURNAL
+                - EXERCISE
         amount:
           type: number
           format: double
         emotionType:
-          type: string
+          anyOf:
+            - $ref: "#/components/schemas/EmotionState"
+            - type: string
         journalContent:
           type: string
         exerciseName:
@@ -228,103 +516,73 @@ components:
         - category
       type: object
       additionalProperties: false
-    PushTokenRegisterApiResponse:
+    PushTokenRegisterResponse:
+      properties:
+        userId:
+          type: number
+          format: double
+        deviceToken:
+          type: string
+        success:
+          type: boolean
+        message:
+          type: string
+      type: object
+      additionalProperties: false
+    ApiResponse_PushTokenRegisterResponse_:
       properties:
         success:
           type: boolean
         message:
           type: string
+        data:
+          allOf:
+            - $ref: "#/components/schemas/PushTokenRegisterResponse"
+          nullable: true
+        code:
+          type: number
+          format: double
       required:
         - success
         - message
+        - data
+        - code
       type: object
       additionalProperties: false
-    PushTokenRegisterApiRequest:
+    PushTokenRegisterRequest:
       properties:
-        pushToken:
+        deviceToken:
           type: string
-        deviceOs:
+          description: 클라이언트 앱에서 FCM/APNs SDK를 통해 발급받은 디바이스 토큰
+          example: fcm_device_token_sample_12345
+        deviceType:
           type: string
           enum:
             - IOS
             - ANDROID
+            - WEB
+          description: 기기 운영체제 타입 (IOS | ANDROID | WEB)
+          example: IOS
       required:
-        - pushToken
+        - deviceToken
       type: object
       additionalProperties: false
-    UserActionLogRequest:
-      properties:
-        userId:
-          type: number
-          format: double
-        screenName:
-          type: string
-        actionType:
-          type: string
-          enum:
-            - CLICK
-            - SCREEN_VIEW
-            - SCROLL
-            - TEXT_INPUT
-            - BUTTON_TAP
-        targetElementId:
-          type: string
-        metadata: {}
-      required:
-        - userId
-        - screenName
-        - actionType
-      type: object
-      additionalProperties: false
-    FoodVisionScanResponse:
+    ApiResponse_any_:
       properties:
         success:
           type: boolean
+        message:
+          type: string
         data:
-          properties:
-            detectedFoods:
-              items:
-                properties:
-                  fat:
-                    type: number
-                    format: double
-                  protein:
-                    type: number
-                    format: double
-                  carbs:
-                    type: number
-                    format: double
-                  calories:
-                    type: number
-                    format: double
-                  estimatedGram:
-                    type: number
-                    format: double
-                  foodName:
-                    type: string
-                required:
-                  - fat
-                  - protein
-                  - carbs
-                  - calories
-                  - estimatedGram
-                  - foodName
-                type: object
-              type: array
-            imageUrl:
-              type: string
-            scanEngine:
-              type: string
-              enum:
-                - YOLO
-                - VISION_LLM
-          required:
-            - detectedFoods
-            - scanEngine
-          type: object
+          nullable: true
+        code:
+          type: number
+          format: double
       required:
         - success
+        - message
         - data
+        - code
       type: object
       additionalProperties: false
     _36_Enums.MealType:
@@ -336,174 +594,55 @@ components:
         - SNACK
     MealType:
       $ref: "#/components/schemas/_36_Enums.MealType"
-    FoodLogConfirmResponse:
+    FoodItemInput:
       properties:
-        success:
-          type: boolean
-        data:
-          properties:
-            totalCalories:
-              type: number
-              format: double
-            earnedFuel:
-              type: number
-              format: double
-            mealId:
-              type: string
-          required:
-            - totalCalories
-            - earnedFuel
-            - mealId
-          type: object
+        foodName:
+          type: string
+        gram:
+          type: number
+          format: double
+        calories:
+          type: number
+          format: double
+        carbs:
+          type: number
+          format: double
+        protein:
+          type: number
+          format: double
+        fat:
+          type: number
+          format: double
       required:
-        - success
-        - data
+        - foodName
       type: object
       additionalProperties: false
     FoodLogConfirmRequest:
       properties:
         mealType:
-          $ref: "#/components/schemas/MealType"
-        foods:
-          items:
-            properties:
-              fat:
-                type: number
-                format: double
-              protein:
-                type: number
-                format: double
-              carbs:
-                type: number
-                format: double
-              calories:
-                type: number
-                format: double
-              intakeGram:
-                type: number
-                format: double
-              foodName:
-                type: string
-            required:
-              - fat
-              - protein
-              - carbs
-              - calories
-              - intakeGram
-              - foodName
-            type: object
-          type: array
+          anyOf:
+            - $ref: "#/components/schemas/MealType"
+            - type: string
+              enum:
+                - BREAKFAST
+                - LUNCH
+                - DINNER
+                - SNACK
+        foodName:
+          type: string
+        intakeGram:
+          type: number
+          format: double
         imageUrl:
           type: string
         comment:
           type: string
-      required:
-        - mealType
-        - foods
-      type: object
-      additionalProperties: false
-    WaterLogResponse:
-      properties:
-        todayTotalWaterMl:
-          type: number
-          format: double
-          description: 오늘 총 수분 섭취 누적량 (ml)
-          example: 1250
-        gainedFuel:
-          type: number
-          format: double
-          description: 수분 섭취로 획득한 연료
-          example: 10
-        currentFuel:
-          type: number
-          format: double
-          description: 현재 총 연료
-      required:
-        - todayTotalWaterMl
-        - gainedFuel
-        - currentFuel
-      type: object
-      additionalProperties: false
-    WaterLogRequest:
-      properties:
-        userId:
-          type: number
-          format: double
-          description: 사용자 ID
-        intakeMl:
-          type: number
-          format: double
-          description: 섭취 수분량 (ml) - 1회 터치 시 250ml
-          example: 250
-      required:
-        - userId
-        - intakeMl
-      type: object
-      additionalProperties: false
-    ExerciseRecommendResponse:
-      properties:
-        exercises:
+        foods:
           items:
-            type: string
+            $ref: "#/components/schemas/FoodItemInput"
           type: array
       required:
-        - exercises
-      type: object
-      additionalProperties: false
-    WorkoutLogResponse:
-      properties:
-        workoutLogId:
-          type: number
-          format: double
-          description: 생성된 운동 완 로그 ID
-        gainedFuel:
-          type: number
-          format: double
-          description: 1-Tap 운동 완료로 획득한 연료
-          example: 30
-        currentFuel:
-          type: number
-          format: double
-          description: 현재 총 연료
-      required:
-        - workoutLogId
-        - gainedFuel
-        - currentFuel
-      type: object
-      additionalProperties: false
-    WorkoutLogRequest:
-      properties:
-        userId:
-          type: number
-          format: double
-          description: 사용자 ID
-        memo:
-          type: string
-          description: 운동 소감 및 메모 (선택)
-          example: 오늘 저녁 산책 20분 완료!
-      required:
-        - userId
-      type: object
-      additionalProperties: false
-    ChatMessageApiResponse:
-      properties:
-        success:
-          type: boolean
-        data:
-          properties:
-            motionTag:
-              type: string
-            responseText:
-              type: string
-            messageId:
-              type: string
-          required:
-            - responseText
-            - messageId
-          type: object
-      required:
-        - success
-        - data
+        - mealType
       type: object
       additionalProperties: false
     ChatMessageApiRequest:
@@ -514,6 +653,34 @@ components:
         - messageText
       type: object
       additionalProperties: false
+    ApiResponse_null_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          anyOf: []
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
+      type: object
+      additionalProperties: false
+    _36_Enums.AuthProvider:
+      type: string
+      enum:
+        - LOCAL
+        - KAKAO
+        - GOOGLE
+        - APPLE
+    AuthProvider:
+      $ref: "#/components/schemas/_36_Enums.AuthProvider"
     UserAuthProfile:
       properties:
         id:
@@ -524,12 +691,14 @@ components:
         nickname:
           type: string
         authProvider:
-          type: string
-          enum:
-            - LOCAL
-            - KAKAO
-            - GOOGLE
-            - APPLE
+          anyOf:
+            - $ref: "#/components/schemas/AuthProvider"
+            - type: string
+              enum:
+                - LOCAL
+                - KAKAO
+                - GOOGLE
+                - APPLE
       required:
         - id
         - email
@@ -553,6 +722,26 @@ components:
         - user
         - accessToken
         - refreshToken
+      type: object
+      additionalProperties: false
+    ApiResponse_UserLoginResponse_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          allOf:
+            - $ref: "#/components/schemas/UserLoginResponse"
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
       type: object
       additionalProperties: false
     UserSignUpRequest:
@@ -581,29 +770,6 @@ components:
           type: number
           format: double
           description: 나이
-        targetWeightKg:
-          type: number
-          format: double
-          description: 목표 체중 (kg)
-        preferredExercise:
-          type: string
-          description: 선호 운동 타입
-        exerciseLocation:
-          type: string
-          description: 운동 장소 (실내, 실외 등)
-        preferredExerciseTime:
-          type: string
-          description: 선호 운동 시간대
-        targetDailyWaterMl:
-          type: number
-          format: double
-          description: 일일 목표 수분 섭취량 (ml)
-          example: 2000
-        targetDailyCaloriesKcal:
-          type: number
-          format: double
-          description: 일일 목표 칼로리 (kcal)
-          example: 2000
       required:
         - email
         - password
@@ -659,6 +825,26 @@ components:
         - refreshToken
       type: object
       additionalProperties: false
+    ApiResponse_TokenRefreshResponse_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          allOf:
+            - $ref: "#/components/schemas/TokenRefreshResponse"
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
+      type: object
+      additionalProperties: false
     TokenRefreshRequest:
       properties:
         refreshToken:
@@ -680,6 +866,26 @@ components:
         - message
       type: object
       additionalProperties: false
+    ApiResponse_UserWithdrawResponse_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          allOf:
+            - $ref: "#/components/schemas/UserWithdrawResponse"
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
+      type: object
+      additionalProperties: false
     UserWithdrawRequest:
       properties:
         reason:
@@ -688,7 +894,11 @@ components:
           example: 개인 사정
       type: object
       additionalProperties: false
-  securitySchemes: {}
+  securitySchemes:
+    jwt:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
 info:
   title: nasa_backend
   version: 1.0.0
@@ -706,65 +916,14 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  tammyStatus:
-                    properties:
-                      currentExp:
-                        type: number
-                        format: double
-                      level:
-                        type: number
-                        format: double
-                    required:
-                      - currentExp
-                      - level
-                    type: object
-                  currentFuel:
-                    type: number
-                    format: double
-                  calorieGoalKcal:
-                    type: number
-                    format: double
-                  waterGoalMl:
-                    type: number
-                    format: double
-                  preferredExercise:
-                    type: string
-                  targetWeightKg:
-                    type: number
-                    format: double
-                  age:
-                    type: number
-                    format: double
-                  gender:
-                    $ref: "#/components/schemas/_36_Enums.Gender"
-                  nickname:
-                    type: string
-                  userId:
-                    type: number
-                    format: double
-                required:
-                  - tammyStatus
-                  - currentFuel
-                  - calorieGoalKcal
-                  - waterGoalMl
-                  - preferredExercise
-                  - targetWeightKg
-                  - age
-                  - gender
-                  - nickname
-                  - userId
-                type: object
-      description: 내 프로필 및 타미 상태 정보를 조회합니다.
-      security: []
-      parameters:
-        - in: query
-          name: userId
-          required: false
-          schema:
-            default: 1
-            format: double
-            type: number
+                $ref: "#/components/schemas/ApiResponse_UserProfileResponseData_"
+      description: 로그인한 현재 사용자의 닉네임, 보유 연료량, 타미 펫 상태(레벨/경험치)를 조회합니다.
+      summary: 내 프로필 및 타미 상태 조회
+      tags:
+        - 2. User - 내 정보 및 프로필 관리
+      security:
+        - jwt: []
+      parameters: []
   /users/tammy/history:
     get:
       operationId: GetTammyHistory
@@ -774,66 +933,14 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  logs:
-                    items:
-                      properties:
-                        createdAt: {}
-                        snapshotTotalExp: {}
-                        snapshotLevel: {}
-                        deltaExp: {}
-                        changeReason: {}
-                        id:
-                          type: number
-                          format: double
-                      required:
-                        - createdAt
-                        - snapshotTotalExp
-                        - snapshotLevel
-                        - deltaExp
-                        - changeReason
-                        - id
-                      type: object
-                    type: array
-                required:
-                  - logs
-                type: object
-      description: 타미 경험치/지수 변동 성장 일지 히스토리를 조회합니다.
-      security: []
-      parameters:
-        - in: query
-          name: userId
-          required: false
-          schema:
-            default: 1
-            format: double
-            type: number
-  /upload/image:
-    post:
-      operationId: UploadImage
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ImageUploadResponse"
-      description: "[파일 업로드] 로컬 이미지 단일 파일 업로드 API (multipart/form-data)"
+                $ref: "#/components/schemas/ApiResponse_TammyHistoryResponse_"
+      description: 타미 펫 캐릭터의 경험치 및 지수 변동 성장 기록 히스토리를 조회합니다.
+      summary: 타미 성장 일지 히스토리 조회
+      tags:
+        - 2. User - 내 정보 및 프로필 관리
       security:
         - jwt: []
       parameters: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-              required:
-                - file
   /planet-travel/start:
     post:
       operationId: StartPlanetTravel
@@ -843,8 +950,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PlanetTravelStartApiResponse"
-      description: "[3.3] 별여행 게이미피케이션 탐사 출발 API"
+                $ref: "#/components/schemas/ApiResponse_PlanetTravelStartApiResponse_"
+      description: 보유한 우주 연료(Fuel)를 소모하여 선택한 행성으로 별여행을 출발하고, AI 탐사 결과(travelResult)
+        진단서를 실시간 동기 생성합니다.
+      summary: 별여행 탐사 출발 및 AI 탐사결과 생성
+      tags:
+        - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
       security:
         - jwt: []
       parameters: []
@@ -863,11 +974,36 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TravelStateInfoResponse"
+                $ref: "#/components/schemas/ApiResponse_TravelStateInfoResponse_"
       description: 우주여행 현황 조회
+      summary: 우주여행 현황 조회
+      tags:
+        - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
       security:
         - jwt: []
       parameters: []
+  /travel-results/{travelResultId}:
+    get:
+      operationId: GetTravelResult
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_TravelResultDetailInfo_"
+      description: 행성 탐사 완료 후 생성된 AI 별여행 탐사 결과 진단서(travelResult)의 상세 보고서 내용을 조회합니다.
+      summary: AI 별여행 탐사 결과 진단서 상세 조회
+      tags:
+        - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
+      security:
+        - jwt: []
+      parameters:
+        - in: path
+          name: travelResultId
+          required: true
+          schema:
+            type: string
   /reports/{reportId}:
     get:
       operationId: GetReport
@@ -877,16 +1013,11 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  data:
-                    $ref: "#/components/schemas/ReportDetailInfo"
-                  success:
-                    type: boolean
-                required:
-                  - data
-                  - success
-                type: object
-      description: "[3.3] AI 리포트 상세 조회 API"
+                $ref: "#/components/schemas/ApiResponse_TravelResultDetailInfo_"
+      description: AI 별여행 탐사 결과 진단서 상세 조회 (호환용 라우트)
+      summary: 보고서 상세 조회 (호환용)
+      tags:
+        - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
       security:
         - jwt: []
       parameters:
@@ -904,16 +1035,11 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  data:
-                    $ref: "#/components/schemas/DashboardSummaryInfo"
-                  success:
-                    type: boolean
-                required:
-                  - data
-                  - success
-                type: object
-      description: "[3.5] 대시보드 요약 조회 API"
+                $ref: "#/components/schemas/ApiResponse_DashboardSummaryInfo_"
+      description: 주간 칼로리 섭취 추이 및 3대 영양소 밸런스 비율 통계 대시보드를 조회합니다.
+      summary: 웰니스 종합 대시보드 통계 조회
+      tags:
+        - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
       security:
         - jwt: []
       parameters: []
@@ -926,8 +1052,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/QuickLogApiResponse"
-      description: "[3.1] 1-Tap 퀵버튼 데일리 기록 API"
+                $ref: "#/components/schemas/ApiResponse_QuickLogApiResponse_"
+      description: 수분 섭취, 기분/감정, 일기 작성, 운동 완료 등 데일리 웰니스 항목을 1-Tap으로 원터치 기록하고 우주
+        연료(Fuel)를 적립합니다.
+      summary: 1-Tap 웰니스 퀵기록 생성
+      tags:
+        - 3. QuickLog - 1-Tap 웰니스 퀵기록
       security:
         - jwt: []
       parameters: []
@@ -946,8 +1076,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PushTokenRegisterApiResponse"
-      description: "[3.5] FCM/APNs 푸시 토큰 등록 API"
+                $ref: "#/components/schemas/ApiResponse_PushTokenRegisterResponse_"
+      description: 모바일 앱 디바이스의 FCM 푸시 알림 토큰을 등록하여 탐사 결과 알림을 발송받습니다.
+      summary: FCM 디바이스 푸시 토큰 등록
+      tags:
+        - 8. Notification - 푸시 알림 및 디바이스 토큰
       security:
         - jwt: []
       parameters: []
@@ -956,31 +1089,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PushTokenRegisterApiRequest"
-  /logs/action:
-    post:
-      operationId: LogAction
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
-                properties:
-                  success:
-                    type: boolean
-                required:
-                  - success
-                type: object
-      description: 클라이언트 사용자 행동(버튼 클릭, 화면 스크롤 등) 분석 로그를 수집합니다.
-      security: []
-      parameters: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserActionLogRequest"
+              $ref: "#/components/schemas/PushTokenRegisterRequest"
   /food-vision/scan:
     post:
       operationId: ScanFoodVision
@@ -990,35 +1099,12 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/FoodVisionScanResponse"
-      description: "[3.2] Food Vision 스캔 API (URL 기반)"
-      security:
-        - jwt: []
-      parameters: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              properties:
-                mealType:
-                  $ref: "#/components/schemas/MealType"
-                imageUrl:
-                  type: string
-              required:
-                - imageUrl
-              type: object
-  /food-vision/upload-and-scan:
-    post:
-      operationId: UploadAndScanFoodVision
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/FoodVisionScanResponse"
-      description: "[3.2] Food Vision 파일 직접 업로드 & 스캔 API (multipart/form-data)"
+                $ref: "#/components/schemas/ApiResponse_any_"
+      description: 촬영하거나 선택한 식단 사진 이미지 파일(multipart/form-data)을 업로드하고 AI 비전 모델로 5대 영양
+        성분을 스캔 분석합니다.
+      summary: 식단 사진 파일 업로드 & AI 비전 분석 스캔
+      tags:
+        - 4. FoodVision - 식단 스캔 & 영양성분 기록
       security:
         - jwt: []
       parameters: []
@@ -1045,8 +1131,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/FoodLogConfirmResponse"
+                $ref: "#/components/schemas/ApiResponse_any_"
       description: "[3.2] Food Log 확정 저장 API"
+      tags:
+        - 4. FoodVision - 식단 스캔 & 영양성분 기록
       security:
         - jwt: []
       parameters: []
@@ -1056,63 +1144,6 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/FoodLogConfirmRequest"
-  /care/water:
-    post:
-      operationId: LogWater
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/WaterLogResponse"
-      description: 1-Tap 수분 섭취 기록 (250ml)
-      security: []
-      parameters: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/WaterLogRequest"
-  /exercise/recommend:
-    get:
-      operationId: RecommendExercises
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ExerciseRecommendResponse"
-      description: 맞춤 운동 추천
-      security: []
-      parameters:
-        - in: query
-          name: userId
-          required: true
-          schema:
-            format: double
-            type: number
-  /exercise/log:
-    post:
-      operationId: LogWorkout
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/WorkoutLogResponse"
-      description: 1-Tap "오늘 운동 완!" 기록
-      security: []
-      parameters: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/WorkoutLogRequest"
   /chat/message:
     post:
       operationId: SendMessage
@@ -1122,8 +1153,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ChatMessageApiResponse"
-      description: "[3.4] AI 타미 심리 공감 채팅 API"
+                $ref: "#/components/schemas/ApiResponse_any_"
+      description: AI 버추얼 펫 타미(TAMMY)와 실시간 심리 공감 대화를 나누고, 모션 태그 응답 수령 및 장기 기억 캡슐을 생성합니다.
+      summary: AI 타미 심리 공감 메시지 전송
+      tags:
+        - 5. TammyChat - AI 타미 심리 공감 대화
       security:
         - jwt: []
       parameters: []
@@ -1142,16 +1176,10 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  message:
-                    type: string
-                  success:
-                    type: boolean
-                required:
-                  - message
-                  - success
-                type: object
+                $ref: "#/components/schemas/ApiResponse_null_"
       description: "[3.4] 대화 메시지 소프트 삭제 API"
+      tags:
+        - 5. TammyChat - AI 타미 심리 공감 대화
       security:
         - jwt: []
       parameters:
@@ -1169,16 +1197,10 @@ paths:
           content:
             application/json:
               schema:
-                properties:
-                  message:
-                    type: string
-                  success:
-                    type: boolean
-                required:
-                  - message
-                  - success
-                type: object
+                $ref: "#/components/schemas/ApiResponse_null_"
       description: "[3.4] 대화 메시지 삭제 취소 (Undo) API"
+      tags:
+        - 5. TammyChat - AI 타미 심리 공감 대화
       security:
         - jwt: []
       parameters:
@@ -1196,8 +1218,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserLoginResponse"
-      description: "[3.6] 회원가입 API"
+                $ref: "#/components/schemas/ApiResponse_UserLoginResponse_"
+      description: 이메일과 비밀번호 기반으로 신규 회원을 등록합니다.
+      summary: 일반 회원가입
+      tags:
+        - 1. Auth - 회원 인증 및 소셜 로그인
       security: []
       parameters: []
       requestBody:
@@ -1215,8 +1240,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserLoginResponse"
+                $ref: "#/components/schemas/ApiResponse_UserLoginResponse_"
       description: "[3.6] 회원가입 API (호환용)"
+      tags:
+        - 1. Auth - 회원 인증 및 소셜 로그인
       security: []
       parameters: []
       requestBody:
@@ -1234,8 +1261,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserLoginResponse"
+                $ref: "#/components/schemas/ApiResponse_UserLoginResponse_"
       description: "[3.6] 로그인 API"
+      tags:
+        - 1. Auth - 회원 인증 및 소셜 로그인
       security: []
       parameters: []
       requestBody:
@@ -1253,8 +1282,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserLoginResponse"
+                $ref: "#/components/schemas/ApiResponse_UserLoginResponse_"
       description: "[3.6] 구글 / 카카오 / 애플 소셜 로그인 API"
+      tags:
+        - 1. Auth - 회원 인증 및 소셜 로그인
       security: []
       parameters: []
       requestBody:
@@ -1272,8 +1303,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TokenRefreshResponse"
+                $ref: "#/components/schemas/ApiResponse_TokenRefreshResponse_"
       description: "[3.6] 토큰 자동 갱신 API"
+      tags:
+        - 1. Auth - 회원 인증 및 소셜 로그인
       security: []
       parameters: []
       requestBody:
@@ -1291,8 +1324,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserWithdrawResponse"
+                $ref: "#/components/schemas/ApiResponse_UserWithdrawResponse_"
       description: "[3.6] 회원 탈퇴 API"
+      tags:
+        - 1. Auth - 회원 인증 및 소셜 로그인
       security:
         - jwt: []
       parameters: []
@@ -1310,7 +1345,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserWithdrawResponse"
+                $ref: "#/components/schemas/ApiResponse_UserWithdrawResponse_"
+      tags:
+        - 1. Auth - 회원 인증 및 소셜 로그인
       security:
         - jwt: []
       parameters: []

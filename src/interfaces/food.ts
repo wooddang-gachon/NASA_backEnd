@@ -18,17 +18,7 @@ export interface FoodAnalyzeResponse {
   fallbackUi?: string;
 }
 
-export interface AiVisionInternalResponse {
-  isIdentified: boolean;
-  foodName?: string;
-  totalCaloriesKcal?: number;
-  carbohydrateG?: number;
-  proteinG?: number;
-  fatG?: number;
-  vitaminPercent?: number;
-  mineralPercent?: number;
-  comment?: string;
-}
+
 
 export interface MealLogRegisterRequest {
   mealType: MealType;

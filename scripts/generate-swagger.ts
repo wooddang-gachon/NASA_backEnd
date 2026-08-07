@@ -26,6 +26,19 @@ if (!fs.existsSync(jsonPath)) {
 const jsonRaw = fs.readFileSync(jsonPath, "utf8");
 const swaggerSpec = JSON.parse(jsonRaw);
 
+// Swagger Authorize 모달용 securitySchemes 주입
+if (!swaggerSpec.components) {
+  swaggerSpec.components = {};
+}
+swaggerSpec.components.securitySchemes = {
+  jwt: {
+    type: "http",
+    scheme: "bearer",
+    bearerFormat: "JWT"
+  }
+};
+fs.writeFileSync(jsonPath, JSON.stringify(swaggerSpec, null, 2), "utf8");
+
 // 3. YAML 포맷 변환 및 저장 (src/build/swagger.yaml & 루트 swagger.yaml)
 const yamlString = yaml.stringify(swaggerSpec);
 

@@ -32,26 +32,30 @@ describe("AI 타미 심리 공감 대화 API 통합 테스트 (CHT Module)", () 
     it("[성공 사례] POST /api/chat/message - 정상적인 대화 메시지 전송 시 공감 답변 반환", async () => {
       const res = await request(app)
         .post("/api/chat/message")
+        .set("Authorization", "Bearer mock_test_token")
         .send({
           messageText: "오늘 다이어트 때문에 조금 지치고 스트레스받아 😮‍💨",
         });
 
       expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data).toHaveProperty("messageId");
-      expect(res.body.data).toHaveProperty("responseText");
+      expect(res.body).toHaveProperty("reply");
+      expect(res.body).toHaveProperty("motionTag");
+      expect(res.body).toHaveProperty("gainedFuel");
     });
 
     it("[실패 사례] POST /api/chat/message - 필수 메시지 본문 누락 시 400 Bad Request 에러 반환", async () => {
       const res = await request(app)
         .post("/api/chat/message")
+        .set("Authorization", "Bearer mock_test_token")
         .send({}); // 빈 데이터
 
       expect(res.status).toBe(400);
     });
 
     it("[성공 사례] POST /api/chat/messages/123/undo - 삭제 취소(Undo) 성공", async () => {
-      const res = await request(app).post("/api/chat/messages/123/undo");
+      const res = await request(app)
+        .post("/api/chat/messages/123/undo")
+        .set("Authorization", "Bearer mock_test_token");
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);

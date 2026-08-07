@@ -23,6 +23,7 @@ describe("1-Tap 퀵버튼 데일리 기록 API 통합 테스트 (/api/quick-log)
       expect(res.status).toBe(201);
       expect(res.body.success).toBe(true);
       expect(res.body.data).toHaveProperty("logId");
+      expect(res.body.data.category).toBe("WATER");
       expect(res.body.data.earnedFuel).toBe(10);
       expect(typeof res.body.data.totalFuel).toBe("number");
     });

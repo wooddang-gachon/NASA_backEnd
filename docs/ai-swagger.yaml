@@ -1,0 +1,756 @@
+definitions:
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.BoundingBox:
+    properties:
+      height:
+        example: 0.38
+        type: number
+      width:
+        example: 0.44
+        type: number
+      x:
+        example: 0.12
+        type: number
+      "y":
+        example: 0.3
+        type: number
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.ChatRequest:
+    properties:
+      history:
+        description: Prior turns in chronological order, oldest first. May be empty.
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ChatTurn"
+        type: array
+      nickname:
+        description: Optional display name so Tammy can address the user naturally.
+        example: 우당탕탕
+        type: string
+      userId:
+        example: 12
+        type: integer
+      userMessage:
+        example: 오늘 회사에서 일이 너무 많아서 힘들고 지쳤어
+        type: string
+    required:
+      - userId
+      - userMessage
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.ChatResponse:
+    properties:
+      emotion:
+        $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.EmotionStatus"
+      replyText:
+        example: 오늘 정말 많이 힘들었구나. 괜찮아, 우리 잠깐 바람 쐬러 갈까?
+        type: string
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.ChatTurn:
+    properties:
+      createdAt:
+        description:
+          RFC3339 timestamp. Optional; used only to give the model a sense
+          of pacing.
+        example: "2026-08-05T21:14:00Z"
+        type: string
+      role:
+        description: Either "user" or "tammy".
+        enum:
+          - user
+          - tammy
+        example: user
+        type: string
+      text:
+        example: 오늘 야근해서 너무 지쳤어
+        type: string
+    required:
+      - role
+      - text
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.DailyDietRecord:
+    properties:
+      date:
+        example: "2026-08-05"
+        type: string
+      meals:
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.MealEntry"
+        type: array
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.DetectedFood:
+    properties:
+      boundingBox:
+        allOf:
+          - $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.BoundingBox"
+        description: Normalized location of this item in the image.
+      confidence:
+        description: Model confidence in the range [0, 1].
+        example: 0.92
+        type: number
+      name:
+        description: Korean food name, as the user would call it.
+        example: 김치찌개
+        type: string
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.DietReportRequest:
+    properties:
+      dailyRecords:
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.DailyDietRecord"
+        type: array
+      nickname:
+        example: 우당탕탕
+        type: string
+      period:
+        $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.Period"
+      userId:
+        example: 12
+        type: integer
+    required:
+      - dailyRecords
+      - userId
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.EmotionStatus:
+    properties:
+      motionType:
+        description: Tammy's reaction animation, one of the MotionType values.
+        example: PAT_PAT_HEAD
+        type: string
+      state:
+        description: |-
+          One of HAPPY, SAD, ANGRY, STRESSED, CALM — matching the service server's
+          EmotionState enum so it can be written straight into emotion_logs.
+        example: STRESSED
+        type: string
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse:
+    properties:
+      code:
+        example: AI_MODEL_ERROR
+        type: string
+      message:
+        example: AI 모델 호출에 실패했습니다.
+        type: string
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.ExerciseEntry:
+    properties:
+      burnedCaloriesKcal:
+        example: 96
+        type: number
+      date:
+        example: "2026-08-05"
+        type: string
+      durationMinutes:
+        example: 25
+        type: integer
+      exerciseName:
+        example: 걷기
+        type: string
+      isCompleted:
+        example: true
+        type: boolean
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.FoodEntry:
+    properties:
+      caloriesKcal:
+        example: 243
+        type: number
+      carbohydrateG:
+        example: 12.4
+        type: number
+      fatG:
+        example: 13.8
+        type: number
+      name:
+        example: 김치찌개
+        type: string
+      proteinG:
+        example: 15.2
+        type: number
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.HydrationReportRequest:
+    properties:
+      dailyGoalMl:
+        description: Daily target in millilitres. Defaults to 1500 when omitted.
+        example: 1500
+        type: integer
+      nickname:
+        example: 우당탕탕
+        type: string
+      period:
+        $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.Period"
+      userId:
+        example: 12
+        type: integer
+      waterLogs:
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.WaterEntry"
+        type: array
+    required:
+      - userId
+      - waterLogs
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.LifestyleReportRequest:
+    properties:
+      dailySteps:
+        additionalProperties:
+          type: integer
+        description: Optional step counts by date, when the client can supply them.
+        type: object
+      exerciseLogs:
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ExerciseEntry"
+        type: array
+      nickname:
+        example: 우당탕탕
+        type: string
+      period:
+        $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.Period"
+      userId:
+        example: 12
+        type: integer
+    required:
+      - exerciseLogs
+      - userId
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.MealEntry:
+    properties:
+      foods:
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.FoodEntry"
+        type: array
+      mealType:
+        description: One of BREAKFAST, LUNCH, DINNER, SNACK.
+        example: LUNCH
+        type: string
+      registeredAt:
+        description: RFC3339 timestamp of the meal, optional.
+        example: "2026-08-05T12:30:00Z"
+        type: string
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.MindfulnessReportRequest:
+    properties:
+      chatLogs:
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ChatTurn"
+        type: array
+      nickname:
+        example: 우당탕탕
+        type: string
+      period:
+        $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.Period"
+      userId:
+        example: 12
+        type: integer
+    required:
+      - chatLogs
+      - userId
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.NutritionItem:
+    properties:
+      caloriesKcal:
+        example: 243
+        type: number
+      carbohydrateG:
+        example: 12.4
+        type: number
+      confidence:
+        description: Model confidence in the range [0, 1].
+        example: 0.81
+        type: number
+      fatG:
+        example: 13.8
+        type: number
+      mineralPercent:
+        example: 42
+        type: integer
+      name:
+        example: 김치찌개
+        type: string
+      proteinG:
+        example: 15.2
+        type: number
+      servingSizeG:
+        description: Serving the figures below describe, in grams.
+        example: 400
+        type: number
+      sources:
+        description: |-
+          Where the figures came from. May be empty when the model fell back to
+          general knowledge, in which case Confidence will be low.
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.NutritionSource"
+        type: array
+      vitaminPercent:
+        example: 35
+        type: integer
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.NutritionLookupRequest:
+    properties:
+      foodNames:
+        description: Food names to research. Must contain at least one entry.
+        example:
+          - 김치찌개
+          - 공기밥
+        items:
+          type: string
+        minItems: 1
+        type: array
+    required:
+      - foodNames
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.NutritionLookupResponse:
+    properties:
+      items:
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.NutritionItem"
+        type: array
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.NutritionSource:
+    properties:
+      publisher:
+        example: 식품의약품안전처
+        type: string
+      title:
+        example: 식품영양성분 데이터베이스 - 김치찌개
+        type: string
+      url:
+        example: https://various.foodsafetykorea.go.kr/nutrient/
+        type: string
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.Period:
+    properties:
+      end:
+        example: "2026-08-05"
+        type: string
+      start:
+        example: "2026-07-29"
+        type: string
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.ReportResponse:
+    properties:
+      markdown:
+        description: The report body as a Markdown string, written in Tammy's voice.
+        type: string
+      nextActionChecks:
+        description: Short, concrete, opt-in suggestions. Never phrased as commands.
+        example:
+          - 내일 아침엔 물 한 잔부터 시작해볼까?
+        items:
+          type: string
+        type: array
+      title:
+        example: "우당탕탕님의 이번 주 식습관 이야기 \U0001F331"
+        type: string
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.RetrospectiveReportRequest:
+    properties:
+      chatLogs:
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ChatTurn"
+        type: array
+      dailyRecords:
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.DailyDietRecord"
+        type: array
+      exerciseLogs:
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ExerciseEntry"
+        type: array
+      nickname:
+        example: 우당탕탕
+        type: string
+      period:
+        $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.Period"
+      userId:
+        example: 12
+        type: integer
+      waterLogs:
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.WaterEntry"
+        type: array
+    required:
+      - userId
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.VisionAnalyzeRequest:
+    properties:
+      imageBase64:
+        description:
+          Base64 encoded image bytes. A `data:` URI prefix is accepted
+          and stripped.
+        type: string
+      imageUrl:
+        description: Publicly reachable image URL. Mutually exclusive with imageBase64.
+        example: https://storage.googleapis.com/tammy/meal_1.jpg
+        type: string
+      mealType:
+        description: |-
+          Optional meal context that helps disambiguate similar dishes.
+          One of BREAKFAST, LUNCH, DINNER, SNACK.
+        example: LUNCH
+        type: string
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.VisionAnalyzeResponse:
+    properties:
+      comment:
+        description: A short Tammy-voice remark about the meal.
+        example: 오늘 점심 든든하게 챙겼구나, 좋다!
+        type: string
+      foods:
+        description:
+          Every food item found, in reading order. Empty when isIdentified
+          is false.
+        items:
+          $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.DetectedFood"
+        type: array
+      isIdentified:
+        description: |-
+          False when no food could be recognized; the service server then shows
+          its manual-input fallback UI.
+        example: true
+        type: boolean
+    type: object
+  github_com_yeongin-ji_tammy-ai-server_internal_dto.WaterEntry:
+    properties:
+      date:
+        example: "2026-08-05"
+        type: string
+      intakeMl:
+        example: 250
+        type: integer
+      recordedAt:
+        description: RFC3339 timestamp, optional; lets the report comment on timing.
+        example: "2026-08-05T09:10:00Z"
+        type: string
+    type: object
+info:
+  contact: {}
+  description: |-
+    웰니스 펫 에이전트 '타미'의 AI 서버입니다. 서비스 서버와 내부 통신하며, 상태를 저장하지 않습니다.
+    모든 엔드포인트는 `X-Internal-Api-Key` 헤더를 요구합니다(`INTERNAL_API_KEY` 미설정 시 비활성화).
+  license:
+    name: MIT
+  title: TAMMY AI Server API
+  version: "1.0"
+paths:
+  /healthz:
+    get:
+      description: Cloud Run 및 로드밸런서용 상태 확인 엔드포인트입니다. 인증이 필요하지 않습니다.
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: 헬스 체크
+      tags:
+        - health
+  /v1/chat/process:
+    post:
+      consumes:
+        - application/json
+      description: |-
+        현재 발화와 이전 대화 히스토리를 받아 타미 페르소나로 답변하고, **사용자 발화에 대한 감정 분석 결과**를 함께 반환합니다.
+        이 서버는 상태를 저장하지 않으므로 대화 맥락이 필요하면 `history`에 이전 턴을 담아 보내야 합니다.
+        `history`는 오래된 순서대로 정렬되어야 하며, 최근 30턴만 모델에 전달됩니다.
+        `emotion.state`는 서비스 서버의 `EmotionState` enum(HAPPY, SAD, ANGRY, STRESSED, CALM)과 동일합니다.
+        `emotion.motionType`은 타미의 반응 모션입니다.
+      parameters:
+        - description: 현재 발화와 대화 히스토리
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ChatRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ChatResponse"
+        "400":
+          description: 요청 형식 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "502":
+          description: 모델 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "504":
+          description: 모델 응답 지연
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+      summary: 타미 대화 처리 및 감정 분석
+      tags:
+        - chat
+  /v1/nutrition/lookup:
+    post:
+      consumes:
+        - application/json
+      description: |-
+        음식 이름 배열을 받아 웹 검색을 통해 각 음식의 칼로리, 탄수화물, 단백질, 지방, 비타민/무기질 충족률을 조사하고 출처를 함께 반환합니다.
+        응답의 `items`는 요청한 `foodNames`와 **같은 순서, 같은 개수**로 반환되므로 인덱스로 짝지을 수 있습니다.
+        검색으로 확인하지 못한 음식은 수치가 0, `confidence`가 0으로 채워집니다.
+        웹 검색과 구조화를 위해 모델을 두 번 호출하므로 다른 엔드포인트보다 응답이 느립니다.
+      parameters:
+        - description: 조회할 음식명 목록
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.NutritionLookupRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.NutritionLookupResponse"
+        "400":
+          description: 요청 형식 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "502":
+          description: 모델 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "504":
+          description: 모델 응답 지연
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+      summary: 음식명 배열로 영양 정보 조회
+      tags:
+        - nutrition
+  /v1/reports/diet:
+    post:
+      consumes:
+        - application/json
+      description: |-
+        날짜별 식사 기록을 받아 꾸준히 건강한 식습관을 유지하도록 돕는 리포트를 마크다운으로 반환합니다.
+        칭찬할 부분을 먼저 짚고, 아쉬운 부분은 개선 가능성을 강조하는 방식으로 작성됩니다.
+      parameters:
+        - description: 날짜별 식사 기록
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.DietReportRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ReportResponse"
+        "400":
+          description: 요청 형식 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "502":
+          description: 모델 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "504":
+          description: 모델 응답 지연
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+      summary: 식습관 리포트
+      tags:
+        - reports
+  /v1/reports/hydration:
+    post:
+      consumes:
+        - application/json
+      description: |-
+        수분 섭취 기록을 받아 분석합니다. 원활한 대사에서 수분이 하는 역할을 강조하며 작성됩니다.
+        `dailyGoalMl`을 생략하면 1500ml를 기본 목표로 사용합니다.
+      parameters:
+        - description: 수분 섭취 기록
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.HydrationReportRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ReportResponse"
+        "400":
+          description: 요청 형식 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "502":
+          description: 모델 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "504":
+          description: 모델 응답 지연
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+      summary: 수분 분석 리포트
+      tags:
+        - reports
+  /v1/reports/lifestyle:
+    post:
+      consumes:
+        - application/json
+      description: |-
+        운동/활동 기록을 받아 분석합니다. 격한 운동이 아니라 **가벼운 움직임을 자주** 하는 것이 좋다는 관점으로 작성됩니다.
+        `dailySteps`는 날짜(YYYY-MM-DD)를 키로 하는 걸음 수 맵으로, 선택 항목입니다.
+      parameters:
+        - description: 운동/활동 기록
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.LifestyleReportRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ReportResponse"
+        "400":
+          description: 요청 형식 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "502":
+          description: 모델 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "504":
+          description: 모델 응답 지연
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+      summary: 생활습관 리포트
+      tags:
+        - reports
+  /v1/reports/mindfulness:
+    post:
+      consumes:
+        - application/json
+      description: |-
+        대화 로그를 받아 심리적 측면에서 분석합니다. 감정적 식사 신호, 힘들었던 일, 감정의 변화를 중심으로 작성됩니다.
+        심리 진단은 수행하지 않으며, 위험 신호가 반복되면 전문가 상담을 부드럽게 권합니다.
+      parameters:
+        - description: 대화 로그
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.MindfulnessReportRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ReportResponse"
+        "400":
+          description: 요청 형식 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "502":
+          description: 모델 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "504":
+          description: 모델 응답 지연
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+      summary: 마음챙김 리포트
+      tags:
+        - reports
+  /v1/reports/retrospective:
+    post:
+      consumes:
+        - application/json
+      description: |-
+        전체 대화 로그와 함께 식사/활동/수분 기록을 받아 웰니스 관점에서 네 가지 측면을 다각도로 분석합니다.
+        각 측면을 개별적으로 보는 것이 아니라 **서로 어떻게 연결되는지**에 초점을 맞춥니다.
+        입력이 가장 큰 엔드포인트이므로 응답 시간이 가장 깁니다. 서비스 서버에서는 비동기 처리를 권장합니다.
+        대화 로그는 최근 400턴까지만 모델에 전달됩니다.
+      parameters:
+        - description: 전체 기록
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.RetrospectiveReportRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ReportResponse"
+        "400":
+          description: 요청 형식 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "502":
+          description: 모델 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "504":
+          description: 모델 응답 지연
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+      summary: 장기 회고 리포트
+      tags:
+        - reports
+  /v1/vision/analyze-food:
+    post:
+      consumes:
+        - application/json
+      description: |-
+        이미지를 받아 사진 속 음식을 모두 인식하고, 각 음식의 이름과 정규화된 바운딩 박스 좌표를 반환합니다.
+        `imageUrl` 또는 `imageBase64` 중 하나는 반드시 필요하며, 둘 다 주어지면 `imageBase64`가 우선합니다.
+        바운딩 박스는 이미지 크기와 무관한 0.0~1.0 정규화 좌표입니다.
+        영양 정보는 이 엔드포인트에서 제공하지 않습니다. 반환된 음식명으로 `/v1/nutrition/lookup`을 호출하세요.
+      parameters:
+        - description: 분석할 이미지
+          in: body
+          name: request
+          required: true
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.VisionAnalyzeRequest"
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.VisionAnalyzeResponse"
+        "400":
+          description: 요청 형식 오류 또는 이미지 누락
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "413":
+          description: 이미지 용량 초과
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "415":
+          description: 지원하지 않는 이미지 형식
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+        "502":
+          description: 이미지 다운로드 실패 또는 모델 오류
+          schema:
+            $ref: "#/definitions/github_com_yeongin-ji_tammy-ai-server_internal_dto.ErrorResponse"
+      summary: 음식 이미지 분석 및 음식명/바운딩박스 추출
+      tags:
+        - vision
+securityDefinitions:
+  InternalApiKey:
+    description: 서비스 서버와 공유하는 내부 API 키
+    in: header
+    name: X-Internal-Api-Key
+    type: apiKey
+swagger: "2.0"

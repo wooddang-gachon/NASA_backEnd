@@ -9,7 +9,7 @@ import type {
   PushTokenRegisterRequest,
   PushTokenRegisterResponse,
   SendPushNotificationRequest,
-} from "../interfaces";
+} from "@/dto";
 
 // Firebase Admin SDK 초기화 헬퍼
 function initFirebaseAdmin() {

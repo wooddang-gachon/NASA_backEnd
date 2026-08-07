@@ -10,7 +10,7 @@
     "prebuild": "npm run swagger",
     "build": "tsc && tsc-alias",
     "typecheck": "tsc --noEmit",
-    "swagger": "tsx src/scripts/generate-swagger.ts",
+    "swagger": "tsx scripts/generate-swagger.ts",
     "seed": "prisma db seed",
     "prisma:seed": "prisma db seed",
     "prisma:generate": "prisma generate",
