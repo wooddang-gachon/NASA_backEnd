@@ -94,7 +94,12 @@ export default class AuthService {
     }
 
     // 2. 비밀번호 검증 (argon2)
-    const isPasswordValid = await argon2.verify(user.password_hash, data.password);
+    let isPasswordValid = false;
+    try {
+      isPasswordValid = await argon2.verify(user.password_hash, data.password);
+    } catch {
+      isPasswordValid = false;
+    }
     if (!isPasswordValid) {
       throw new UnauthorizedError("이메일 또는 비밀번호가 올바르지 않습니다.");
     }

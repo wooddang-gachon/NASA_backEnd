@@ -4,28 +4,40 @@ import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
 import { UserNotFoundError, BadRequestError } from "../errors";
 import { PlanetType } from "../interfaces/enums";
-import { PlanetTravelStartApiRequest, TravelStateInfoResponse, DashboardSummaryInfo } from "../dto";
+import {
+  PlanetTravelStartApiRequest,
+  TravelStateInfoResponse,
+  DashboardSummaryInfo,
+} from "../dto";
 import { TravelMapper } from "../mappers";
 import { reportQueue } from "../utils/asyncQueue";
 
 @Service()
 export default class TravelService {
-  @Inject(type => AiService)
+  @Inject((type) => AiService)
   private aiService!: AiService;
 
   /**
    * 별여행 출발 및 실시간 AI 탐사 결과 생성
    */
-  public async startPlanetTravel(userId: number, data: PlanetTravelStartApiRequest) {
+  public async startPlanetTravel(
+    userId: number,
+    data: PlanetTravelStartApiRequest,
+  ) {
     const prisma = getPrisma();
-    Logger.info(`[TravelService] Starting planet travel for userId ${userId}, planetType: ${data.planetType}`);
+    Logger.info(
+      `[TravelService] Starting planet travel for userId ${userId}, planetType: ${data.planetType}`,
+    );
 
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) throw new UserNotFoundError(userId);
 
     const currentFuel = user.current_fuel ?? 0;
     if (currentFuel < data.fuelSpent) {
-      throw new BadRequestError(`보유 연료가 부족합니다. (현재: ${currentFuel}, 필요: ${data.fuelSpent})`, "INSUFFICIENT_FUEL");
+      throw new BadRequestError(
+        `보유 연료가 부족합니다. (현재: ${currentFuel}, 필요: ${data.fuelSpent})`,
+        "INSUFFICIENT_FUEL",
+      );
     }
 
     const updatedUser = await prisma.users.update({
@@ -37,59 +49,79 @@ export default class TravelService {
       },
     });
 
-    // 1. 별여행 탐사 생성 (COMPLETED 상태)
+    // AI 탐사 결과 온디맨드 생성 시도
+    let reportTitle = "아쿠아 웰니스 탐사 완료 리포트 🌟";
+    let reportSummary =
+      "별여행 탐사가 안전하게 완료되었습니다! 오늘 하루도 건강한 수분과 영양을 챙겨보세요.";
+    let reportRecommendations = "매일 물 2,000ml 마시기\n저녁 8시 산책하기";
+
+    try {
+      const aiReportResult = await this.aiService.generatePlanetReport(
+        data.planetType,
+        {
+          userId,
+          nickname: user.nickname,
+          period: {
+            start:
+              new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                .toISOString()
+                .split("T")[0] || "",
+            end: new Date().toISOString().split("T")[0] || "",
+          },
+          dailyRecords: [],
+          waterLogs: [],
+          exerciseLogs: [],
+        },
+      );
+
+      if (aiReportResult.title) reportTitle = aiReportResult.title;
+      if (aiReportResult.markdown || aiReportResult.findings) {
+        reportSummary =
+          aiReportResult.markdown || aiReportResult.findings || reportSummary;
+      }
+      if (aiReportResult.nextActionChecks) {
+        reportRecommendations = Array.isArray(aiReportResult.nextActionChecks)
+          ? aiReportResult.nextActionChecks.join("\n")
+          : aiReportResult.nextActionChecks;
+      }
+    } catch (err) {
+      Logger.warn(
+        `[TravelService] AI travel report generation fallback used: ${err}`,
+      );
+    }
+
+    // planet_travels 레코드 생성 (탐사 상태 및 AI 탐사 결과 리포트를 1개 테이블에 통합 저장)
     const travel = await prisma.planet_travels.create({
       data: {
         ...TravelMapper.toPlanetTravelCreateInput(userId, data),
         status: "COMPLETED",
+        title: reportTitle,
+        summary_content: reportSummary,
+        recommendations: reportRecommendations,
         completed_at: new Date(),
       },
     });
 
-    // 2. AI 탐사 결과(travelResult) 생성 및 DB 바인딩
-    let travelResultData: any = null;
-    let travelResultId: string | undefined = undefined;
-
-    try {
-      travelResultData = await this.generateOndemandReport(userId, data.planetType);
-      travelResultId = travelResultData.id;
-
-      if (travelResultId) {
-        await prisma.reports.update({
-          where: { id: BigInt(travelResultId) },
-          data: {
-            planet_travel_id: travel.id,
-            planet_type: data.planetType,
-          },
-        });
-      }
-    } catch (err) {
-      Logger.warn(`[TravelService] Failed to generate AI travelResult during travel start fallback used: ${err}`);
-      // AI 서버 통신 실패 시 기본 Fallback 탐사 결과 생성
-      const fallbackReport = await prisma.reports.create({
-        data: TravelMapper.toFallbackReportCreateInput(userId, travel.id, data.planetType),
-      });
-      travelResultId = fallbackReport.id.toString();
-      travelResultData = {
-        id: travelResultId,
-        userId,
-        title: fallbackReport.title,
-        summaryContent: fallbackReport.summary_content,
-        recommendations: ["매일 물 2,000ml 마시기", "저녁 8시 산책하기"],
-      };
-    }
+    const travelResultData = TravelMapper.toTravelResultResponse(travel);
 
     return {
       success: true,
       message: "별여행 탐사가 완료되어 탐사 결과가 도달했습니다.",
-      data: TravelMapper.toStartApiResponse(travel, travelResultId, updatedUser.current_fuel ?? 0, travelResultData),
+      data: TravelMapper.toStartApiResponse(
+        travel,
+        travel.id.toString(),
+        updatedUser.current_fuel ?? 0,
+        travelResultData,
+      ),
     };
   }
 
   /**
    * 우주여행 현황 조회
    */
-  public async getTravelState(userId: number): Promise<TravelStateInfoResponse> {
+  public async getTravelState(
+    userId: number,
+  ): Promise<TravelStateInfoResponse> {
     const prisma = getPrisma();
     const user = await prisma.users.findUnique({
       where: { id: userId },
@@ -131,15 +163,15 @@ export default class TravelService {
    */
   public async getTravelResultById(travelResultId: string, userId: number) {
     const prisma = getPrisma();
-    const report = await prisma.reports.findFirst({
+    const travel = await prisma.planet_travels.findFirst({
       where: {
         id: BigInt(travelResultId),
         user_id: userId,
       },
     });
 
-    if (report) {
-      return TravelMapper.toTravelResultResponse(report);
+    if (travel) {
+      return TravelMapper.toTravelResultResponse(travel);
     }
 
     return {
@@ -147,7 +179,8 @@ export default class TravelService {
       userId,
       planetType: PlanetType.MEAL,
       title: "우당탕탕님의 별여행 탐사 결과 진단서 🌟",
-      summaryContent: "이번 별여행 탐사 결과 수분 섭취량이 우수하며 수면 품질이 개선되었습니다.",
+      summaryContent:
+        "이번 별여행 탐사 결과 수분 섭취량이 우수하며 수면 품질이 개선되었습니다.",
       recommendations: "매일 물 2,000ml 마시기, 저녁 8시 가벼운 산책",
       createdAt: new Date().toISOString(),
     };
@@ -160,7 +193,10 @@ export default class TravelService {
   /**
    * 탐사 대시보드 통계 요약 조회 (칼로리 트렌드, 영양 밸런스 등)
    */
-  public async getDashboard(userId: number, period: string = "WEEKLY"): Promise<DashboardSummaryInfo> {
+  public async getDashboard(
+    userId: number,
+    period: string = "WEEKLY",
+  ): Promise<DashboardSummaryInfo> {
     const prisma = getPrisma();
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) throw new UserNotFoundError(userId);
@@ -178,22 +214,31 @@ export default class TravelService {
     });
 
     const calorieTrendsMap = new Map<string, number>();
-    let totalCarbs = 0, totalProtein = 0, totalFat = 0;
+    let totalCarbs = 0,
+      totalProtein = 0,
+      totalFat = 0;
 
     meals.forEach((m) => {
-      const registeredAt = m.registered_at ? new Date(m.registered_at) : new Date();
+      const registeredAt = m.registered_at
+        ? new Date(m.registered_at)
+        : new Date();
       const dateStr = registeredAt.toISOString().split("T")[0] || "";
-      calorieTrendsMap.set(dateStr, (calorieTrendsMap.get(dateStr) || 0) + m.total_calories_kcal);
+      calorieTrendsMap.set(
+        dateStr,
+        (calorieTrendsMap.get(dateStr) || 0) + m.total_calories_kcal,
+      );
 
       totalCarbs += Number(m.total_carbohydrate_g);
       totalProtein += Number(m.total_protein_g);
       totalFat += Number(m.total_fat_g);
     });
 
-    const calorieTrends = Array.from(calorieTrendsMap.entries()).map(([date, caloriesKcal]) => ({
-      date,
-      caloriesKcal,
-    }));
+    const calorieTrends = Array.from(calorieTrendsMap.entries()).map(
+      ([date, caloriesKcal]) => ({
+        date,
+        caloriesKcal,
+      }),
+    );
 
     const count = meals.length || 1;
     const nutritionBalance = {
@@ -204,10 +249,11 @@ export default class TravelService {
       mineralPercent: 75,
     };
 
-    const workoutLogs = await prisma.exercise_logs.findMany({
+    const workoutLogs = await prisma.quick_logs.findMany({
       where: {
         user_id: userId,
-        performed_at: { gte: startDate },
+        category: "EXERCISE",
+        created_at: { gte: startDate },
       },
     });
 
@@ -221,35 +267,51 @@ export default class TravelService {
   /**
    * AI 실시간 온디맨드 리포트 생성
    */
-  public async generateOndemandReport(userId: number, planetType: PlanetType = PlanetType.MEAL) {
+  public async generateOndemandReport(
+    userId: number,
+    planetType: PlanetType = PlanetType.MEAL,
+  ) {
     const prisma = getPrisma();
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) throw new UserNotFoundError(userId);
 
-    const aiReportResult = await this.aiService.generatePlanetReport(planetType, {
-      userId,
-      nickname: user.nickname,
-      period: {
-        start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0] || "",
-        end: new Date().toISOString().split("T")[0] || "",
+    const aiReportResult = await this.aiService.generatePlanetReport(
+      planetType,
+      {
+        userId,
+        nickname: user.nickname,
+        period: {
+          start:
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split("T")[0] || "",
+          end: new Date().toISOString().split("T")[0] || "",
+        },
+        dailyRecords: [],
+        waterLogs: [],
+        exerciseLogs: [],
       },
-      dailyRecords: [],
-      waterLogs: [],
-      exerciseLogs: [],
-    });
+    );
 
-    const createdReport = await prisma.reports.create({
-      data: TravelMapper.toTravelResultCreateInput(userId, {
-        planetType,
+    const travel = await prisma.planet_travels.create({
+      data: {
+        user_id: userId,
+        planet_type: planetType,
+        fuel_spent: 100,
+        status: "COMPLETED",
         title: aiReportResult.title || "별여행 탐사 결과 진단서",
-        summaryContent: aiReportResult.markdown || aiReportResult.findings || "탐사 진단 내용입니다.",
+        summary_content:
+          aiReportResult.markdown ||
+          aiReportResult.findings ||
+          "탐사 진단 내용입니다.",
         recommendations: Array.isArray(aiReportResult.nextActionChecks)
           ? aiReportResult.nextActionChecks.join("\n")
-          : aiReportResult.nextActionChecks,
-      }),
+          : aiReportResult.nextActionChecks || "",
+        completed_at: new Date(),
+      },
     });
 
-    return TravelMapper.toTravelResultResponse(createdReport);
+    return TravelMapper.toTravelResultResponse(travel);
   }
 
   /**
@@ -257,7 +319,7 @@ export default class TravelService {
    */
   public async generateAsyncReport(
     userId: number,
-    period: "WEEKLY" | "MONTHLY" = "WEEKLY"
+    period: "WEEKLY" | "MONTHLY" = "WEEKLY",
   ) {
     const jobId = `rpt_job_${Date.now()}_${userId}`;
 

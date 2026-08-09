@@ -77,13 +77,6 @@ enum EmotionState {
   CALM
 }
 
-enum ActivityType {
-  BODY_SPEC
-  EXERCISE
-  MEAL
-  WATER
-  EMOTION
-}
 
 enum TriggerType {
   NEG_EMOTION
@@ -117,6 +110,12 @@ enum ChangeReason {
   WARP
 }
 
+enum MatchType {
+  EXACT
+  ALIAS
+  USER_CONFIRMED
+}
+
 // ==========================================
 // 2. MODEL 선언 (v3 schema.sql 1:1 매핑)
 // ==========================================
@@ -140,19 +139,10 @@ model users {
   tammy_statuses          tammy_statuses?
 
   // 1:N 관계
-  user_body_logs          user_body_logs[]
   quick_logs              quick_logs[]
-  exercise_logs           exercise_logs[]
-  water_logs              water_logs[]
-  emotion_logs            emotion_logs[]
   planet_travels          planet_travels[]
   meals                   meals[]
   chat_messages           chat_messages[]
-  chat_message_archives  chat_message_archives[]
-  long_term_memories      long_term_memories[]
-  reports                 reports[]
-  monthly_reports         monthly_reports[]
-  activity_logs           activity_logs[]
   proactive_triggers      proactive_triggers[]
   user_action_logs        user_action_logs[]
   tammy_status_logs       tammy_status_logs[]
@@ -174,69 +164,23 @@ model tammy_statuses {
   user            users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
-model user_body_logs {
-  id          BigInt   @id @default(autoincrement())
-  user_id     Int
-  height_cm   Decimal  @db.Decimal(5, 2)
-  weight_kg   Decimal  @db.Decimal(5, 2)
-  recorded_at DateTime @default(now()) @db.Timestamp(0)
 
-  user        users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([user_id, recorded_at(sort: Desc)], map: "idx_user_body_recorded")
-}
 
 model quick_logs {
-  id               BigInt      @id @default(autoincrement())
-  user_id          Int
-  category         LogCategory
-  amount           Int?
-  emotion_type     String?     @db.VarChar(50)
-  journal_content  String?     @db.Text
-  duration_minutes Int?
-  earned_fuel      Int         @default(10)
-  created_at       DateTime    @default(now()) @db.Timestamp(0)
+  id                   BigInt      @id @default(autoincrement())
+  user_id              Int
+  category             LogCategory
+  amount               Int?
+  emotion_type         String?     @db.VarChar(50)
+  journal_content      String?     @db.Text
+  duration_minutes     Int?
+  burned_calories_kcal Int?        @default(0)
+  earned_fuel          Int         @default(10)
+  created_at           DateTime    @default(now()) @db.Timestamp(0)
 
-  user             users       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user                 users       @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, created_at(sort: Desc)], map: "idx_quick_log_user_created")
-}
-
-model exercise_logs {
-  id                   BigInt   @id @default(autoincrement())
-  user_id              Int
-  duration_minutes     Int      @default(0)
-  burned_calories_kcal Int      @default(0)
-  is_completed         Boolean  @default(true)
-  memo                 String?  @db.VarChar(255)
-  performed_at         DateTime @default(now()) @db.Timestamp(0)
-
-  user                 users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([user_id, performed_at(sort: Desc)], map: "idx_user_exercise_performed")
-}
-
-model water_logs {
-  id          BigInt   @id @default(autoincrement())
-  user_id     Int
-  intake_ml   Int      @default(250)
-  recorded_at DateTime @default(now()) @db.Timestamp(0)
-
-  user        users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([user_id, recorded_at(sort: Desc)], map: "idx_user_water_recorded")
-}
-
-model emotion_logs {
-  id            BigInt       @id @default(autoincrement())
-  user_id       Int
-  emotion_state EmotionState
-  cause_summary String?      @db.VarChar(255)
-  recorded_at   DateTime     @default(now()) @db.Timestamp(0)
-
-  user          users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([user_id, recorded_at(sort: Desc)], map: "idx_user_emotion_recorded")
 }
 
 model planets {
@@ -301,37 +245,51 @@ model retrospect_planets {
 }
 
 model planet_travels {
-  id           BigInt       @id @default(autoincrement())
-  user_id      Int
-  planet_id    Int?
-  planet_type  PlanetType
-  fuel_spent   Int
-  status       TravelStatus @default(IN_PROGRESS)
-  started_at   DateTime     @default(now()) @db.Timestamp(0)
-  completed_at DateTime?    @db.Timestamp(0)
+  id               BigInt       @id @default(autoincrement())
+  user_id          Int
+  planet_id        Int?
+  planet_type      PlanetType
+  fuel_spent       Int
+  status           TravelStatus @default(IN_PROGRESS)
+  title            String?      @db.VarChar(255)
+  summary_content  String?      @db.Text
+  recommendations  String?      @db.Text
+  started_at       DateTime     @default(now()) @db.Timestamp(0)
+  completed_at     DateTime?    @db.Timestamp(0)
 
-  user         users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  planet       planets?     @relation(fields: [planet_id], references: [id], onDelete: SetNull)
-
-  reports      reports?
+  user             users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  planet           planets?     @relation(fields: [planet_id], references: [id], onDelete: SetNull)
 
   @@index([user_id, started_at(sort: Desc)], map: "idx_travel_user_started")
 }
 
 model foods {
-  id                 Int          @id @default(autoincrement())
-  name               String       @unique @db.VarChar(100)
-  standard_serving_g Decimal      @default(100.00) @db.Decimal(6, 2)
-  calories_kcal      Int          @default(0)
-  carbohydrate_g     Decimal      @default(0.00) @db.Decimal(5, 2)
-  protein_g          Decimal      @default(0.00) @db.Decimal(5, 2)
-  fat_g              Decimal      @default(0.00) @db.Decimal(5, 2)
-  vitamin_percent    Int          @default(0)
-  mineral_percent    Int          @default(0)
-  category           String?      @db.VarChar(50)
-  created_at         DateTime     @default(now()) @db.Timestamp(0)
+  id                 Int             @id @default(autoincrement())
+  name               String          @unique @db.VarChar(100)
+  standard_serving_g Decimal         @default(100.00) @db.Decimal(6, 2)
+  calories_kcal      Int             @default(0)
+  carbohydrate_g     Decimal         @default(0.00) @db.Decimal(5, 2)
+  protein_g          Decimal         @default(0.00) @db.Decimal(5, 2)
+  fat_g              Decimal         @default(0.00) @db.Decimal(5, 2)
+  vitamin_percent    Int             @default(0)
+  mineral_percent    Int             @default(0)
+  category           String?         @db.VarChar(50)
+  created_at         DateTime        @default(now()) @db.Timestamp(0)
 
   meal_items         meal_items[]
+  food_mappings      food_mappings[]
+}
+
+model food_mappings {
+  id         BigInt    @id @default(autoincrement())
+  raw_name   String    @unique @db.VarChar(100)
+  food_id    Int
+  match_type MatchType @default(EXACT)
+  created_at DateTime  @default(now()) @db.Timestamp(0)
+
+  food       foods     @relation(fields: [food_id], references: [id], onDelete: Cascade)
+
+  @@index([raw_name], map: "idx_food_mapping_raw")
 }
 
 model meals {
@@ -356,30 +314,33 @@ model meals {
 }
 
 model meal_images {
-  id         BigInt   @id @default(autoincrement())
-  meal_id    BigInt
-  image_url  String   @db.VarChar(255)
-  is_cover   Boolean  @default(false)
-  created_at DateTime @default(now()) @db.Timestamp(0)
+  id         BigInt       @id @default(autoincrement())
+  meal_id    BigInt?
+  image_url  String       @db.VarChar(255)
+  is_cover   Boolean      @default(false)
+  created_at DateTime     @default(now()) @db.Timestamp(0)
 
-  meal       meals    @relation(fields: [meal_id], references: [id], onDelete: Cascade)
+  meal       meals?       @relation(fields: [meal_id], references: [id], onDelete: Cascade)
+  meal_items meal_items[]
 
   @@index([meal_id], map: "idx_meal_image_meal")
 }
 
 model meal_items {
-  id               BigInt   @id @default(autoincrement())
+  id               BigInt       @id @default(autoincrement())
   meal_id          BigInt
+  meal_image_id    BigInt?
   food_id          Int?
-  custom_food_name String   @db.VarChar(100)
-  intake_gram      Decimal  @default(100.00) @db.Decimal(6, 2)
-  calories_kcal    Int      @default(0)
-  carbohydrate_g   Decimal  @default(0.00) @db.Decimal(5, 2)
-  protein_g        Decimal  @default(0.00) @db.Decimal(5, 2)
-  fat_g            Decimal  @default(0.00) @db.Decimal(5, 2)
+  custom_food_name String       @db.VarChar(100)
+  intake_gram      Decimal      @default(100.00) @db.Decimal(6, 2)
+  bounding_box     Json?
+  confidence       Decimal?     @db.Decimal(5, 4)
 
-  meal             meals    @relation(fields: [meal_id], references: [id], onDelete: Cascade)
-  food             foods?   @relation(fields: [food_id], references: [id], onDelete: SetNull)
+  meal             meals        @relation(fields: [meal_id], references: [id], onDelete: Cascade)
+  food             foods?       @relation(fields: [food_id], references: [id], onDelete: SetNull)
+  meal_image       meal_images? @relation(fields: [meal_image_id], references: [id], onDelete: SetNull)
+
+  @@index([meal_image_id], map: "idx_meal_item_image")
 }
 
 model chat_messages {
@@ -394,91 +355,10 @@ model chat_messages {
 
   user         users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  chat_message_edits chat_message_edits[]
-
   @@index([user_id, created_at(sort: Desc)], map: "idx_user_msg_created")
 }
 
-model chat_message_edits {
-  id              BigInt        @id @default(autoincrement())
-  chat_message_id BigInt
-  previous_text   String        @db.Text
-  edited_at       DateTime      @default(now()) @db.Timestamp(0)
 
-  chat_message    chat_messages @relation(fields: [chat_message_id], references: [id], onDelete: Cascade)
-}
-
-model chat_message_archives {
-  id              BigInt   @id @default(autoincrement())
-  user_id         Int
-  chat_message_id BigInt?
-  sender          Sender
-  message_text    String   @db.Text
-  raw_payload     Json?
-  created_at      DateTime @db.Timestamp(0)
-  archived_at     DateTime @default(now()) @db.Timestamp(0)
-
-  user            users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  long_term_memories long_term_memories[]
-
-  @@index([user_id, created_at(sort: Desc)], map: "idx_archive_user_created")
-}
-
-model long_term_memories {
-  id                      Int                    @id @default(autoincrement())
-  user_id                 Int
-  chat_message_archive_id BigInt?
-  category                String                 @db.VarChar(50)
-  memory_content          String                 @db.Text
-  importance_score        Int                    @default(1)
-  updated_at              DateTime               @default(now()) @updatedAt @db.Timestamp(0)
-
-  user                    users                  @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  archive                 chat_message_archives? @relation(fields: [chat_message_archive_id], references: [id], onDelete: SetNull)
-
-  @@unique([user_id, category], map: "uq_user_category")
-}
-
-model reports {
-  id               BigInt         @id @default(autoincrement())
-  user_id          Int
-  planet_travel_id BigInt?        @unique
-  planet_type      PlanetType
-  title            String         @db.VarChar(255)
-  summary_content  String         @db.Text
-  recommendations  String         @db.Text
-  created_at       DateTime       @default(now()) @db.Timestamp(0)
-
-  user             users          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  planet_travel    planet_travels? @relation(fields: [planet_travel_id], references: [id], onDelete: SetNull)
-}
-
-model monthly_reports {
-  id                Int      @id @default(autoincrement())
-  user_id           Int
-  report_year_month String   @db.Char(7)
-  health_score      Int      @default(0)
-  summary_content   String?  @db.Text
-  aggregated_data   Json?
-  created_at        DateTime @default(now()) @db.Timestamp(0)
-
-  user              users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@unique([user_id, report_year_month], map: "uq_user_month")
-}
-
-model activity_logs {
-  id               BigInt       @id @default(autoincrement())
-  user_id          Int
-  activity_type    ActivityType
-  activity_details Json
-  recorded_at      DateTime     @default(now()) @db.Timestamp(0)
-
-  user             users        @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([user_id, recorded_at(sort: Desc)], map: "idx_user_activity_recorded")
-}
 
 model proactive_triggers {
   id           BigInt          @id @default(autoincrement())

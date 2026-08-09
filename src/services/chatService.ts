@@ -62,36 +62,6 @@ export default class ChatService {
       data: ChatMapper.toTammyMessageInput(userId, aiResult.replyText, aiResult.motionTag || aiResult.emotion?.motionType),
     });
 
-    const archive = await prisma.chat_message_archives.create({
-      data: ChatMapper.toArchiveInput(userId, tammyMsg.id, aiResult.replyText, aiResult),
-    });
-
-    if (aiResult.extractedMemory) {
-      try {
-        const memoryInput = ChatMapper.toLongTermMemoryInput(
-          userId,
-          aiResult.extractedMemory.category,
-          aiResult.extractedMemory.content,
-          archive.id
-        );
-        await prisma.long_term_memories.upsert({
-          where: {
-            user_id_category: {
-              user_id: userId,
-              category: aiResult.extractedMemory.category,
-            },
-          },
-          update: {
-            memory_content: memoryInput.memory_content,
-            chat_message_archive_id: memoryInput.chat_message_archive_id,
-          },
-          create: memoryInput,
-        });
-      } catch (e) {
-        Logger.error(`[ChatService] Failed to save long term memory: ${e}`);
-      }
-    }
-
     const gainedFuel = 10;
     const updatedUser = await prisma.users.update({
       where: { id: userId },
@@ -120,22 +90,10 @@ export default class ChatService {
   }
 
   public async getMemories(userId: number): Promise<MemoryPillDto[]> {
-    const prisma = getPrisma();
-    const user = await prisma.users.findUnique({ where: { id: userId } });
-    if (!user) throw new UserNotFoundError(userId);
-
-    const dbMemories = await prisma.long_term_memories.findMany({
-      where: { user_id: userId },
-      orderBy: { updated_at: "desc" },
-    });
-
-    return ChatMapper.toMemoryPillDtoList(dbMemories);
+    return [];
   }
 
   public async deleteMemory(memoryId: number): Promise<void> {
-    const prisma = getPrisma();
-    await prisma.long_term_memories.delete({
-      where: { id: memoryId },
-    });
+    return;
   }
 }

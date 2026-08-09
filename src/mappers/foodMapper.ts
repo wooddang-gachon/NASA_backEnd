@@ -1,7 +1,24 @@
 import { MealType } from "../interfaces/enums";
-import { MealLogRegisterResponse, FoodSearchResponse, FoodDto } from "../dto";
+import { MealLogRegisterResponse, FoodSearchResponse, FoodDto, FoodMappingDto } from "../dto";
 
 export class FoodMapper {
+  /**
+   * DB food_mappings 엔티티 ➔ FoodMappingDto 변환 [FOD-005]
+   */
+  public static toFoodMappingDto(dbMapping: any): FoodMappingDto {
+    const food = dbMapping.food;
+    return {
+      rawName: dbMapping.raw_name,
+      matchedFoodId: food.id,
+      matchedFoodName: food.name,
+      matchType: dbMapping.match_type,
+      standardServingG: Number(food.standard_serving_g),
+      caloriesKcal: food.calories_kcal,
+      carbohydrateG: Number(food.carbohydrate_g),
+      proteinG: Number(food.protein_g),
+      fatG: Number(food.fat_g),
+    };
+  }
   /**
    * 식단(Meal) DB 생성 인풋 객체 생성
    */
@@ -26,25 +43,25 @@ export class FoodMapper {
   }
 
   /**
-   * 식단 상세 세부 음식(MealItem) DB 생성 인풋 객체 생성
+   * 식단 상세 세부 음식(MealItem) DB 생성 인풋 객체 생성 (foods DB & boundingBox 좌표 연동)
    */
   public static toMealItemCreateInput(
     mealId: bigint,
     foodName: string,
     intakeGram: number,
-    calories: number,
-    carbs: number,
-    protein: number,
-    fat: number
+    foodId?: number | null,
+    boundingBox?: any,
+    confidence?: number | null,
+    mealImageId?: bigint | string | null
   ) {
     return {
       meal_id: mealId,
+      food_id: foodId || null,
       custom_food_name: foodName,
       intake_gram: intakeGram,
-      calories_kcal: calories,
-      carbohydrate_g: carbs,
-      protein_g: protein,
-      fat_g: fat,
+      bounding_box: boundingBox || null,
+      confidence: confidence !== undefined && confidence !== null ? confidence : null,
+      meal_image_id: mealImageId ? BigInt(mealImageId) : null,
     };
   }
 

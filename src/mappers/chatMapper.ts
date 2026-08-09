@@ -43,12 +43,12 @@ export class ChatMapper {
   /**
    * 장기 기억(Memory) DB 생성/수정 인풋 객체 생성
    */
-  public static toLongTermMemoryInput(userId: number, category: string, content: string, archiveId: bigint) {
+  public static toLongTermMemoryInput(userId: number, category: string, content: string, chatMessageId: bigint) {
     return {
       user_id: userId,
       category,
       memory_content: content,
-      chat_message_archive_id: archiveId,
+      chat_message_id: chatMessageId,
     };
   }
 

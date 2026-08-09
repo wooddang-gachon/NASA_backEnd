@@ -44,20 +44,23 @@ export const initPrisma = (): PrismaClient => {
     // 3. 어댑터를 주입하여 PrismaClient 초기화
     prisma = new PrismaClient({
       adapter,
-      log: [
-        { emit: "event", level: "query" },
-        { emit: "stdout", level: "info" },
-        { emit: "stdout", level: "warn" },
-        { emit: "stdout", level: "error" },
-      ],
+      log: isProduction
+        ? [{ emit: "stdout", level: "error" }]
+        : [
+            { emit: "event", level: "query" },
+            { emit: "stdout", level: "warn" },
+            { emit: "stdout", level: "error" },
+          ],
     });
 
-    // winston 로거에 쿼리 실시간 바인딩
-    (prisma as any).$on("query", (e: any) => {
-      Logger.info(
-        `[Prisma Query] ${e.query} - Params: ${e.params} - Duration: ${e.duration}ms`
-      );
-    });
+    // 개발 환경일 때만 쿼리 이벤트를 debug 레벨로 출력
+    if (!isProduction) {
+      (prisma as any).$on("query", (e: any) => {
+        Logger.debug(
+          `[Prisma Query] ${e.query} - Params: ${e.params} - Duration: ${e.duration}ms`
+        );
+      });
+    }
 
     Logger.info("✌️  Prisma Client (v7) initialized with MariaDB Adapter  ✌️");
     return prisma;

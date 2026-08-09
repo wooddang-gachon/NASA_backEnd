@@ -15,10 +15,11 @@ export const runProactiveTriggerJob = async (): Promise<void> => {
     const allUsers = await prisma.users.findMany();
 
     for (const user of allUsers) {
-      const waterCount = await prisma.water_logs.count({
+      const waterCount = await prisma.quick_logs.count({
         where: {
           user_id: user.id,
-          recorded_at: { gte: startOfDay },
+          category: "WATER",
+          created_at: { gte: startOfDay },
         },
       });
 

@@ -24,16 +24,6 @@ export class AuthController extends Controller {
    * 이메일과 비밀번호 기반으로 신규 회원을 등록합니다.
    * @summary 일반 회원가입
    */
-  @Post("register")
-  public async register(@Body() requestBody: UserSignUpRequest): Promise<ApiResponse<UserLoginResponse>> {
-    this.setStatus(201);
-    const result = await this.authService.signUp(requestBody);
-    return ApiResponse.success(result, "회원가입이 성공적으로 완료되었습니다.", 201);
-  }
-
-  /**
-   * [3.6] 회원가입 API (호환용)
-   */
   @Post("signup")
   public async signUp(@Body() requestBody: UserSignUpRequest): Promise<ApiResponse<UserLoginResponse>> {
     this.setStatus(201);

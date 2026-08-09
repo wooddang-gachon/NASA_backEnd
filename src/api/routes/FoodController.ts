@@ -6,7 +6,7 @@ import type { AuthenticatedRequest } from "../../interfaces/express";
 import { getAuthenticatedUserId } from "../../interfaces/express";
 import { ApiResponse } from "../../dto";
 
-import { FoodLogConfirmRequest } from "../../dto";
+import { FoodLogConfirmRequest, FoodVisionScanResponse, FoodLogConfirmResponse } from "../../dto";
 
 @Service()
 @Tags("4. FoodVision - 식단 스캔 & 영양성분 기록")
@@ -23,9 +23,9 @@ export class FoodController extends Controller {
   public async scanFoodVision(
     @UploadedFile("file") file: Express.Multer.File,
     @FormField("mealType") mealType?: MealType
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<FoodVisionScanResponse>> {
     const data = await this.foodService.uploadAndAnalyzeFoodVision(file, mealType);
-    return ApiResponse.success(data, "식단 이미지 업로드 및 분석이 성공적으로 완료되었습니다.");
+    return ApiResponse.success(data as FoodVisionScanResponse);
   }
 
   /**
@@ -36,22 +36,23 @@ export class FoodController extends Controller {
   public async confirmFoodLog(
     @Request() request: AuthenticatedRequest,
     @Body() body: FoodLogConfirmRequest
-  ): Promise<ApiResponse<any>> {
+  ): Promise<ApiResponse<FoodLogConfirmResponse>> {
     const userId = getAuthenticatedUserId(request);
-    const firstFood = body.foods && body.foods.length > 0 ? body.foods[0] : null;
     const res = await this.foodService.logMeal(userId, {
       mealType: body.mealType as MealType,
-      foodName: body.foodName || (firstFood ? firstFood.foodName : "식단 기록"),
-      intakeGram: body.intakeGram || (firstFood ? firstFood.gram : 100),
+      imageId: body.imageId,
       imageUrl: body.imageUrl,
+      foods: body.foods,
+      foodName: body.foodName,
+      intakeGram: body.intakeGram,
       comment: body.comment,
     });
-    const data = {
+    const data: FoodLogConfirmResponse = {
       mealId: res.mealId,
       earnedFuel: res.earnedFuel,
       totalCalories: res.totalCalories,
     };
-    return ApiResponse.success(data, "식단 기록 확정 저장이 완료되었습니다.");
+    return ApiResponse.success(data);
   }
 }
 

@@ -8,7 +8,9 @@ import { QuickLogMapper } from "../mappers";
 export default class QuickLogService {
   public async createQuickLog(userId: number, data: QuickLogCreateRequest) {
     const prisma = getPrisma();
-    Logger.info(`[QuickLogService] Creating quick log for userId ${userId}, category: ${data.category}`);
+    Logger.info(
+      `[QuickLogService] Creating quick log for userId ${userId}, category: ${data.category}`,
+    );
     const earnedFuel = 10;
 
     const log = await prisma.quick_logs.create({

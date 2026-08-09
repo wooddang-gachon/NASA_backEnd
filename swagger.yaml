@@ -567,13 +567,105 @@ components:
         - deviceToken
       type: object
       additionalProperties: false
-    ApiResponse_any_:
+    BoundingBoxDto:
+      properties:
+        x:
+          type: number
+          format: double
+        y:
+          type: number
+          format: double
+        width:
+          type: number
+          format: double
+        height:
+          type: number
+          format: double
+      required:
+        - x
+        - y
+        - width
+        - height
+      type: object
+      additionalProperties: false
+    DetectedFoodItem:
+      properties:
+        boxId:
+          type: number
+          format: double
+        foodName:
+          type: string
+        matchedStandardFoodName:
+          type: string
+        matchedFoodId:
+          type: number
+          format: double
+        matchType:
+          type: string
+        estimatedGram:
+          type: number
+          format: double
+        calories:
+          type: number
+          format: double
+        carbs:
+          type: number
+          format: double
+        protein:
+          type: number
+          format: double
+        fat:
+          type: number
+          format: double
+        confidence:
+          type: number
+          format: double
+        boundingBox:
+          $ref: "#/components/schemas/BoundingBoxDto"
+      required:
+        - foodName
+        - calories
+        - carbs
+        - protein
+        - fat
+      type: object
+      additionalProperties: false
+    FoodVisionScanResponse:
+      properties:
+        scanEngine:
+          anyOf:
+            - type: string
+            - type: string
+              enum:
+                - YOLO
+                - VISION_LLM
+        isFallbackUsed:
+          type: boolean
+        imageId:
+          type: string
+        imageUrl:
+          type: string
+        detectedFoods:
+          items:
+            $ref: "#/components/schemas/DetectedFoodItem"
+          type: array
+      required:
+        - scanEngine
+        - isFallbackUsed
+        - imageId
+        - imageUrl
+        - detectedFoods
+      type: object
+      additionalProperties: false
+    ApiResponse_FoodVisionScanResponse_:
       properties:
         success:
           type: boolean
         message:
           type: string
         data:
+          allOf:
+            - $ref: "#/components/schemas/FoodVisionScanResponse"
           nullable: true
         code:
           type: number
@@ -594,11 +686,61 @@ components:
         - SNACK
     MealType:
       $ref: "#/components/schemas/_36_Enums.MealType"
+    FoodLogConfirmResponse:
+      properties:
+        mealId:
+          anyOf:
+            - type: string
+            - type: number
+              format: double
+        earnedFuel:
+          type: number
+          format: double
+        totalCalories:
+          type: number
+          format: double
+      required:
+        - mealId
+        - earnedFuel
+        - totalCalories
+      type: object
+      additionalProperties: false
+    ApiResponse_FoodLogConfirmResponse_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          allOf:
+            - $ref: "#/components/schemas/FoodLogConfirmResponse"
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
+      type: object
+      additionalProperties: false
     FoodItemInput:
+      description: |-
+        식단 확정 요청 시 개별 음식 항목 DTO (최소 필수: foodName, gram)
+        스캔 단계에서 발급받은 boxId를 보내면 해당 좌표가 자동으로 연결됩니다.
       properties:
         foodName:
           type: string
         gram:
+          type: number
+          format: double
+        boxId:
+          type: number
+          format: double
+        boundingBox:
+          $ref: "#/components/schemas/BoundingBoxDto"
+        confidence:
           type: number
           format: double
         calories:
@@ -613,11 +755,17 @@ components:
         fat:
           type: number
           format: double
+        imageId:
+          anyOf:
+            - type: string
+            - type: number
+              format: double
       required:
         - foodName
       type: object
       additionalProperties: false
     FoodLogConfirmRequest:
+      description: 식단 확정 저장 요청 DTO (POST /api/food-log/confirm)
       properties:
         mealType:
           anyOf:
@@ -628,11 +776,11 @@ components:
                 - LUNCH
                 - DINNER
                 - SNACK
-        foodName:
-          type: string
-        intakeGram:
-          type: number
-          format: double
+        imageId:
+          anyOf:
+            - type: string
+            - type: number
+              format: double
         imageUrl:
           type: string
         comment:
@@ -641,8 +789,31 @@ components:
           items:
             $ref: "#/components/schemas/FoodItemInput"
           type: array
+        foodName:
+          type: string
+        intakeGram:
+          type: number
+          format: double
       required:
         - mealType
+      type: object
+      additionalProperties: false
+    ApiResponse_any_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
       type: object
       additionalProperties: false
     ChatMessageApiRequest:
@@ -1099,7 +1270,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiResponse_any_"
+                $ref: "#/components/schemas/ApiResponse_FoodVisionScanResponse_"
       description: 촬영하거나 선택한 식단 사진 이미지 파일(multipart/form-data)을 업로드하고 AI 비전 모델로 5대 영양
         성분을 스캔 분석합니다.
       summary: 식단 사진 파일 업로드 & AI 비전 분석 스캔
@@ -1131,7 +1302,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiResponse_any_"
+                $ref: "#/components/schemas/ApiResponse_FoodLogConfirmResponse_"
       description: "[3.2] Food Log 확정 저장 API"
       tags:
         - 4. FoodVision - 식단 스캔 & 영양성분 기록
@@ -1209,28 +1380,6 @@ paths:
           required: true
           schema:
             type: string
-  /auth/register:
-    post:
-      operationId: Register
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiResponse_UserLoginResponse_"
-      description: 이메일과 비밀번호 기반으로 신규 회원을 등록합니다.
-      summary: 일반 회원가입
-      tags:
-        - 1. Auth - 회원 인증 및 소셜 로그인
-      security: []
-      parameters: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UserSignUpRequest"
   /auth/signup:
     post:
       operationId: SignUp
@@ -1241,7 +1390,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiResponse_UserLoginResponse_"
-      description: "[3.6] 회원가입 API (호환용)"
+      description: 이메일과 비밀번호 기반으로 신규 회원을 등록합니다.
+      summary: 일반 회원가입
       tags:
         - 1. Auth - 회원 인증 및 소셜 로그인
       security: []

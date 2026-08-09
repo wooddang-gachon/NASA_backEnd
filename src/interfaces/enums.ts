@@ -8,7 +8,6 @@ export {
   Sender,
   MealType,
   EmotionState,
-  ActivityType,
   TriggerType,
   ProactiveStatus,
   ActionType,

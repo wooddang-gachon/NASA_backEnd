@@ -12,10 +12,11 @@ async function main() {
       nickname: "우주탐험가",
       gender: "FEMALE",
       age: 25,
+      password_hash: "$argon2id$v=19$m=65536,t=3,p=4$ffaGRe/COd8avRhslKEkGw$SxTgmaNe1lBLWl57R5kIkCq9OCeYmUfIqQogzXth/XU",
     },
     create: {
       email: "user@example.com",
-      password_hash: "$2b$10$wT8KzQ89N8E790Q/vJ3XEOl3h1J.98.vQY0.nZJ7zH7bXG9z/W8.2", // Password123!
+      password_hash: "$argon2id$v=19$m=65536,t=3,p=4$ffaGRe/COd8avRhslKEkGw$SxTgmaNe1lBLWl57R5kIkCq9OCeYmUfIqQogzXth/XU", // Password123!
       auth_provider: "LOCAL",
       nickname: "우주탐험가",
       gender: "FEMALE",
@@ -53,14 +54,14 @@ async function main() {
   // 3. 탐사 행성 마스터 (planets)
   const planet1 = await prisma.planets.upsert({
     where: { id: 1 },
-    update: { name: "아쿠아 웰니스 행성", planet_type: "EXERCISE", required_fuel: 300 },
-    create: { id: 1, name: "아쿠아 웰니스 행성", planet_type: "EXERCISE", required_fuel: 300, description: "맑은 물과 생명력이 넘치는 첫 번째 웰니스 행성" },
+    update: { name: "아쿠아 웰니스 행성", planet_type: "WATER", required_fuel: 300 },
+    create: { id: 1, name: "아쿠아 웰니스 행성", planet_type: "WATER", required_fuel: 300, description: "맑은 물과 생명력이 넘치는 첫 번째 웰니스 행성" },
   });
 
   const planet2 = await prisma.planets.upsert({
     where: { id: 2 },
-    update: { name: "비타민 에너제틱 행성", planet_type: "NUTRITION", required_fuel: 500 },
-    create: { id: 2, name: "비타민 에너제틱 행성", planet_type: "NUTRITION", required_fuel: 500, description: "풍부한 영양소와 단백질이 우주 광선으로 빛나는 행성" },
+    update: { name: "비타민 에너제틱 행성", planet_type: "MEAL", required_fuel: 500 },
+    create: { id: 2, name: "비타민 에너제틱 행성", planet_type: "MEAL", required_fuel: 500, description: "풍부한 영양소와 단백질이 우주 광선으로 빛나는 행성" },
   });
 
   const planet3 = await prisma.planets.upsert({
@@ -71,25 +72,23 @@ async function main() {
 
   console.log(`🪐 Planets created: ${planet1.name}, ${planet2.name}, ${planet3.name}`);
 
-  // 4. 별여행 탐사 상태 (space_travel_states)
-  const travelState = await prisma.space_travel_states.upsert({
-    where: { user_id: user.id },
-    update: {
-      current_planet_id: planet1.id,
-      current_fuel: 200,
-      ship_coordinate_x: 66.5,
-      ship_coordinate_y: 32.0,
-    },
-    create: {
+  // 4. 별여행 탐사 상태 (planet_travels)
+  const travel = await prisma.planet_travels.create({
+    data: {
       user_id: user.id,
-      current_planet_id: planet1.id,
-      current_fuel: 200,
-      ship_coordinate_x: 66.5,
-      ship_coordinate_y: 32.0,
+      planet_id: planet1.id,
+      planet_type: "WATER",
+      fuel_spent: 100,
+      status: "COMPLETED",
+      title: "아쿠아 웰니스 행성 탐사 리포트",
+      summary_content: "수분 섭취 탐사가 완료되었습니다.",
+      recommendations: "하루 2,000ml 수분 섭취 유지",
+      started_at: new Date(),
+      completed_at: new Date(),
     },
   });
 
-  console.log(`🚀 Space travel state initialized: Planet #${travelState.current_planet_id} (Fuel: ${travelState.current_fuel})`);
+  console.log(`🚀 Space travel record initialized: Travel #${travel.id}`);
 
   // 5. 표준 음식 마스터 (foods)
   const food1 = await prisma.foods.upsert({
@@ -122,6 +121,13 @@ async function main() {
 
   console.log(`🥗 Foods created: ${food1.name}, ${food2.name}`);
 
+  // 5.5. AI-RDB 음식명 매칭 테이블 (food_mappings) [FOD-005]
+  await prisma.food_mappings.upsert({
+    where: { raw_name: "생선 샐러드" },
+    update: { food_id: food1.id, match_type: "ALIAS" },
+    create: { raw_name: "생선 샐러드", food_id: food1.id, match_type: "ALIAS" },
+  });
+
   // 6. 식단 기록 (meals & meal_items & meal_images)
   const meal = await prisma.meals.create({
     data: {
@@ -135,7 +141,7 @@ async function main() {
       meal_images: {
         create: [
           {
-            image_url: "https://storage.tammy.app/meals/salmon_salad.jpg",
+            image_url: "/uploads/salmon_salad.jpg",
             is_cover: true,
           },
         ],
@@ -143,11 +149,8 @@ async function main() {
       meal_items: {
         create: [
           {
-            food_name: "연어 샐러드",
-            calories_kcal: 380,
-            carbohydrate_g: 14.5,
-            protein_g: 32.0,
-            fat_g: 11.2,
+            custom_food_name: "연어 샐러드",
+            intake_gram: 250,
             food_id: food1.id,
           },
         ],
@@ -157,20 +160,23 @@ async function main() {
 
   console.log(`🍲 Meal log recorded: ID #${meal.id} (${meal.meal_type})`);
 
-  // 7. 1-Tap 수분 섭취 및 운동 완료 기록 (water_logs & exercise_logs)
-  await prisma.water_logs.create({
+  // 7. 1-Tap 수분 섭취 및 운동 완료 기록 (quick_logs & exercise_logs)
+  await prisma.quick_logs.create({
     data: {
       user_id: user.id,
-      intake_ml: 250,
+      category: "WATER",
+      amount: 250,
+      earned_fuel: 10,
     },
   });
 
-  const workoutLog = await prisma.exercise_logs.create({
+  const workoutLog = await prisma.quick_logs.create({
     data: {
       user_id: user.id,
-      is_completed: true,
+      category: "EXERCISE",
       duration_minutes: 30,
       burned_calories_kcal: 150,
+      earned_fuel: 10,
     },
   });
 
@@ -193,51 +199,7 @@ async function main() {
     },
   });
 
-  await prisma.long_term_memories.upsert({
-    where: {
-      user_id_category: {
-        user_id: user.id,
-        category: "DIET_CARE",
-      },
-    },
-    update: {
-      memory_content: "다이어트 스트레스 해소로 야외 산책을 선호함",
-      importance_score: 5,
-    },
-    create: {
-      user_id: user.id,
-      category: "DIET_CARE",
-      memory_content: "다이어트 스트레스 해소로 야외 산책을 선호함",
-      importance_score: 5,
-    },
-  });
-
-  console.log(`💬 Chat messages & Memory Pill created.`);
-
-  // 9. 종합 인사이트 리포트 (monthly_reports)
-  const yearMonth = new Date().toISOString().slice(0, 7);
-  await prisma.monthly_reports.upsert({
-    where: {
-      user_id_report_year_month: {
-        user_id: user.id,
-        report_year_month: yearMonth,
-      },
-    },
-    update: {
-      summary_content: "지난 일주일간 단백질 섭취 비율이 목표 대비 120%로 매우 훌륭하며, 1-Tap 수분 및 산책 미션을 꾸준히 달성하셨습니다.",
-    },
-    create: {
-      user_id: user.id,
-      report_year_month: yearMonth,
-      summary_content: "지난 일주일간 단백질 섭취 비율이 목표 대비 120%로 매우 훌륭하며, 1-Tap 수분 및 산책 미션을 꾸준히 달성하셨습니다.",
-      aggregated_data: JSON.stringify([
-        "주말에 야외 산책 30분 유지하기",
-        "하루 수분 섭취 목표 1,500ml 탭 미션 이어가기",
-      ]),
-    },
-  });
-
-  console.log(`📊 Wellness Report seeded for ${yearMonth}.`);
+  console.log(`💬 Chat messages created.`);
   console.log("✅ Prisma seeding completed successfully!");
 }
 
