@@ -1,10 +1,15 @@
 import { Service } from "typedi";
 import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
-import { Prisma } from "@prisma/client";
+import { Prisma, foods } from "@prisma/client";
+import { BaseRepository } from "./BaseRepository";
 
 @Service()
-export default class FoodRepository {
+export default class FoodRepository extends BaseRepository<foods, Prisma.foodsCreateInput, Prisma.foodsUpdateInput> {
+  constructor() {
+    super(getPrisma().foods);
+  }
+
   public async createMealImage(imageUrl: string, isCover: boolean = true) {
     const prisma = getPrisma();
     return prisma.meal_images.create({
@@ -24,14 +29,11 @@ export default class FoodRepository {
   }
 
   public async findFoodMasterByNameOrKeyword(rawName: string, keywordCleaned: string) {
-    const prisma = getPrisma();
-    return prisma.foods.findFirst({
-      where: {
-        OR: [
-          { name: { contains: rawName } },
-          { name: { contains: keywordCleaned } },
-        ],
-      },
+    return this.findFirst({
+      OR: [
+        { name: { contains: rawName } },
+        { name: { contains: keywordCleaned } },
+      ],
     });
   }
 
@@ -48,13 +50,11 @@ export default class FoodRepository {
   }
 
   public async searchFoodsByKeyword(keyword: string, take: number = 10) {
-    const prisma = getPrisma();
-    return prisma.foods.findMany({
-      where: {
-        name: { contains: keyword },
-      },
-      take,
-    });
+    return this.findMany(
+      { name: { contains: keyword } },
+      undefined,
+      take
+    );
   }
 
   public async findUserById(userId: number) {

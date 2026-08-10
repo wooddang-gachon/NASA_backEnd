@@ -1,40 +1,31 @@
 import { Service } from "typedi";
 import { getPrisma } from "@/loaders/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, users } from "@prisma/client";
+import { BaseRepository } from "./BaseRepository";
 
 @Service()
-export default class AuthRepository {
+export default class AuthRepository extends BaseRepository<users, Prisma.usersCreateInput, Prisma.usersUpdateInput> {
+  constructor() {
+    super(getPrisma().users);
+  }
+
   public async findUserByEmail(email: string) {
-    const prisma = getPrisma();
-    return prisma.users.findUnique({
-      where: { email },
-    });
+    return this.findFirst({ email });
   }
 
   public async findUserById(userId: number) {
-    const prisma = getPrisma();
-    return prisma.users.findUnique({
-      where: { id: userId },
-    });
+    return this.findById(userId);
   }
 
   public async createUser(data: Prisma.usersCreateInput) {
-    const prisma = getPrisma();
-    return prisma.users.create({ data });
+    return this.create(data);
   }
 
   public async updateUser(userId: number, data: Prisma.usersUpdateInput) {
-    const prisma = getPrisma();
-    return prisma.users.update({
-      where: { id: userId },
-      data,
-    });
+    return this.update(userId, data);
   }
 
   public async deleteUser(userId: number) {
-    const prisma = getPrisma();
-    return prisma.users.delete({
-      where: { id: userId },
-    });
+    return this.delete(userId);
   }
 }

@@ -1,12 +1,16 @@
 import { Service } from "typedi";
 import { getPrisma } from "@/loaders/prisma";
+import { Prisma, users } from "@prisma/client";
+import { BaseRepository } from "./BaseRepository";
 
 @Service()
-export default class UserRepository {
+export default class UserRepository extends BaseRepository<users, Prisma.usersCreateInput, Prisma.usersUpdateInput> {
+  constructor() {
+    super(getPrisma().users);
+  }
+
   public async findUserById(userId: number) {
-    return getPrisma().users.findUnique({
-      where: { id: userId },
-    });
+    return this.findById(userId);
   }
 
   public async findUserWithTammyStatus(userId: number) {

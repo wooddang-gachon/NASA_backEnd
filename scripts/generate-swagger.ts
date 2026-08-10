@@ -20,39 +20,16 @@ if (fs.existsSync(routesPath)) {
   fs.writeFileSync(routesPath, routesContent, "utf8");
 }
 
-// 2. src/build/swagger.json 파일 경로 읽기
-const jsonPath = path.join(process.cwd(), "src", "build", "swagger.json");
-
-if (!fs.existsSync(jsonPath)) {
-  console.error("❌ swagger.json 파일을 찾을 수 없습니다:", jsonPath);
-  process.exit(1);
+// 2. 생성된 JSON을 다시 YAML로 변환 (외부 공유용)
+const jsonPath = path.join(process.cwd(), "docs", "swagger.json");
+if (fs.existsSync(jsonPath)) {
+  const jsonRaw = fs.readFileSync(jsonPath, "utf8");
+  const swaggerSpec = JSON.parse(jsonRaw);
+  const yamlString = yaml.stringify(swaggerSpec);
+  
+  const targetRootYamlPath = path.join(process.cwd(), "swagger.yaml");
+  fs.writeFileSync(targetRootYamlPath, yamlString, "utf8");
+  console.log("✅ OpenAPI JSON 및 외부 공유용 swagger.yaml 파일 자동 생성이 완료되었습니다.");
+} else {
+  console.log("✅ OpenAPI JSON 자동 생성이 완료되었습니다 (docs/swagger.json).");
 }
-
-const jsonRaw = fs.readFileSync(jsonPath, "utf8");
-const swaggerSpec = JSON.parse(jsonRaw);
-
-// Swagger Authorize 모달용 securitySchemes 주입
-if (!swaggerSpec.components) {
-  swaggerSpec.components = {};
-}
-swaggerSpec.components.securitySchemes = {
-  jwt: {
-    type: "http",
-    scheme: "bearer",
-    bearerFormat: "JWT"
-  }
-};
-fs.writeFileSync(jsonPath, JSON.stringify(swaggerSpec, null, 2), "utf8");
-
-// 3. YAML 포맷 변환 및 저장 (src/build/swagger.yaml & 루트 swagger.yaml)
-const yamlString = yaml.stringify(swaggerSpec);
-
-const targetBuildYamlPath = path.join(process.cwd(), "src", "build", "swagger.yaml");
-const targetRootYamlPath = path.join(process.cwd(), "swagger.yaml");
-
-fs.writeFileSync(targetBuildYamlPath, yamlString, "utf8");
-fs.writeFileSync(targetRootYamlPath, yamlString, "utf8");
-
-console.log("✅ swagger.yaml 파일이 성공적으로 추출되었습니다!");
-console.log(`📌 저장 위치 1: ${targetBuildYamlPath}`);
-console.log(`📌 저장 위치 2: ${targetRootYamlPath}`);

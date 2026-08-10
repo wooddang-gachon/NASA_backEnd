@@ -1,8 +1,14 @@
 import { Service } from "typedi";
 import { getPrisma } from "@/loaders/prisma";
+import { Prisma, user_push_tokens } from "@prisma/client";
+import { BaseRepository } from "./BaseRepository";
 
 @Service()
-export default class NotificationRepository {
+export default class NotificationRepository extends BaseRepository<user_push_tokens, Prisma.user_push_tokensCreateInput, Prisma.user_push_tokensUpdateInput> {
+  constructor() {
+    super(getPrisma().user_push_tokens);
+  }
+
   public async upsertPushToken(
     userId: number,
     deviceToken: string,
@@ -30,11 +36,9 @@ export default class NotificationRepository {
   }
 
   public async findActivePushTokens(userId: number) {
-    return getPrisma().user_push_tokens.findMany({
-      where: {
-        user_id: userId,
-        is_active: true,
-      },
+    return this.findMany({
+      user_id: userId,
+      is_active: true,
     });
   }
 }

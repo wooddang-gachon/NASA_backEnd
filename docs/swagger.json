@@ -1,0 +1,2323 @@
+{
+	"openapi": "3.0.0",
+	"components": {
+		"examples": {},
+		"headers": {},
+		"parameters": {},
+		"requestBodies": {},
+		"responses": {},
+		"schemas": {
+			"_36_Enums.Gender": {
+				"type": "string",
+				"enum": [
+					"MALE",
+					"FEMALE",
+					"OTHER"
+				]
+			},
+			"Gender": {
+				"$ref": "#/components/schemas/_36_Enums.Gender"
+			},
+			"TammyStatusDto": {
+				"properties": {
+					"level": {
+						"type": "number",
+						"format": "double"
+					},
+					"currentExp": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"level",
+					"currentExp"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UserProfileResponseData": {
+				"properties": {
+					"userId": {
+						"type": "number",
+						"format": "double"
+					},
+					"nickname": {
+						"type": "string"
+					},
+					"gender": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/Gender"
+							},
+							{
+								"type": "string"
+							}
+						],
+						"nullable": true
+					},
+					"age": {
+						"type": "number",
+						"format": "double",
+						"nullable": true
+					},
+					"currentFuel": {
+						"type": "number",
+						"format": "double",
+						"nullable": true
+					},
+					"tammyStatus": {
+						"$ref": "#/components/schemas/TammyStatusDto"
+					},
+					"createdAt": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "date-time"
+							},
+							{
+								"type": "string"
+							}
+						]
+					}
+				},
+				"required": [
+					"userId",
+					"nickname"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_UserProfileResponseData_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/UserProfileResponseData"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"TammyHistoryLogItem": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"changeReason": {
+						"type": "string"
+					},
+					"deltaExp": {
+						"type": "number",
+						"format": "double"
+					},
+					"snapshotLevel": {
+						"type": "number",
+						"format": "double"
+					},
+					"snapshotTotalExp": {
+						"type": "number",
+						"format": "double"
+					},
+					"createdAt": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "date-time"
+							},
+							{
+								"type": "string"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"changeReason",
+					"deltaExp",
+					"snapshotLevel",
+					"snapshotTotalExp",
+					"createdAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"TammyHistoryResponse": {
+				"properties": {
+					"logs": {
+						"items": {
+							"$ref": "#/components/schemas/TammyHistoryLogItem"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"logs"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_TammyHistoryResponse_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/TammyHistoryResponse"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"_36_Enums.TravelStatus": {
+				"type": "string",
+				"enum": [
+					"IN_PROGRESS",
+					"COMPLETED",
+					"FAILED"
+				]
+			},
+			"TravelStatus": {
+				"$ref": "#/components/schemas/_36_Enums.TravelStatus"
+			},
+			"TravelResultSummary": {
+				"properties": {
+					"id": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "number",
+								"format": "double"
+							}
+						]
+					},
+					"userId": {
+						"type": "number",
+						"format": "double"
+					},
+					"title": {
+						"type": "string"
+					},
+					"summaryContent": {
+						"type": "string"
+					},
+					"recommendations": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"id",
+					"userId",
+					"title",
+					"summaryContent",
+					"recommendations"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"PlanetTravelStartApiResponse": {
+				"properties": {
+					"travelId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "number",
+								"format": "double"
+							}
+						]
+					},
+					"travelResultId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "number",
+								"format": "double"
+							}
+						]
+					},
+					"remainingFuel": {
+						"type": "number",
+						"format": "double"
+					},
+					"status": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/TravelStatus"
+							},
+							{
+								"type": "string"
+							}
+						]
+					},
+					"travelResult": {
+						"$ref": "#/components/schemas/TravelResultSummary"
+					}
+				},
+				"required": [
+					"travelId",
+					"travelResultId",
+					"remainingFuel",
+					"status"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_PlanetTravelStartApiResponse_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/PlanetTravelStartApiResponse"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"_36_Enums.PlanetType": {
+				"type": "string",
+				"enum": [
+					"MEAL",
+					"WATER",
+					"EMOTION",
+					"LIFESTYLE",
+					"RETROSPECT"
+				]
+			},
+			"PlanetType": {
+				"$ref": "#/components/schemas/_36_Enums.PlanetType"
+			},
+			"PlanetTravelStartApiRequest": {
+				"properties": {
+					"planetType": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/PlanetType"
+							},
+							{
+								"type": "string",
+								"enum": [
+									"MEAL",
+									"WATER",
+									"EMOTION",
+									"LIFESTYLE",
+									"RETROSPECT"
+								]
+							}
+						]
+					},
+					"fuelSpent": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"planetType",
+					"fuelSpent"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"PlanetStateItem": {
+				"properties": {
+					"planetType": {
+						"$ref": "#/components/schemas/PlanetType"
+					},
+					"name": {
+						"type": "string"
+					},
+					"targetDistance": {
+						"type": "number",
+						"format": "double"
+					},
+					"currentDistance": {
+						"type": "number",
+						"format": "double"
+					},
+					"isCompleted": {
+						"type": "boolean"
+					},
+					"completedAt": {
+						"type": "string",
+						"nullable": true
+					}
+				},
+				"required": [
+					"planetType",
+					"name",
+					"targetDistance",
+					"currentDistance",
+					"isCompleted"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"TravelStateInfoResponse": {
+				"properties": {
+					"currentPlanet": {
+						"type": "string"
+					},
+					"activePlanet": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/PlanetType"
+							}
+						],
+						"nullable": true
+					},
+					"explorationProgressPercent": {
+						"type": "number",
+						"format": "double"
+					},
+					"currentFuel": {
+						"type": "number",
+						"format": "double"
+					},
+					"requiredFuelForNextPlanet": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalStarCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"completedStarCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"tammyRelationshipLevel": {
+						"type": "number",
+						"format": "double"
+					},
+					"planetList": {
+						"items": {
+							"$ref": "#/components/schemas/PlanetStateItem"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"explorationProgressPercent",
+					"currentFuel",
+					"totalStarCount",
+					"completedStarCount",
+					"tammyRelationshipLevel",
+					"planetList"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_TravelStateInfoResponse_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/TravelStateInfoResponse"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"TravelResultDetailInfo": {
+				"properties": {
+					"reportId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "number",
+								"format": "double"
+							}
+						]
+					},
+					"travelResultId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "number",
+								"format": "double"
+							}
+						]
+					},
+					"userId": {
+						"type": "number",
+						"format": "double"
+					},
+					"title": {
+						"type": "string"
+					},
+					"summaryContent": {
+						"type": "string"
+					},
+					"recommendations": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"createdAt": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "string",
+								"format": "date-time"
+							}
+						]
+					}
+				},
+				"required": [
+					"title",
+					"summaryContent",
+					"recommendations"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_TravelResultDetailInfo_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/TravelResultDetailInfo"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CalorieTrendItem": {
+				"properties": {
+					"date": {
+						"type": "string"
+					},
+					"caloriesKcal": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"date",
+					"caloriesKcal"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"NutritionBalanceInfo": {
+				"properties": {
+					"carbohydratePercent": {
+						"type": "number",
+						"format": "double"
+					},
+					"proteinPercent": {
+						"type": "number",
+						"format": "double"
+					},
+					"fatPercent": {
+						"type": "number",
+						"format": "double"
+					},
+					"vitaminPercent": {
+						"type": "number",
+						"format": "double"
+					},
+					"mineralPercent": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"carbohydratePercent",
+					"proteinPercent",
+					"fatPercent",
+					"vitaminPercent",
+					"mineralPercent"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"DashboardSummaryInfo": {
+				"properties": {
+					"calorieTrends": {
+						"items": {
+							"$ref": "#/components/schemas/CalorieTrendItem"
+						},
+						"type": "array"
+					},
+					"nutritionBalance": {
+						"$ref": "#/components/schemas/NutritionBalanceInfo"
+					},
+					"weeklyWorkoutCompletedDays": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"calorieTrends",
+					"nutritionBalance",
+					"weeklyWorkoutCompletedDays"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_DashboardSummaryInfo_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/DashboardSummaryInfo"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"_36_Enums.LogCategory": {
+				"type": "string",
+				"enum": [
+					"WATER",
+					"EMOTION",
+					"JOURNAL",
+					"EXERCISE"
+				]
+			},
+			"LogCategory": {
+				"$ref": "#/components/schemas/_36_Enums.LogCategory"
+			},
+			"QuickLogApiResponse": {
+				"properties": {
+					"logId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "number",
+								"format": "double"
+							}
+						]
+					},
+					"category": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/LogCategory"
+							},
+							{
+								"type": "string"
+							}
+						]
+					},
+					"earnedFuel": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalFuel": {
+						"type": "number",
+						"format": "double"
+					},
+					"createdAt": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"logId",
+					"category",
+					"earnedFuel",
+					"totalFuel"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_QuickLogApiResponse_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/QuickLogApiResponse"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"_36_Enums.EmotionState": {
+				"type": "string",
+				"enum": [
+					"HAPPY",
+					"SAD",
+					"ANGRY",
+					"STRESSED",
+					"CALM"
+				]
+			},
+			"EmotionState": {
+				"$ref": "#/components/schemas/_36_Enums.EmotionState"
+			},
+			"QuickLogApiRequest": {
+				"properties": {
+					"category": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/LogCategory"
+							},
+							{
+								"type": "string",
+								"enum": [
+									"WATER",
+									"EMOTION",
+									"JOURNAL",
+									"EXERCISE"
+								]
+							}
+						]
+					},
+					"amount": {
+						"type": "number",
+						"format": "double"
+					},
+					"emotionType": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/EmotionState"
+							},
+							{
+								"type": "string"
+							}
+						]
+					},
+					"journalContent": {
+						"type": "string"
+					},
+					"exerciseName": {
+						"type": "string"
+					},
+					"durationMinutes": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"category"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"PushTokenRegisterResponse": {
+				"properties": {
+					"userId": {
+						"type": "number",
+						"format": "double"
+					},
+					"deviceToken": {
+						"type": "string"
+					},
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_PushTokenRegisterResponse_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/PushTokenRegisterResponse"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"PushTokenRegisterRequest": {
+				"properties": {
+					"deviceToken": {
+						"type": "string",
+						"description": "클라이언트 앱에서 FCM/APNs SDK를 통해 발급받은 디바이스 토큰",
+						"example": "fcm_device_token_sample_12345"
+					},
+					"deviceType": {
+						"type": "string",
+						"enum": [
+							"IOS",
+							"ANDROID",
+							"WEB"
+						],
+						"description": "기기 운영체제 타입 (IOS | ANDROID | WEB)",
+						"example": "IOS"
+					}
+				},
+				"required": [
+					"deviceToken"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"BoundingBoxDto": {
+				"properties": {
+					"x": {
+						"type": "number",
+						"format": "double"
+					},
+					"y": {
+						"type": "number",
+						"format": "double"
+					},
+					"width": {
+						"type": "number",
+						"format": "double"
+					},
+					"height": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"x",
+					"y",
+					"width",
+					"height"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"DetectedFoodItem": {
+				"properties": {
+					"boxId": {
+						"type": "number",
+						"format": "double"
+					},
+					"foodName": {
+						"type": "string"
+					},
+					"matchedStandardFoodName": {
+						"type": "string"
+					},
+					"matchedFoodId": {
+						"type": "number",
+						"format": "double"
+					},
+					"matchType": {
+						"type": "string"
+					},
+					"estimatedGram": {
+						"type": "number",
+						"format": "double"
+					},
+					"calories": {
+						"type": "number",
+						"format": "double"
+					},
+					"carbs": {
+						"type": "number",
+						"format": "double"
+					},
+					"protein": {
+						"type": "number",
+						"format": "double"
+					},
+					"fat": {
+						"type": "number",
+						"format": "double"
+					},
+					"confidence": {
+						"type": "number",
+						"format": "double"
+					},
+					"boundingBox": {
+						"$ref": "#/components/schemas/BoundingBoxDto"
+					}
+				},
+				"required": [
+					"foodName",
+					"calories",
+					"carbs",
+					"protein",
+					"fat"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"FoodVisionScanResponse": {
+				"properties": {
+					"scanEngine": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "string",
+								"enum": [
+									"YOLO",
+									"VISION_LLM"
+								]
+							}
+						]
+					},
+					"isFallbackUsed": {
+						"type": "boolean"
+					},
+					"imageId": {
+						"type": "string"
+					},
+					"imageUrl": {
+						"type": "string"
+					},
+					"detectedFoods": {
+						"items": {
+							"$ref": "#/components/schemas/DetectedFoodItem"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"scanEngine",
+					"isFallbackUsed",
+					"imageId",
+					"imageUrl",
+					"detectedFoods"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_FoodVisionScanResponse_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/FoodVisionScanResponse"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"_36_Enums.MealType": {
+				"type": "string",
+				"enum": [
+					"BREAKFAST",
+					"LUNCH",
+					"DINNER",
+					"SNACK"
+				]
+			},
+			"MealType": {
+				"$ref": "#/components/schemas/_36_Enums.MealType"
+			},
+			"FoodLogConfirmResponse": {
+				"properties": {
+					"mealId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "number",
+								"format": "double"
+							}
+						]
+					},
+					"earnedFuel": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalCalories": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"mealId",
+					"earnedFuel",
+					"totalCalories"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_FoodLogConfirmResponse_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/FoodLogConfirmResponse"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"FoodItemInput": {
+				"description": "식단 확정 요청 시 개별 음식 항목 DTO (최소 필수: foodName, gram)\n스캔 단계에서 발급받은 boxId를 보내면 해당 좌표가 자동으로 연결됩니다.",
+				"properties": {
+					"foodName": {
+						"type": "string"
+					},
+					"gram": {
+						"type": "number",
+						"format": "double"
+					},
+					"boxId": {
+						"type": "number",
+						"format": "double"
+					},
+					"boundingBox": {
+						"$ref": "#/components/schemas/BoundingBoxDto"
+					},
+					"confidence": {
+						"type": "number",
+						"format": "double"
+					},
+					"calories": {
+						"type": "number",
+						"format": "double"
+					},
+					"carbs": {
+						"type": "number",
+						"format": "double"
+					},
+					"protein": {
+						"type": "number",
+						"format": "double"
+					},
+					"fat": {
+						"type": "number",
+						"format": "double"
+					},
+					"imageId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "number",
+								"format": "double"
+							}
+						]
+					}
+				},
+				"required": [
+					"foodName"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"FoodLogConfirmRequest": {
+				"description": "식단 확정 저장 요청 DTO (POST /api/food-log/confirm)",
+				"properties": {
+					"mealType": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/MealType"
+							},
+							{
+								"type": "string",
+								"enum": [
+									"BREAKFAST",
+									"LUNCH",
+									"DINNER",
+									"SNACK"
+								]
+							}
+						]
+					},
+					"imageId": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "number",
+								"format": "double"
+							}
+						]
+					},
+					"imageUrl": {
+						"type": "string"
+					},
+					"comment": {
+						"type": "string"
+					},
+					"foods": {
+						"items": {
+							"$ref": "#/components/schemas/FoodItemInput"
+						},
+						"type": "array"
+					},
+					"foodName": {
+						"type": "string"
+					},
+					"intakeGram": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"mealType"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_any_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ChatMessageApiRequest": {
+				"properties": {
+					"messageText": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"messageText"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_null_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"anyOf": [],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"_36_Enums.AuthProvider": {
+				"type": "string",
+				"enum": [
+					"LOCAL",
+					"KAKAO",
+					"GOOGLE",
+					"APPLE"
+				]
+			},
+			"AuthProvider": {
+				"$ref": "#/components/schemas/_36_Enums.AuthProvider"
+			},
+			"UserAuthProfile": {
+				"properties": {
+					"id": {
+						"type": "number",
+						"format": "double"
+					},
+					"email": {
+						"type": "string"
+					},
+					"nickname": {
+						"type": "string"
+					},
+					"authProvider": {
+						"anyOf": [
+							{
+								"$ref": "#/components/schemas/AuthProvider"
+							},
+							{
+								"type": "string",
+								"enum": [
+									"LOCAL",
+									"KAKAO",
+									"GOOGLE",
+									"APPLE"
+								]
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"email",
+					"nickname",
+					"authProvider"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UserLoginResponse": {
+				"properties": {
+					"user": {
+						"$ref": "#/components/schemas/UserAuthProfile"
+					},
+					"accessToken": {
+						"type": "string",
+						"description": "인증 성공 후 발급되는 JWT Access Token",
+						"example": "eyJhbGciOiJIUzI1Ni..."
+					},
+					"refreshToken": {
+						"type": "string",
+						"description": "토큰 갱신용 JWT Refresh Token",
+						"example": "eyJhbGciOiJIUzI1Ni..."
+					}
+				},
+				"required": [
+					"user",
+					"accessToken",
+					"refreshToken"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_UserLoginResponse_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/UserLoginResponse"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UserSignUpRequest": {
+				"properties": {
+					"email": {
+						"type": "string",
+						"description": "가입 및 로그인에 사용될 이메일 주소입니다.",
+						"example": "user@example.com",
+						"pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+					},
+					"password": {
+						"type": "string",
+						"description": "보안성이 뛰어난 비밀번호입니다. (최소 8자, 최대 30자)",
+						"example": "Password123!",
+						"minLength": 8,
+						"maxLength": 30
+					},
+					"nickname": {
+						"type": "string",
+						"description": "사용자 닉네임입니다. (최소 2자, 최대 20자)",
+						"example": "우주탐험가",
+						"minLength": 2,
+						"maxLength": 20
+					},
+					"gender": {
+						"type": "string",
+						"description": "성별 (MALE, FEMALE, UNKNOWN)"
+					},
+					"age": {
+						"type": "number",
+						"format": "double",
+						"description": "나이"
+					}
+				},
+				"required": [
+					"email",
+					"password",
+					"nickname"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UserLoginRequest": {
+				"properties": {
+					"email": {
+						"type": "string",
+						"description": "로그인용 이메일 주소",
+						"example": "user@example.com"
+					},
+					"password": {
+						"type": "string",
+						"description": "로그인용 비밀번호",
+						"example": "Password123!"
+					}
+				},
+				"required": [
+					"email",
+					"password"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SocialLoginRequest": {
+				"properties": {
+					"provider": {
+						"type": "string",
+						"enum": [
+							"GOOGLE",
+							"KAKAO",
+							"APPLE"
+						],
+						"description": "소셜 로그인 제공자 (GOOGLE | KAKAO | APPLE)",
+						"example": "KAKAO"
+					},
+					"token": {
+						"type": "string",
+						"description": "구글/카카오/애플 소셜 로그인 인증 토큰 (access_token 또는 id_token)",
+						"example": "ya29.a0AfH6SM..."
+					},
+					"nickname": {
+						"type": "string",
+						"description": "신규 가입 시 기본 설정할 닉네임 (선택)",
+						"example": "우주탐험가"
+					}
+				},
+				"required": [
+					"provider",
+					"token"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"TokenRefreshResponse": {
+				"properties": {
+					"accessToken": {
+						"type": "string"
+					},
+					"refreshToken": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"accessToken",
+					"refreshToken"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_TokenRefreshResponse_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/TokenRefreshResponse"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"TokenRefreshRequest": {
+				"properties": {
+					"refreshToken": {
+						"type": "string",
+						"description": "Access Token 재발급용 Refresh Token",
+						"example": "eyJhbGciOiJIUzI1Ni..."
+					}
+				},
+				"required": [
+					"refreshToken"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UserWithdrawResponse": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"success",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_UserWithdrawResponse_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/UserWithdrawResponse"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UserWithdrawRequest": {
+				"properties": {
+					"reason": {
+						"type": "string",
+						"description": "탈퇴 사유",
+						"example": "개인 사정"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			}
+		},
+		"securitySchemes": {
+			"jwt": {
+				"type": "http",
+				"scheme": "bearer",
+				"bearerFormat": "JWT"
+			}
+		}
+	},
+	"info": {
+		"title": "nasa_backend",
+		"version": "1.0.0",
+		"description": "NASA Wellness Backend API System with Tammy AI Virtual Pet",
+		"license": {
+			"name": "ISC"
+		},
+		"contact": {}
+	},
+	"paths": {
+		"/users/me": {
+			"get": {
+				"operationId": "GetMe",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_UserProfileResponseData_"
+								}
+							}
+						}
+					}
+				},
+				"description": "로그인한 현재 사용자의 닉네임, 보유 연료량, 타미 펫 상태(레벨/경험치)를 조회합니다.",
+				"summary": "내 프로필 및 타미 상태 조회",
+				"tags": [
+					"2. User - 내 정보 및 프로필 관리"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/users/tammy/history": {
+			"get": {
+				"operationId": "GetTammyHistory",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_TammyHistoryResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "타미 펫 캐릭터의 경험치 및 지수 변동 성장 기록 히스토리를 조회합니다.",
+				"summary": "타미 성장 일지 히스토리 조회",
+				"tags": [
+					"2. User - 내 정보 및 프로필 관리"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/planet-travel/start": {
+			"post": {
+				"operationId": "StartPlanetTravel",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_PlanetTravelStartApiResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "보유한 우주 연료(Fuel)를 소모하여 선택한 행성으로 별여행을 출발하고, AI 탐사 결과(travelResult) 진단서를 실시간 동기 생성합니다.",
+				"summary": "별여행 탐사 출발 및 AI 탐사결과 생성",
+				"tags": [
+					"6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/PlanetTravelStartApiRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/planet-travel/state": {
+			"get": {
+				"operationId": "GetTravelState",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_TravelStateInfoResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "우주여행 현황 조회",
+				"summary": "우주여행 현황 조회",
+				"tags": [
+					"6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/travel-results/{travelResultId}": {
+			"get": {
+				"operationId": "GetTravelResult",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_TravelResultDetailInfo_"
+								}
+							}
+						}
+					}
+				},
+				"description": "행성 탐사 완료 후 생성된 AI 별여행 탐사 결과 진단서(travelResult)의 상세 보고서 내용을 조회합니다.",
+				"summary": "AI 별여행 탐사 결과 진단서 상세 조회",
+				"tags": [
+					"6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "travelResultId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/dashboard/summary": {
+			"get": {
+				"operationId": "GetDashboardSummary",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_DashboardSummaryInfo_"
+								}
+							}
+						}
+					}
+				},
+				"description": "주간 칼로리 섭취 추이 및 3대 영양소 밸런스 비율 통계 대시보드를 조회합니다.",
+				"summary": "웰니스 종합 대시보드 통계 조회",
+				"tags": [
+					"6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/quick-log": {
+			"post": {
+				"operationId": "CreateQuickLog",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_QuickLogApiResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "수분 섭취, 기분/감정, 일기 작성, 운동 완료 등 데일리 웰니스 항목을 1-Tap으로 원터치 기록하고 우주 연료(Fuel)를 적립합니다.",
+				"summary": "1-Tap 웰니스 퀵기록 생성",
+				"tags": [
+					"3. QuickLog - 1-Tap 웰니스 퀵기록"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/QuickLogApiRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/notifications/push-token": {
+			"post": {
+				"operationId": "RegisterPushToken",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_PushTokenRegisterResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "모바일 앱 디바이스의 FCM 푸시 알림 토큰을 등록하여 탐사 결과 알림을 발송받습니다.",
+				"summary": "FCM 디바이스 푸시 토큰 등록",
+				"tags": [
+					"8. Notification - 푸시 알림 및 디바이스 토큰"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/PushTokenRegisterRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/food-vision/scan": {
+			"post": {
+				"operationId": "ScanFoodVision",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_FoodVisionScanResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "촬영하거나 선택한 식단 사진 이미지 파일(multipart/form-data)을 업로드하고 AI 비전 모델로 5대 영양 성분을 스캔 분석합니다.",
+				"summary": "식단 사진 파일 업로드 & AI 비전 분석 스캔",
+				"tags": [
+					"4. FoodVision - 식단 스캔 & 영양성분 기록"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"file": {
+										"type": "string",
+										"format": "binary"
+									},
+									"mealType": {
+										"$ref": "#/components/schemas/MealType"
+									}
+								},
+								"required": [
+									"file"
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/food-log/confirm": {
+			"post": {
+				"operationId": "ConfirmFoodLog",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_FoodLogConfirmResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "[3.2] Food Log 확정 저장 API",
+				"tags": [
+					"4. FoodVision - 식단 스캔 & 영양성분 기록"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/FoodLogConfirmRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/chat/message": {
+			"post": {
+				"operationId": "SendMessage",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "AI 버추얼 펫 타미(TAMMY)와 실시간 심리 공감 대화를 나누고, 모션 태그 응답 수령 및 장기 기억 캡슐을 생성합니다.",
+				"summary": "AI 타미 심리 공감 메시지 전송",
+				"tags": [
+					"5. TammyChat - AI 타미 심리 공감 대화"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ChatMessageApiRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/chat/messages/{messageId}": {
+			"delete": {
+				"operationId": "DeleteMessage",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_null_"
+								}
+							}
+						}
+					}
+				},
+				"description": "[3.4] 대화 메시지 소프트 삭제 API",
+				"tags": [
+					"5. TammyChat - AI 타미 심리 공감 대화"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "messageId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/chat/messages/{messageId}/undo": {
+			"post": {
+				"operationId": "UndoDeleteMessage",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_null_"
+								}
+							}
+						}
+					}
+				},
+				"description": "[3.4] 대화 메시지 삭제 취소 (Undo) API",
+				"tags": [
+					"5. TammyChat - AI 타미 심리 공감 대화"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "messageId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/auth/signup": {
+			"post": {
+				"operationId": "SignUp",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_UserLoginResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "이메일과 비밀번호 기반으로 신규 회원을 등록합니다.",
+				"summary": "일반 회원가입",
+				"tags": [
+					"1. Auth - 회원 인증 및 소셜 로그인"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UserSignUpRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/login": {
+			"post": {
+				"operationId": "Login",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_UserLoginResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "[3.6] 로그인 API",
+				"tags": [
+					"1. Auth - 회원 인증 및 소셜 로그인"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UserLoginRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/social-login": {
+			"post": {
+				"operationId": "SocialLogin",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_UserLoginResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "[3.6] 구글 / 카카오 / 애플 소셜 로그인 API",
+				"tags": [
+					"1. Auth - 회원 인증 및 소셜 로그인"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/SocialLoginRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/refresh": {
+			"post": {
+				"operationId": "Refresh",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_TokenRefreshResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "[3.6] 토큰 자동 갱신 API",
+				"tags": [
+					"1. Auth - 회원 인증 및 소셜 로그인"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/TokenRefreshRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/withdraw": {
+			"post": {
+				"operationId": "WithdrawPost",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_UserWithdrawResponse_"
+								}
+							}
+						}
+					}
+				},
+				"description": "[3.6] 회원 탈퇴 API",
+				"tags": [
+					"1. Auth - 회원 인증 및 소셜 로그인"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UserWithdrawRequest"
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"operationId": "Withdraw",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_UserWithdrawResponse_"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"1. Auth - 회원 인증 및 소셜 로그인"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UserWithdrawRequest"
+							}
+						}
+					}
+				}
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "/api"
+		}
+	]
+}

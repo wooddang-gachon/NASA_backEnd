@@ -1,11 +1,16 @@
 import { Service } from "typedi";
 import { getPrisma } from "@/loaders/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, quick_logs } from "@prisma/client";
+import { BaseRepository } from "./BaseRepository";
 
 @Service()
-export default class QuickLogRepository {
+export default class QuickLogRepository extends BaseRepository<quick_logs, Prisma.quick_logsCreateInput, Prisma.quick_logsUpdateInput> {
+  constructor() {
+    super(getPrisma().quick_logs);
+  }
+
   public async createQuickLog(data: Prisma.quick_logsUncheckedCreateInput) {
-    return getPrisma().quick_logs.create({ data });
+    return this.create(data as unknown as Prisma.quick_logsCreateInput);
   }
 
   public async updateUserFuel(userId: number, amount: number) {

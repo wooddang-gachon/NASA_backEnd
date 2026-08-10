@@ -1,9 +1,14 @@
 import { Service } from "typedi";
 import { getPrisma } from "@/loaders/prisma";
-import { Prisma } from "@prisma/client";
+import { Prisma, planet_travels } from "@prisma/client";
+import { BaseRepository } from "./BaseRepository";
 
 @Service()
-export default class TravelRepository {
+export default class TravelRepository extends BaseRepository<planet_travels, Prisma.planet_travelsCreateInput, Prisma.planet_travelsUpdateInput> {
+  constructor() {
+    super(getPrisma().planet_travels);
+  }
+
   public async findUserById(userId: number) {
     const prisma = getPrisma();
     return prisma.users.findUnique({
@@ -32,17 +37,13 @@ export default class TravelRepository {
   }
 
   public async createPlanetTravel(data: Prisma.planet_travelsUncheckedCreateInput) {
-    const prisma = getPrisma();
-    return prisma.planet_travels.create({ data });
+    return this.create(data as unknown as Prisma.planet_travelsCreateInput);
   }
 
   public async findPlanetTravelByIdAndUser(travelId: bigint, userId: number) {
-    const prisma = getPrisma();
-    return prisma.planet_travels.findFirst({
-      where: {
-        id: travelId,
-        user_id: userId,
-      },
+    return this.findFirst({
+      id: travelId,
+      user_id: userId,
     });
   }
 
@@ -69,24 +70,22 @@ export default class TravelRepository {
   }
 
   public async findActivePlanetTravelByUser(userId: number) {
-    const prisma = getPrisma();
-    return prisma.planet_travels.findFirst({
-      where: {
-        user_id: userId,
-        status: "IN_PROGRESS",
-      },
+    return this.findFirst({
+      user_id: userId,
+      status: "IN_PROGRESS",
     });
   }
 
   public async findCompletedPlanetTravelsByUser(userId: number) {
-    const prisma = getPrisma();
-    return prisma.planet_travels.findMany({
-      where: {
+    return this.findMany(
+      {
         user_id: userId,
         status: "COMPLETED",
       },
-      orderBy: { completed_at: "desc" },
-    });
+      undefined,
+      undefined,
+      { completed_at: "desc" }
+    );
   }
 
   public async getPlanetActionCounts(userId: number) {
