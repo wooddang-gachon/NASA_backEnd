@@ -2,6 +2,7 @@ import { planet_travels } from "@prisma/client";
 import { TravelResultCreateRequest, TravelResultResponse, PlanetTravelStartRequest } from "../interfaces/travel";
 import { TravelResultDetailInfo, PlanetTravelStartApiResponse, TravelStateInfoResponse } from "../dto/travel.dto";
 import { PlanetType } from "../interfaces/enums";
+import { UserWithTammyStatus, DbTravelResultDetailItem } from "../models";
 
 export class TravelMapper {
   /**
@@ -37,7 +38,7 @@ export class TravelMapper {
   /**
    * 우주여행 현황 서비스 응답 DTO 반환
    */
-  public static toTravelStateResponse(user: any): TravelStateInfoResponse {
+  public static toTravelStateResponse(user: UserWithTammyStatus): TravelStateInfoResponse {
     const currentFuel = user.current_fuel ?? 0;
     const requiredFuel = 300;
     const progressPercent = Math.min(Math.floor((currentFuel / requiredFuel) * 100), 100);
@@ -70,19 +71,19 @@ export class TravelMapper {
   /**
    * DB 객체 ➔ TravelResultDetailInfo DTO 변환
    */
-  public static toTravelResultDetailInfo(result: any): TravelResultDetailInfo {
+  public static toTravelResultDetailInfo(result: DbTravelResultDetailItem): TravelResultDetailInfo {
     const recommendationsArray = typeof result.recommendations === "string"
       ? result.recommendations.split("\n").filter(Boolean)
       : (result.recommendations as string[]) || [];
 
     return {
-      reportId: result.id,
-      travelResultId: result.id,
-      userId: result.userId,
-      title: result.title,
-      summaryContent: result.summaryContent,
+      reportId: String(result.id),
+      travelResultId: String(result.id),
+      userId: Number(result.userId || 0),
+      title: result.title || "",
+      summaryContent: result.summaryContent || "",
       recommendations: recommendationsArray,
-      createdAt: result.createdAt,
+      createdAt: typeof result.createdAt === "string" ? result.createdAt : result.createdAt?.toISOString() || new Date().toISOString(),
     };
   }
 }

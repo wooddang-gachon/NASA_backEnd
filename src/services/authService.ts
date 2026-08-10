@@ -171,22 +171,6 @@ export default class AuthService {
   }
 
   /**
-   * 내 계정 정보 조회
-   */
-  public async getProfile(userId: number): Promise<UserAuthMeResponse> {
-    const prisma = getPrisma();
-
-    const user = await prisma.users.findUnique({
-      where: { id: userId },
-    });
-    if (!user) {
-      throw new UserNotFoundError(userId);
-    }
-
-    return UserMapper.toUserAuthMeResponse(user);
-  }
-
-  /**
    * 회원 탈퇴 처리 (실제 DB 삭제)
    */
   public async withdraw(userId: number, data?: UserWithdrawRequest): Promise<UserWithdrawResponse> {

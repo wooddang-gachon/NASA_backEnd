@@ -349,6 +349,8 @@ model chat_messages {
   sender       Sender
   message_text String   @db.Text
   motion_tag   String?  @db.VarChar(50)
+  intent_label String?  @db.VarChar(50)
+  labels       Json?
   is_deleted   Boolean  @default(false)
   is_edited    Boolean  @default(false)
   created_at   DateTime @default(now()) @db.Timestamp(0)
@@ -356,6 +358,7 @@ model chat_messages {
   user         users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, created_at(sort: Desc)], map: "idx_user_msg_created")
+  @@index([intent_label], map: "idx_msg_intent_label")
 }
 
 

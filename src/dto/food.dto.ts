@@ -12,6 +12,20 @@ export interface FoodMappingDto {
   fatG: number;
 }
 
+/**
+ * 음식명 스마트 매칭 서비스 결과 DTO [FOD-005]
+ */
+export interface FoodSmartMatchResultDto {
+  rawName: string;
+  foodId: number;
+  standardServingG: number;
+  caloriesKcal: number;
+  carbohydrateG: number;
+  proteinG: number;
+  fatG: number;
+  matchType: "EXACT" | "ALIAS" | "USER_CONFIRMED" | string;
+}
+
 export interface BoundingBoxDto {
   x: number;
   y: number;

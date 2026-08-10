@@ -34,3 +34,30 @@ export interface MemoryPill {
   memoryContent: string;
   createdAt?: Date;
 }
+
+export interface DbMemoryItem {
+  id: number | bigint | string;
+  category: string;
+  memory_content: string;
+  updated_at?: Date | string | null;
+}
+
+export interface CreateUserMessageParams {
+  userId: number;
+  userMessage: string;
+}
+
+export interface CreateTammyMessageParams {
+  userId: number;
+  replyText: string;
+  motionTag?: string;
+  intentLabel?: string;
+  labels?: any;
+}
+
+export interface CreateLongTermMemoryParams {
+  userId: number;
+  category: string;
+  content: string;
+  chatMessageId: bigint;
+}

@@ -5,7 +5,10 @@ import Logger from "../loaders/logger";
 import { UserNotFoundError } from "../errors";
 import { MealType } from "../interfaces/enums";
 import { FoodMapper, UserMapper } from "../mappers";
-import { MealLogRegisterResponse, FoodSearchResponse } from "../dto";
+import { MealLogRegisterResponse, FoodSearchResponse, FoodSmartMatchResultDto, FoodVisionScanResponse, FoodLogConfirmRequest } from "../dto";
+
+import { cleanFoodKeyword } from "../utils/foodUtils";
+import { tokenizeFoodName } from "../utils/foodTokenizer";
 
 import path from "path";
 import fs from "fs";
@@ -15,7 +18,7 @@ export default class FoodService {
   @Inject(type => AiService)
   private aiService!: AiService;
 
-  public async uploadAndAnalyzeFoodVision(file?: Express.Multer.File, mealType?: string) {
+  public async uploadAndAnalyzeFoodVision(file?: Express.Multer.File, mealType?: string): Promise<FoodVisionScanResponse> {
     if (!file) {
       Logger.error("[FoodService] Upload image file is missing.");
       throw new Error("업로드할 이미지 파일(file)이 누락되었습니다.");
@@ -62,16 +65,7 @@ export default class FoodService {
    * 2차: foods 마스터 DB 대표 키워드 부분 매칭 ('고추떡볶이' ➔ '떡볶이' id:10)
    * ➔ 매칭 성공 시 food_mappings에 'ALIAS'로 캐싱 저장!
    */
-  public async getOrMapFood(rawName: string): Promise<{
-    rawName: string;
-    foodId: number;
-    standardServingG: number;
-    caloriesKcal: number;
-    carbohydrateG: number;
-    proteinG: number;
-    fatG: number;
-    matchType: string;
-  }> {
+  public async getOrMapFood(rawName: string): Promise<FoodSmartMatchResultDto> {
     const prisma = getPrisma();
 
     // Step 1: food_mappings 중간 매칭 테이블 1차 검색
@@ -82,20 +76,12 @@ export default class FoodService {
 
     if (mapping && mapping.food) {
       Logger.info(`[FOD-005] Food mapping hit for '${rawName}' ➔ Standard food: '${mapping.food.name}' (${mapping.match_type})`);
-      return {
-        rawName,
-        foodId: mapping.food.id,
-        standardServingG: Number(mapping.food.standard_serving_g),
-        caloriesKcal: mapping.food.calories_kcal,
-        carbohydrateG: Number(mapping.food.carbohydrate_g),
-        proteinG: Number(mapping.food.protein_g),
-        fatG: Number(mapping.food.fat_g),
-        matchType: mapping.match_type,
-      };
+      return FoodMapper.toFoodSmartMatchResultFromMapping(mapping as any, rawName);
     }
 
-    // Step 2: foods 마스터 DB 대표 키워드 검색 (예: '고추떡볶이' 입력 ➔ '떡볶이' 검색)
-    const keywordCleaned = rawName.replace(/(고추|매운|치즈|국물|로제|짜장|수제)/g, "").trim();
+    // Step 2: foods 마스터 DB 대표 키워드 검색 (토크나이저 기반 스마트 명사 정규화)
+    const tokenAnalysis = tokenizeFoodName(rawName);
+    const keywordCleaned = tokenAnalysis.normalizedName;
 
     const masterFood = await prisma.foods.findFirst({
       where: {
@@ -119,16 +105,7 @@ export default class FoodService {
         include: { food: true },
       });
 
-      return {
-        rawName,
-        foodId: masterFood.id,
-        standardServingG: Number(masterFood.standard_serving_g),
-        caloriesKcal: masterFood.calories_kcal,
-        carbohydrateG: Number(masterFood.carbohydrate_g),
-        proteinG: Number(masterFood.protein_g),
-        fatG: Number(masterFood.fat_g),
-        matchType: newMapping.match_type,
-      };
+      return FoodMapper.toFoodSmartMatchResultFromMaster(masterFood as any, rawName, newMapping.match_type);
     }
 
     // Step 3: foods DB에 상위 키워드조차 없는 생소한 음식일 경우
@@ -146,19 +123,10 @@ export default class FoodService {
         ? fallbackVision.detectedFoods[0]
         : { estimatedGram: 100, calories: 250, carbs: 30, protein: 20, fat: 5 };
 
-    return {
-      rawName,
-      foodId: 0,
-      standardServingG: detected.estimatedGram || 100,
-      caloriesKcal: detected.calories || 250,
-      carbohydrateG: detected.carbs || 30,
-      proteinG: detected.protein || 20,
-      fatG: detected.fat || 5,
-      matchType: "USER_CONFIRMED",
-    };
+    return FoodMapper.toFoodSmartMatchResultFromFallback(rawName, detected);
   }
 
-  public async analyzeFoodVision(imageUrl: string, mealType?: string) {
+  public async analyzeFoodVision(imageUrl: string, mealType?: string): Promise<FoodVisionScanResponse> {
     Logger.info(`[FoodService] Analyzing food vision for image: ${imageUrl}, mealType: ${mealType || "N/A"}`);
     let aiVisionResult: any;
     try {
@@ -206,26 +174,7 @@ export default class FoodService {
 
   public async logMeal(
     userId: number,
-    data: {
-      mealType: MealType;
-      imageId?: string | number;
-      imageUrl?: string;
-      comment?: string;
-      foods?: Array<{
-        foodName: string;
-        gram?: number;
-        boxId?: number;
-        calories?: number;
-        carbs?: number;
-        protein?: number;
-        fat?: number;
-        boundingBox?: any;
-        confidence?: number;
-        imageId?: string | number;
-      }>;
-      foodName?: string;
-      intakeGram?: number;
-    }
+    data: FoodLogConfirmRequest
   ): Promise<MealLogRegisterResponse> {
     Logger.info(`[FoodService] Logging meal for userId: ${userId}, mealType: ${data.mealType}`);
 

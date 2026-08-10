@@ -15,6 +15,8 @@ export interface AiChatInternalResponse {
   replyText: string;
   emotion: EmotionStatus;
   motionTag?: string;
+  intentLabel?: string;
+  labels?: any;
   extractedMemory?: {
     category: string;
     content: string;

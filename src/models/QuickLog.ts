@@ -35,3 +35,10 @@ export interface EmotionLog {
   causeSummary?: string | null;
   recordedAt?: Date;
 }
+
+export interface DbQuickLogItem {
+  id: number | bigint;
+  category: string;
+  earned_fuel: number;
+  created_at?: Date | string | null;
+}

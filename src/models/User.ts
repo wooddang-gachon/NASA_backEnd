@@ -1,4 +1,26 @@
 import { Gender, AuthProvider, UserStatus } from "../interfaces/enums";
+import { users, tammy_statuses, ChangeReason } from "@prisma/client";
+
+export type UserWithTammyStatus = users & {
+  tammy_statuses?: tammy_statuses | null;
+};
+
+export interface DbTammyStatusLogItem {
+  id: number | bigint;
+  change_reason: ChangeReason | string;
+  delta_exp: number;
+  snapshot_level: number;
+  snapshot_total_exp: number;
+  created_at?: Date | string | null;
+}
+
+export interface CreateTammyStatusLogParams {
+  userId: number;
+  changeReason: ChangeReason | string;
+  deltaExp: number;
+  snapshotLevel: number;
+  snapshotTotalExp: number;
+}
 
 export interface TammyStatus {
   id?: number;

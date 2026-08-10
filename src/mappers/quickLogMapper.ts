@@ -1,4 +1,5 @@
 import { QuickLogCreateRequest, QuickLogApiResponse } from "../dto";
+import { DbQuickLogItem } from "../models";
 
 export class QuickLogMapper {
   /**
@@ -19,7 +20,7 @@ export class QuickLogMapper {
   /**
    * 1-Tap 웰니스 퀵기록 서비스 응답 DTO 반환
    */
-  public static toApiResponse(log: any, totalFuel: number): QuickLogApiResponse {
+  public static toApiResponse(log: DbQuickLogItem, totalFuel: number): QuickLogApiResponse {
     return {
       logId: log.id.toString(),
       category: log.category,

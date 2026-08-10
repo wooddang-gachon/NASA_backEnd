@@ -1,54 +1,62 @@
 import { Sender } from "../interfaces/enums";
-import { ChatMessageApiResponse, MemoryPillDto } from "../dto";
+import { ChatMessageApiResponse } from "../dto";
 import { AiChatInternalResponse } from "../interfaces/aiServer";
+import {
+  DbMemoryItem,
+  CreateUserMessageParams,
+  CreateTammyMessageParams,
+  CreateLongTermMemoryParams,
+} from "../models";
 
 export class ChatMapper {
   /**
    * 유저 전송 메시지 DB 생성 인풋 객체 생성
    */
-  public static toUserMessageInput(userId: number, userMessage: string) {
+  public static toUserMessageInput(
+    paramsOrUserId: CreateUserMessageParams | number,
+    userMessage?: string,
+  ) {
+    if (typeof paramsOrUserId === "object") {
+      return {
+        user_id: paramsOrUserId.userId,
+        sender: Sender.USER,
+        message_text: paramsOrUserId.userMessage,
+      };
+    }
     return {
-      user_id: userId,
+      user_id: paramsOrUserId,
       sender: Sender.USER,
-      message_text: userMessage,
+      message_text: userMessage!,
     };
   }
 
   /**
-   * AI 타미 응답 메시지 DB 생성 인풋 객체 생성
+   * AI 타미 응답 메시지 DB 생성 인풋 객체 생성 (라벨링 데이터 포함)
    */
-  public static toTammyMessageInput(userId: number, replyText: string, motionTag?: string) {
+  public static toTammyMessageInput(
+    paramsOrUserId: CreateTammyMessageParams | number,
+    replyText?: string,
+    motionTag?: string,
+    intentLabel?: string,
+    labels?: any,
+  ) {
+    if (typeof paramsOrUserId === "object") {
+      return {
+        user_id: paramsOrUserId.userId,
+        sender: Sender.TAMMY_AI,
+        message_text: paramsOrUserId.replyText,
+        motion_tag: paramsOrUserId.motionTag || "COMFORT_WARM",
+        intent_label: paramsOrUserId.intentLabel || null,
+        labels: paramsOrUserId.labels || null,
+      };
+    }
     return {
-      user_id: userId,
+      user_id: paramsOrUserId,
       sender: Sender.TAMMY_AI,
-      message_text: replyText,
+      message_text: replyText!,
       motion_tag: motionTag || "COMFORT_WARM",
-    };
-  }
-
-  /**
-   * 대화 메시지 아카이브 DB 생성 인풋 객체 생성
-   */
-  public static toArchiveInput(userId: number, chatMessageId: bigint, replyText: string, rawPayload: any) {
-    return {
-      user_id: userId,
-      chat_message_id: chatMessageId,
-      sender: Sender.TAMMY_AI,
-      message_text: replyText,
-      raw_payload: JSON.parse(JSON.stringify(rawPayload)),
-      created_at: new Date(),
-    };
-  }
-
-  /**
-   * 장기 기억(Memory) DB 생성/수정 인풋 객체 생성
-   */
-  public static toLongTermMemoryInput(userId: number, category: string, content: string, chatMessageId: bigint) {
-    return {
-      user_id: userId,
-      category,
-      memory_content: content,
-      chat_message_id: chatMessageId,
+      intent_label: intentLabel || null,
+      labels: labels || null,
     };
   }
 
@@ -59,7 +67,7 @@ export class ChatMapper {
     aiResult: AiChatInternalResponse,
     tammyMsg: { motion_tag?: string | null },
     gainedFuel: number,
-    currentFuel: number
+    currentFuel: number,
   ): ChatMessageApiResponse {
     return {
       reply: aiResult.replyText,
@@ -68,17 +76,5 @@ export class ChatMapper {
       gainedFuel,
       currentFuel,
     };
-  }
-
-  /**
-   * DB 기억 캡슐 엔티티 목록 ➔ MemoryPillDto[] 변환
-   */
-  public static toMemoryPillDtoList(dbMemories: any[]): MemoryPillDto[] {
-    return dbMemories.map((m) => ({
-      id: m.id,
-      category: m.category,
-      memoryContent: m.memory_content,
-      createdAt: m.updated_at ? new Date(m.updated_at).toISOString() : new Date().toISOString(),
-    }));
   }
 }

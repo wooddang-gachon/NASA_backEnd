@@ -6,8 +6,10 @@ import { UserNotFoundError, BadRequestError } from "../errors";
 import { PlanetType } from "../interfaces/enums";
 import {
   PlanetTravelStartApiRequest,
+  PlanetTravelStartApiResponse,
   TravelStateInfoResponse,
   DashboardSummaryInfo,
+  FuelAddApiResponse,
 } from "../dto";
 import { TravelMapper } from "../mappers";
 import { reportQueue } from "../utils/asyncQueue";
@@ -23,7 +25,7 @@ export default class TravelService {
   public async startPlanetTravel(
     userId: number,
     data: PlanetTravelStartApiRequest,
-  ) {
+  ): Promise<PlanetTravelStartApiResponse> {
     const prisma = getPrisma();
     Logger.info(
       `[TravelService] Starting planet travel for userId ${userId}, planetType: ${data.planetType}`,
@@ -76,8 +78,7 @@ export default class TravelService {
 
       if (aiReportResult.title) reportTitle = aiReportResult.title;
       if (aiReportResult.markdown || aiReportResult.findings) {
-        reportSummary =
-          aiReportResult.markdown || aiReportResult.findings || reportSummary;
+        reportSummary = aiReportResult.markdown || aiReportResult.findings || reportSummary;
       }
       if (aiReportResult.nextActionChecks) {
         reportRecommendations = Array.isArray(aiReportResult.nextActionChecks)
@@ -104,16 +105,12 @@ export default class TravelService {
 
     const travelResultData = TravelMapper.toTravelResultResponse(travel);
 
-    return {
-      success: true,
-      message: "별여행 탐사가 완료되어 탐사 결과가 도달했습니다.",
-      data: TravelMapper.toStartApiResponse(
-        travel,
-        travel.id.toString(),
-        updatedUser.current_fuel ?? 0,
-        travelResultData,
-      ),
-    };
+    return TravelMapper.toStartApiResponse(
+      travel,
+      travel.id.toString(),
+      updatedUser.current_fuel ?? 0,
+      travelResultData,
+    );
   }
 
   /**
@@ -138,7 +135,7 @@ export default class TravelService {
   /**
    * 연료 적립 처리
    */
-  public async addFuel(userId: number, actionType?: string) {
+  public async addFuel(userId: number, actionType?: string): Promise<FuelAddApiResponse> {
     const prisma = getPrisma();
     const user = await prisma.users.findUnique({ where: { id: userId } });
     if (!user) throw new UserNotFoundError(userId);
@@ -184,10 +181,6 @@ export default class TravelService {
       recommendations: "매일 물 2,000ml 마시기, 저녁 8시 가벼운 산책",
       createdAt: new Date().toISOString(),
     };
-  }
-
-  public async getReportById(reportId: string, userId: number) {
-    return await this.getTravelResultById(reportId, userId);
   }
 
   /**

@@ -62,3 +62,12 @@ export interface WellnessReport {
   aiRecommendation: string;
   createdAt?: Date;
 }
+
+export interface DbTravelResultDetailItem {
+  id: string | number;
+  userId?: number;
+  title?: string;
+  summaryContent?: string;
+  recommendations?: string | string[] | null;
+  createdAt?: string | Date;
+}

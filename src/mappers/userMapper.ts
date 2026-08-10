@@ -1,5 +1,6 @@
-import { users, Gender } from "@prisma/client";
+import { users, Gender, ChangeReason } from "@prisma/client";
 import { UserSignUpRequest, UserAuthProfile, UserAuthMeResponse, UserProfileResponseData, TammyHistoryResponse, UserLoginResponse } from "../dto";
+import { UserWithTammyStatus, DbTammyStatusLogItem, CreateTammyStatusLogParams } from "../models";
 
 export class UserMapper {
   /**
@@ -63,21 +64,30 @@ export class UserMapper {
   }
 
   /**
-   * 타미 성장 및 경험치 로그 DB 생성 인풋 객체 생성
+   * 타미 성장 및 경험치 로그 DB 생성 인풋 객체 생성 (Param 객체 및 위치 기반 인자 모두 지원)
    */
   public static toStatusLogCreateInput(
-    userId: number,
-    changeReason: any,
-    deltaExp: number,
-    snapshotLevel: number,
-    snapshotTotalExp: number
+    paramsOrUserId: CreateTammyStatusLogParams | number,
+    changeReason?: ChangeReason | string,
+    deltaExp?: number,
+    snapshotLevel?: number,
+    snapshotTotalExp?: number
   ) {
+    if (typeof paramsOrUserId === "object") {
+      return {
+        user_id: paramsOrUserId.userId,
+        change_reason: paramsOrUserId.changeReason as ChangeReason,
+        delta_exp: paramsOrUserId.deltaExp,
+        snapshot_level: paramsOrUserId.snapshotLevel,
+        snapshot_total_exp: paramsOrUserId.snapshotTotalExp,
+      };
+    }
     return {
-      user_id: userId,
-      change_reason: changeReason as any,
-      delta_exp: deltaExp,
-      snapshot_level: snapshotLevel,
-      snapshot_total_exp: snapshotTotalExp,
+      user_id: paramsOrUserId,
+      change_reason: changeReason as ChangeReason,
+      delta_exp: deltaExp!,
+      snapshot_level: snapshotLevel!,
+      snapshot_total_exp: snapshotTotalExp!,
     };
   }
 
@@ -111,12 +121,12 @@ export class UserMapper {
   /**
    * DB users & tammy_statuses 엔티티 ➔ UserProfileResponseData DTO 변환
    */
-  public static toProfileResponse(user: any): UserProfileResponseData {
+  public static toProfileResponse(user: UserWithTammyStatus): UserProfileResponseData {
     return {
       userId: user.id,
       nickname: user.nickname,
-      gender: user.gender,
-      age: user.age,
+      gender: user.gender || undefined,
+      age: user.age || undefined,
       currentFuel: user.current_fuel ?? 0,
       tammyStatus: {
         level: user.tammy_statuses?.level || 1,
@@ -129,11 +139,11 @@ export class UserMapper {
   /**
    * DB tammy_status_logs 엔티티 목록 ➔ TammyHistoryResponse DTO 변환
    */
-  public static toTammyHistoryResponse(logs: any[]): TammyHistoryResponse {
+  public static toTammyHistoryResponse(logs: DbTammyStatusLogItem[]): TammyHistoryResponse {
     return {
-      logs: logs.map((l: any) => ({
+      logs: logs.map((l) => ({
         id: Number(l.id),
-        changeReason: l.change_reason,
+        changeReason: String(l.change_reason),
         deltaExp: l.delta_exp,
         snapshotLevel: l.snapshot_level,
         snapshotTotalExp: l.snapshot_total_exp,

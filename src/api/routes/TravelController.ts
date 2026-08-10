@@ -32,7 +32,7 @@ export class TravelController extends Controller {
     const userId = getAuthenticatedUserId(request);
     this.setStatus(200);
     const result = await this.travelService.startPlanetTravel(userId, body);
-    return ApiResponse.success(result.data as PlanetTravelStartApiResponse, "별여행 탐사가 성공적으로 시작되었습니다.");
+    return ApiResponse.success(result, "별여행 탐사가 성공적으로 시작되었습니다.");
   }
 
   /**
@@ -61,19 +61,6 @@ export class TravelController extends Controller {
     const result = await this.travelService.getTravelResultById(travelResultId, userId);
     const data = toTravelResultDetailInfo(result);
     return ApiResponse.success(data, "진단서 상세 조회가 완료되었습니다.");
-  }
-
-  /**
-   * AI 별여행 탐사 결과 진단서 상세 조회 (호환용 라우트)
-   * @summary 보고서 상세 조회 (호환용)
-   */
-  @Get("reports/{reportId}")
-  @Security("jwt")
-  public async getReport(
-    @Path() reportId: string,
-    @Request() request: AuthenticatedRequest
-  ): Promise<ApiResponse<TravelResultDetailInfo>> {
-    return await this.getTravelResult(reportId, request);
   }
 
   /**

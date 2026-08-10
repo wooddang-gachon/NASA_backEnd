@@ -1175,28 +1175,6 @@ paths:
           required: true
           schema:
             type: string
-  /reports/{reportId}:
-    get:
-      operationId: GetReport
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiResponse_TravelResultDetailInfo_"
-      description: AI 별여행 탐사 결과 진단서 상세 조회 (호환용 라우트)
-      summary: 보고서 상세 조회 (호환용)
-      tags:
-        - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
-      security:
-        - jwt: []
-      parameters:
-        - in: path
-          name: reportId
-          required: true
-          schema:
-            type: string
   /dashboard/summary:
     get:
       operationId: GetDashboardSummary

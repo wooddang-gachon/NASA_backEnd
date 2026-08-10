@@ -19,11 +19,6 @@ export interface ChatMessageApiResponse {
   emotion?: ChatEmotionResponse;
 }
 
-export interface ChatMessageDeleteApiResponse {
-  success: boolean;
-  message: string;
-}
-
 export interface ChatMessageDto {
   id: string;
   userId: number;
@@ -32,12 +27,5 @@ export interface ChatMessageDto {
   motionTag?: string | null;
   isDeleted: boolean;
   isEdited: boolean;
-  createdAt: string;
-}
-
-export interface MemoryPillDto {
-  id: number;
-  category: string;
-  memoryContent: string;
   createdAt: string;
 }

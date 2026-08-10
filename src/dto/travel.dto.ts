@@ -29,6 +29,12 @@ export interface TravelStateInfoResponse {
   tammyRelationshipLevel: number;
 }
 
+export interface FuelAddApiResponse {
+  gainedFuel: number;
+  currentFuel: number;
+  isWarped: boolean;
+}
+
 export interface TravelResultDetailInfo {
   reportId?: string | number;
   travelResultId?: string | number;
