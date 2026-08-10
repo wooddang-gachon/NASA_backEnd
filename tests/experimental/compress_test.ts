@@ -1,4 +1,4 @@
-import { compressImageFile } from "../src/utils/imageCompressor";
+import { compressImageFile } from "../../src/utils/imageCompressor";
 import path from "path";
 import fs from "fs";
 

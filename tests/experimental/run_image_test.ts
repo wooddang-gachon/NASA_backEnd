@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
-import { detectObjectBoundingBoxes, extractImageEdges } from "../src/utils/objectDetector";
+import { detectObjectBoundingBoxes, extractImageEdges } from "../../src/utils/food/objectDetector";
 
 async function processSampleImage() {
   const imageDir = path.join(process.cwd(), "image");

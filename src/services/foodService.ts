@@ -7,8 +7,8 @@ import { MealType } from "../interfaces/enums";
 import { FoodMapper, UserMapper } from "../mappers";
 import { MealLogRegisterResponse, FoodSearchResponse, FoodSmartMatchResultDto, FoodVisionScanResponse, FoodLogConfirmRequest } from "../dto";
 
-import { cleanFoodKeyword } from "../utils/foodUtils";
-import { tokenizeFoodName } from "../utils/foodTokenizer";
+import { cleanFoodKeyword } from "../utils/food/foodUtils";
+import { tokenizeFoodName } from "../utils/food/foodTokenizer";
 
 import path from "path";
 import fs from "fs";

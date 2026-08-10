@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import Logger from "../loaders/logger";
+import Logger from "../../loaders/logger";
 
 export interface BoundingBox {
   x: number;
