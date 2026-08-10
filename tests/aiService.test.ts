@@ -208,7 +208,7 @@ describe("AiService (ai-swagger.yaml Specification Integration Tests)", () => {
 
       await expect(
         aiService.processChat(12, "에러 테스트")
-      ).rejects.toThrow("AI 대화 서버 응답에 오류가 발생했습니다.");
+      ).rejects.toThrow("AI Chat 서버 응답에 오류가 발생했습니다. (Status: 500)");
     });
   });
 });

@@ -1,4 +1,5 @@
 import { Service } from "typedi";
+import { FUEL_REWARDS } from "@/constants/gamification.js";
 import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
 import { QuickLogCreateRequest } from "../dto";
@@ -15,7 +16,7 @@ export default class QuickLogService {
     Logger.info(
       `[QuickLogService] Creating quick log for userId ${userId}, category: ${data.category}`,
     );
-    const earnedFuel = 10;
+    const earnedFuel = FUEL_REWARDS.QUICK_LOG;
 
     const log = await this.quickLogRepository.createQuickLog(
       QuickLogMapper.toCreateInput(userId, data, earnedFuel)

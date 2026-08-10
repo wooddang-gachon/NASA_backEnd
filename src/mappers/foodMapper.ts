@@ -1,7 +1,7 @@
 import { MealType } from "../interfaces/enums";
 import { MatchType } from "@prisma/client";
 import { MealLogRegisterResponse, FoodSearchResponse, FoodDto, FoodMappingDto, FoodSmartMatchResultDto } from "../dto";
-import { DbFoodMappingItem, DbFoodItem, CreateMealInputParams, CreateMealItemInputParams } from "../models";
+import { DbFoodMappingItem, DbFoodItem, CreateMealInputParams, CreateMealItemInputParams } from "../repositories/models";
 
 export class FoodMapper {
   /**

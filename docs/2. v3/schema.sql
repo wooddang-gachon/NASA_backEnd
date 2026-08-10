@@ -185,19 +185,21 @@ CREATE TABLE planet_travels (
 -- 5. 식단 & 영양 마스터 도메인
 -- ==============================================================================
 
-CREATE TABLE foods (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    standard_serving_g DECIMAL(6,2) DEFAULT 100.00,
-    calories_kcal INT DEFAULT 0,
-    carbohydrate_g DECIMAL(5,2) DEFAULT 0.00,
-    protein_g DECIMAL(5,2) DEFAULT 0.00,
-    fat_g DECIMAL(5,2) DEFAULT 0.00,
-    vitamin_percent INT DEFAULT 0,
-    mineral_percent INT DEFAULT 0,
-    category VARCHAR(50) NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+CREATE TABLE `foods` (
+    `id`                  INT AUTO_INCREMENT PRIMARY KEY,
+    `name`                VARCHAR(100) NOT NULL UNIQUE COMMENT '표준 음식 명칭',
+    `representative_name` VARCHAR(100) NULL COMMENT '식약처 대표식품명',
+    `standard_serving_g`  DECIMAL(6, 2) NOT NULL DEFAULT 100.00 COMMENT '영양성분 함량 기준 중량(g)',
+    `total_weight_g`      DECIMAL(6, 2) NULL COMMENT '식품 총 중량(g)',
+    `calories_kcal`      INT NOT NULL DEFAULT 0 COMMENT '열량(kcal)',
+    `carbohydrate_g`     DECIMAL(5, 2) NOT NULL DEFAULT 0.00 COMMENT '탄수화물(g)',
+    `protein_g`          DECIMAL(5, 2) NOT NULL DEFAULT 0.00 COMMENT '단백질(g)',
+    `fat_g`              DECIMAL(5, 2) NOT NULL DEFAULT 0.00 COMMENT '지방(g)',
+    `vitamin_percent`    INT NOT NULL DEFAULT 0 COMMENT '일일 권장 비타민 비율(%)',
+    `mineral_percent`    INT NOT NULL DEFAULT 0 COMMENT '일일 권장 미네랄 비율(%)',
+    `category`           VARCHAR(50) NULL COMMENT '음식 카테고리 (식품대분류명)',
+    `created_at`         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE meals (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

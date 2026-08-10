@@ -21,12 +21,12 @@ describe("건강 인사이트 & AI 리포트 API 통합 테스트 (RPT Module)",
   });
 
   describe("AI 리포트 상세 조회 기능", () => {
-    it("[성공 사례] GET /api/reports/rpt_123 - AI 건강 리포트 상세 조회 성공", async () => {
-      const res = await request(app).get("/api/reports/rpt_123");
+    it("[성공 사례] GET /api/travel-results/123 - AI 건강 리포트 상세 조회 성공", async () => {
+      const res = await request(app).get("/api/travel-results/123");
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.data.reportId).toBe("rpt_123");
+      expect(res.body.data.reportId).toBe("123");
       expect(res.body.data).toHaveProperty("summaryContent");
     });
   });

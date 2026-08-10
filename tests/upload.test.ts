@@ -24,20 +24,9 @@ describe("로컬 이미지 업로드 API 통합 테스트 (UPL Module)", () => {
     }
   });
 
-  it("[성공 사례] POST /api/upload/image - 멀티파트 파일 업로드 시 로컬 저장 및 URL 반환", async () => {
+  it("[성공 사례] POST /api/food-vision/scan - 파일 업로드 후 즉시 식단 비전 스캔 실행", async () => {
     const res = await request(app)
-      .post("/api/upload/image")
-      .attach("file", sampleImagePath);
-
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data).toHaveProperty("imageUrl");
-    expect(res.body.data.imageUrl).toContain("/uploads/");
-  });
-
-  it("[성공 사례] POST /api/food-vision/upload-and-scan - 파일 업로드 후 즉시 식단 비전 스캔 실행", async () => {
-    const res = await request(app)
-      .post("/api/food-vision/upload-and-scan")
+      .post("/api/food-vision/scan")
       .field("mealType", "LUNCH")
       .attach("file", sampleImagePath);
 

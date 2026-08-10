@@ -6,7 +6,7 @@ import {
   CreateUserMessageParams,
   CreateTammyMessageParams,
   CreateLongTermMemoryParams,
-} from "../models";
+} from "../repositories/models";
 
 export class ChatMapper {
   /**

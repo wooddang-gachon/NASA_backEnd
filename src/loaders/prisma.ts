@@ -38,8 +38,9 @@ export const initPrisma = (): PrismaClient => {
       user,
       password,
       database,
-      connectionLimit: 10,
-    });
+      connectionLimit: config.nodeEnv === "test" ? 3 : 10,
+      allowPublicKeyRetrieval: true,
+    } as any);
 
     // 3. 어댑터를 주입하여 PrismaClient 초기화
     prisma = new PrismaClient({
@@ -75,6 +76,13 @@ export const getPrisma = (): PrismaClient => {
     return initPrisma();
   }
   return prisma;
+};
+
+export const clearPrisma = async (): Promise<void> => {
+  if (prisma) {
+    await prisma.$disconnect();
+    prisma = undefined as any;
+  }
 };
 
 export { prisma };

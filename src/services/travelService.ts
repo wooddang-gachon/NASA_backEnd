@@ -1,4 +1,5 @@
 import { Service, Inject } from "typedi";
+import { FUEL_REWARDS, REPORT_FUEL_COST } from "@/constants/gamification.js";
 import AiService from "./aiService";
 import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
@@ -38,6 +39,14 @@ export default class TravelService {
     const user = await this.travelRepository.findUserById(userId);
     if (!user) throw new UserNotFoundError(userId);
 
+    const activeTravel = await this.travelRepository.findActivePlanetTravelByUser(userId);
+    if (activeTravel) {
+      throw new BadRequestError(
+        "이미 다른 행성의 탐사가 진행 중입니다. 한 번에 하나의 별만 탐사할 수 있습니다.",
+        "ALREADY_IN_PROGRESS_TRAVEL",
+      );
+    }
+
     const currentFuel = user.current_fuel ?? 0;
     if (currentFuel < data.fuelSpent) {
       throw new BadRequestError(
@@ -54,7 +63,6 @@ export default class TravelService {
       "별여행 탐사가 안전하게 완료되었습니다! 오늘 하루도 건강한 수분과 영양을 챙겨보세요.";
     let reportRecommendations = "매일 물 2,000ml 마시기\n저녁 8시 산책하기";
 
-    try {
       const aiReportResult = await this.aiService.generatePlanetReport(
         data.planetType,
         {
@@ -82,11 +90,6 @@ export default class TravelService {
           ? aiReportResult.nextActionChecks.join("\n")
           : aiReportResult.nextActionChecks;
       }
-    } catch (err) {
-      Logger.warn(
-        `[TravelService] AI travel report generation fallback used: ${err}`,
-      );
-    }
 
     // planet_travels 레코드 생성 (탐사 상태 및 AI 탐사 결과 리포트를 1개 테이블에 통합 저장)
     const travel = await this.travelRepository.createPlanetTravel({
@@ -115,10 +118,15 @@ export default class TravelService {
     userId: number,
   ): Promise<TravelStateInfoResponse> {
     const user = await this.travelRepository.findUserWithTammyStatus(userId);
-
     if (!user) throw new UserNotFoundError(userId);
 
-    return TravelMapper.toTravelStateResponse(user);
+    const [activeTravel, completedTravels, actionDistances] = await Promise.all([
+      this.travelRepository.findActivePlanetTravelByUser(userId),
+      this.travelRepository.findCompletedPlanetTravelsByUser(userId),
+      this.travelRepository.getPlanetActionCounts(userId),
+    ]);
+
+    return TravelMapper.toTravelStateResponse(user, activeTravel, completedTravels, actionDistances);
   }
 
   /**
@@ -128,7 +136,7 @@ export default class TravelService {
     const user = await this.travelRepository.findUserById(userId);
     if (!user) throw new UserNotFoundError(userId);
 
-    const gainedFuel = 10;
+    const gainedFuel = FUEL_REWARDS.DEFAULT_ACTION;
     const updatedUser = await this.travelRepository.updateUserFuel(userId, gainedFuel, "increment");
 
     return {
@@ -252,7 +260,7 @@ export default class TravelService {
     const travel = await this.travelRepository.createPlanetTravel({
       user_id: userId,
       planet_type: planetType,
-      fuel_spent: 100,
+      fuel_spent: REPORT_FUEL_COST,
       status: "COMPLETED",
       title: aiReportResult.title || "별여행 탐사 결과 진단서",
       summary_content:

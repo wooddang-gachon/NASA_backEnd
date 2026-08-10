@@ -13,9 +13,9 @@ describe("사용자 프로필 API 통합 테스트 (USR Module)", () => {
     const res = await request(app).get("/api/users/me?userId=1");
 
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty("userId");
-    expect(res.body).toHaveProperty("nickname");
-    expect(res.body).toHaveProperty("tammyStatus");
+    expect(res.body.data).toHaveProperty("userId");
+    expect(res.body.data).toHaveProperty("nickname");
+    expect(res.body.data).toHaveProperty("tammyStatus");
   });
 
   it("GET /api/users/me - 존재하지 않는 유저 조회 시 404 USER_NOT_FOUND 에러 반환 검증", async () => {

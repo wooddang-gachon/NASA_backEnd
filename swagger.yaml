@@ -251,10 +251,39 @@ components:
         - fuelSpent
       type: object
       additionalProperties: false
+    PlanetStateItem:
+      properties:
+        planetType:
+          $ref: "#/components/schemas/PlanetType"
+        name:
+          type: string
+        targetDistance:
+          type: number
+          format: double
+        currentDistance:
+          type: number
+          format: double
+        isCompleted:
+          type: boolean
+        completedAt:
+          type: string
+          nullable: true
+      required:
+        - planetType
+        - name
+        - targetDistance
+        - currentDistance
+        - isCompleted
+      type: object
+      additionalProperties: false
     TravelStateInfoResponse:
       properties:
         currentPlanet:
           type: string
+        activePlanet:
+          allOf:
+            - $ref: "#/components/schemas/PlanetType"
+          nullable: true
         explorationProgressPercent:
           type: number
           format: double
@@ -264,14 +293,26 @@ components:
         requiredFuelForNextPlanet:
           type: number
           format: double
+        totalStarCount:
+          type: number
+          format: double
+        completedStarCount:
+          type: number
+          format: double
         tammyRelationshipLevel:
           type: number
           format: double
+        planetList:
+          items:
+            $ref: "#/components/schemas/PlanetStateItem"
+          type: array
       required:
         - explorationProgressPercent
         - currentFuel
-        - requiredFuelForNextPlanet
+        - totalStarCount
+        - completedStarCount
         - tammyRelationshipLevel
+        - planetList
       type: object
       additionalProperties: false
     ApiResponse_TravelStateInfoResponse_:

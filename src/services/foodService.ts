@@ -1,5 +1,7 @@
 import { Service, Inject } from "typedi";
+import { FUEL_REWARDS, EXP_REWARDS } from "@/constants/gamification.js";
 import AiService from "./aiService";
+import LocalVisionService from "./localVisionService";
 import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
 import FoodRepository from "../repositories/FoodRepository";
@@ -10,6 +12,7 @@ import { MealLogRegisterResponse, FoodSearchResponse, FoodSmartMatchResultDto, F
 
 import { cleanFoodKeyword } from "../utils/food/foodUtils";
 import { tokenizeFoodName } from "../utils/food/foodTokenizer";
+import { drawBoundingBoxesAndSave } from "../utils/imageAnnotator";
 
 import path from "path";
 import fs from "fs";
@@ -18,6 +21,9 @@ import fs from "fs";
 export default class FoodService {
   @Inject(type => AiService)
   private aiService!: AiService;
+
+  @Inject(type => LocalVisionService)
+  private localVisionService!: LocalVisionService;
 
   @Inject(type => FoodRepository)
   private foodRepository!: FoodRepository;
@@ -49,6 +55,11 @@ export default class FoodService {
     Logger.info(`[FoodService] Immediate image registration created in DB: meal_images ID ${savedImage.id}`);
 
     const res = await this.analyzeFoodVision(imageUrl, mealType);
+
+    // [테스트/디버그 용] Bounding Box가 존재하는 경우 네모 표시가 된 추가 이미지 생성 및 저장 (_debug.jpg)
+    if (res && res.detectedFoods && res.detectedFoods.length > 0) {
+      await drawBoundingBoxesAndSave(filePath, res.detectedFoods);
+    }
 
     return {
       ...res,
@@ -91,41 +102,63 @@ export default class FoodService {
     // Step 3: foods DB에 상위 키워드조차 없는 생소한 음식일 경우
     // foods 마스터 DB는 훼손하지 않고, AI 영양소 추정값만 안전하게 반환
     Logger.info(`[FOD-005] Food '${rawName}' not in foods master. Fallback to AI estimation without modifying foods master.`);
-    let fallbackVision: any = null;
-    try {
-      fallbackVision = await this.aiService.analyzeFoodVision("", rawName);
-    } catch {
-      fallbackVision = null;
-    }
+    const fallbackVision: any = await this.aiService.analyzeFoodVision("", rawName);
 
     const detected = fallbackVision && fallbackVision.detectedFoods && fallbackVision.detectedFoods.length > 0
         ? fallbackVision.detectedFoods[0]
-        : { estimatedGram: 100, calories: 250, carbs: 30, protein: 20, fat: 5 };
+        : { estimatedGram: 100, calories: 0, carbs: 0, protein: 0, fat: 0 };
 
     return FoodMapper.toFoodSmartMatchResultFromFallback(rawName, detected);
   }
 
   public async analyzeFoodVision(imageUrl: string, mealType?: string): Promise<FoodVisionScanResponse> {
     Logger.info(`[FoodService] Analyzing food vision for image: ${imageUrl}, mealType: ${mealType || "N/A"}`);
-    let aiVisionResult: any;
-    try {
-      aiVisionResult = await this.aiService.analyzeFoodVision(imageUrl, mealType);
-    } catch (e) {
-      Logger.warn(`[FoodService] AI Vision scan fallback mock triggered: ${e}`);
-      aiVisionResult = {
-        scanEngine: "YOLO" as const,
-        message: "AI 서버 연동이 지연되어 기본 식단 정보를 제공합니다.",
-        detectedFoods: [
-          {
-            foodName: "연어 샐러드",
-            estimatedGram: 200,
-            calories: 250,
-            carbs: 10,
-            protein: 30,
-            fat: 5,
-          },
-        ],
-      };
+    
+    let aiVisionResult: any = null;
+    const cleanPath = imageUrl.startsWith("/") ? imageUrl.substring(1) : imageUrl;
+    const imagePath = path.join(process.cwd(), cleanPath);
+
+    let yoloContext = {
+      attempted: true,
+      detected: false,
+      reason: ""
+    };
+
+    // [FOD-001] 1차: 자체 경량 YOLO 모델(ONNX) 스캔
+    if (fs.existsSync(imagePath)) {
+      try {
+        const imageBuffer = fs.readFileSync(imagePath);
+        const localResults = await this.localVisionService.detectFoodObjects(imageBuffer);
+        
+        if (localResults && localResults.length > 0) {
+          Logger.info(`[FoodService] YOLO 1차 스캔 성공! ${localResults.length}개 객체 탐지.`);
+          yoloContext.detected = true;
+          aiVisionResult = {
+            scanEngine: "YOLO",
+            detectedFoods: localResults.map((r, idx) => ({
+              boxId: idx,
+              foodName: r.className,
+              boundingBox: r.bbox,
+              confidence: r.confidence
+            }))
+          };
+        } else {
+          yoloContext.reason = "NO_OBJECTS_DETECTED";
+          Logger.info("[FoodService] YOLO 1차 스캔 결과 없음. Vision LLM Fallback 실행.");
+        }
+      } catch (err) {
+        yoloContext.reason = "SCAN_ERROR";
+        Logger.warn(`[FoodService] YOLO 1차 스캔 에러 발생. Vision LLM Fallback 실행: ${err}`);
+      }
+    } else {
+      yoloContext.reason = "FILE_NOT_FOUND";
+      Logger.warn(`[FoodService] Image file not found for YOLO scan: ${imagePath}. Vision LLM Fallback 실행.`);
+    }
+
+    // 2차: 미식별/불분명 시 Vision LLM Fallback 추가 분석 요청
+    if (!aiVisionResult) {
+      aiVisionResult = await this.aiService.analyzeFoodVision(imageUrl, mealType, undefined, yoloContext);
+      if (aiVisionResult) aiVisionResult.scanEngine = "VisionLLM";
     }
 
     if (aiVisionResult.detectedFoods && aiVisionResult.detectedFoods.length > 0) {
@@ -289,8 +322,8 @@ export default class FoodService {
       mealData,
       processedItems,
       { imageId: data.imageId, imageUrl: data.imageUrl },
-      50, // gainedFuel
-      30, // gainedExp
+      FUEL_REWARDS.FOOD_CONFIRM, // gainedFuel
+      EXP_REWARDS.FOOD_CONFIRM, // gainedExp
       FoodMapper.toMealItemCreateInput,
       FoodMapper.toMealImageCreateInput,
       UserMapper.toStatusLogCreateInput

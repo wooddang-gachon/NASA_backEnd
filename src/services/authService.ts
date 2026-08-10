@@ -210,7 +210,7 @@ export default class AuthService {
   /**
    * 카카오/구글/애플 소셜 OAuth 토큰 검증 헬퍼
    */
-  private async verifySocialToken(
+  protected async verifySocialToken(
     provider: "GOOGLE" | "KAKAO" | "APPLE",
     token: string
   ): Promise<{ email: string; nickname?: string }> {
@@ -225,12 +225,6 @@ export default class AuthService {
           // fallback: id_token 검증 시도
           const tokenInfoRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${token}`);
           if (!tokenInfoRes.ok) {
-            if (token.startsWith("mock_google_")) {
-              return {
-                email: `google_${token.replace("mock_google_", "")}@gmail.com`,
-                nickname: "구글탐험가",
-              };
-            }
             throw new UnauthorizedError("유효하지 않은 Google 인증 토큰입니다.");
           }
           const info = (await tokenInfoRes.json()) as { email?: string; sub: string; name?: string; given_name?: string };
@@ -255,12 +249,6 @@ export default class AuthService {
         });
 
         if (!res.ok) {
-          if (token.startsWith("mock_kakao_")) {
-            return {
-              email: `kakao_${token.replace("mock_kakao_", "")}@kakao.com`,
-              nickname: "카카오탐험가",
-            };
-          }
           throw new UnauthorizedError("유효하지 않은 Kakao 인증 토큰입니다.");
         }
 
@@ -273,12 +261,7 @@ export default class AuthService {
           nickname: profile.nickname || "카카오유저",
         };
       } else if (provider === "APPLE") {
-        if (token.startsWith("mock_apple_")) {
-          return {
-            email: `apple_${token.replace("mock_apple_", "")}@apple.com`,
-            nickname: "애플유저",
-          };
-        }
+
         return {
           email: `apple_user_${Date.now()}@apple.com`,
           nickname: "애플유저",

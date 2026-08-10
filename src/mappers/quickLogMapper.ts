@@ -1,5 +1,5 @@
 import { QuickLogCreateRequest, QuickLogApiResponse } from "../dto";
-import { DbQuickLogItem } from "../models";
+import { DbQuickLogItem } from "../repositories/models";
 
 export class QuickLogMapper {
   /**

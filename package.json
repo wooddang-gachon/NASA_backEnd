@@ -4,7 +4,7 @@
   "description": "NASA Wellness Backend API System with Tammy AI Virtual Pet",
   "main": "dist/app.js",
   "scripts": {
-    "test": "jest",
+    "test": "jest --runInBand",
     "dev": "NODE_ENV=development tsx watch src/app.ts",
     "start": "NODE_ENV=production node dist/app.js",
     "prebuild": "npm run swagger",
@@ -16,9 +16,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
-    "prisma:mock:push": "DATABASE_URL=\"mysql://root:gusdn414%40@localhost:3306/nasa_mock_db\" prisma db push",
+    "prisma:mock:push": "bash -c 'source .env && DATABASE_URL=$MOCK_DATABASE_URL prisma db push'",
     "prisma:prod:push": "prisma db push",
-    "prisma:mock:studio": "DATABASE_URL=\"mysql://root:gusdn414%40@localhost:3306/nasa_mock_db\" prisma studio"
+    "prisma:mock:studio": "bash -c 'source .env && DATABASE_URL=$MOCK_DATABASE_URL prisma studio'"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -69,6 +69,7 @@
     "multer": "^2.2.0",
     "mysql2": "^3.22.6",
     "node-cron": "^4.6.0",
+    "onnxruntime-node": "^1.27.0",
     "openai": "^6.45.0",
     "reflect-metadata": "^0.2.2",
     "sharp": "^0.35.3",

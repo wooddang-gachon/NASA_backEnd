@@ -100,6 +100,29 @@ async function main() {
   console.log(`🚀 Space travel record initialized: Travel #${travel.id}`);
 
   // 5. 표준 음식 마스터 (foods)
+  const yoloFoods = [
+    { id: 10, name: "고등어구이", standard_serving_g: 100, calories_kcal: 200, carbohydrate_g: 0, protein_g: 20, fat_g: 13 },
+    { id: 11, name: "김밥", standard_serving_g: 200, calories_kcal: 480, carbohydrate_g: 75, protein_g: 12, fat_g: 14 },
+    { id: 12, name: "김치볶음밥", standard_serving_g: 300, calories_kcal: 550, carbohydrate_g: 80, protein_g: 15, fat_g: 18 },
+    { id: 13, name: "불고기", standard_serving_g: 150, calories_kcal: 330, carbohydrate_g: 12, protein_g: 28, fat_g: 19 },
+    { id: 14, name: "삼겹살", standard_serving_g: 200, calories_kcal: 660, carbohydrate_g: 0, protein_g: 34, fat_g: 58 },
+    { id: 15, name: "양념치킨", standard_serving_g: 200, calories_kcal: 580, carbohydrate_g: 35, protein_g: 30, fat_g: 36 },
+  ];
+
+  for (const item of yoloFoods) {
+    const createdFood = await prisma.foods.upsert({
+      where: { id: item.id },
+      update: item,
+      create: item,
+    });
+    // food_mappings 테이블에도 EXACT 매칭으로 기본 등록
+    await prisma.food_mappings.upsert({
+      where: { raw_name: item.name },
+      update: { food_id: createdFood.id, match_type: "EXACT" },
+      create: { raw_name: item.name, food_id: createdFood.id, match_type: "EXACT" },
+    });
+  }
+
   const food1 = await prisma.foods.upsert({
     where: { id: 1 },
     update: { name: "연어 샐러드", calories_kcal: 380 },
@@ -128,7 +151,7 @@ async function main() {
     },
   });
 
-  console.log(`🥗 Foods created: ${food1.name}, ${food2.name}`);
+  console.log(`🥗 YOLO 6종 및 샘플 음식 데이터 세팅 완료!`);
 
   // 5.5. AI-RDB 음식명 매칭 테이블 (food_mappings) [FOD-005]
   await prisma.food_mappings.upsert({

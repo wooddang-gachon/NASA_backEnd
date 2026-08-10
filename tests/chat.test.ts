@@ -38,9 +38,9 @@ describe("AI 타미 심리 공감 대화 API 통합 테스트 (CHT Module)", () 
         });
 
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("reply");
-      expect(res.body).toHaveProperty("motionTag");
-      expect(res.body).toHaveProperty("gainedFuel");
+      expect(res.body.data).toHaveProperty("reply");
+      expect(res.body.data).toHaveProperty("motionTag");
+      expect(res.body.data).toHaveProperty("gainedFuel");
     });
 
     it("[실패 사례] POST /api/chat/message - 필수 메시지 본문 누락 시 400 Bad Request 에러 반환", async () => {

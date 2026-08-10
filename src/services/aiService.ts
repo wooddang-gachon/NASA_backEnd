@@ -13,6 +13,7 @@ import type {
   AiVisionInternalResponse,
   NutritionLookupResponse,
   AiReportInternalResponse,
+  YoloContext,
 } from "@/interfaces";
 
 @Service()
@@ -137,12 +138,13 @@ export default class AiService {
   public async analyzeFoodVision(
     imageUrl?: string,
     mealType?: string,
-    imageBase64Input?: string
+    imageBase64Input?: string,
+    yoloContext?: YoloContext
   ): Promise<AiVisionInternalResponse> {
     const imageBase64 = await this.processBase64Image(imageUrl, imageBase64Input);
     return this.postJson<AiVisionInternalResponse>(
       "/v1/vision/analyze-food",
-      { imageUrl, imageBase64, mealType },
+      { imageUrl, imageBase64, mealType, yoloContext },
       "Vision"
     );
   }

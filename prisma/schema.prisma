@@ -266,7 +266,9 @@ model planet_travels {
 model foods {
   id                 Int             @id @default(autoincrement())
   name               String          @unique @db.VarChar(100)
+  representative_name String?        @db.VarChar(100)
   standard_serving_g Decimal         @default(100.00) @db.Decimal(6, 2)
+  total_weight_g     Decimal?        @db.Decimal(6, 2)
   calories_kcal      Int             @default(0)
   carbohydrate_g     Decimal         @default(0.00) @db.Decimal(5, 2)
   protein_g          Decimal         @default(0.00) @db.Decimal(5, 2)

@@ -67,4 +67,44 @@ export default class TravelRepository {
       },
     });
   }
+
+  public async findActivePlanetTravelByUser(userId: number) {
+    const prisma = getPrisma();
+    return prisma.planet_travels.findFirst({
+      where: {
+        user_id: userId,
+        status: "IN_PROGRESS",
+      },
+    });
+  }
+
+  public async findCompletedPlanetTravelsByUser(userId: number) {
+    const prisma = getPrisma();
+    return prisma.planet_travels.findMany({
+      where: {
+        user_id: userId,
+        status: "COMPLETED",
+      },
+      orderBy: { completed_at: "desc" },
+    });
+  }
+
+  public async getPlanetActionCounts(userId: number) {
+    const prisma = getPrisma();
+    const [mealCount, waterCount, chatCount, exerciseCount, journalCount] = await Promise.all([
+      prisma.meals.count({ where: { user_id: userId } }),
+      prisma.quick_logs.count({ where: { user_id: userId, category: "WATER" } }),
+      prisma.chat_messages.count({ where: { user_id: userId, sender: "USER" } }),
+      prisma.quick_logs.count({ where: { user_id: userId, category: "EXERCISE" } }),
+      prisma.quick_logs.count({ where: { user_id: userId, category: "JOURNAL" } }),
+    ]);
+
+    return {
+      MEAL: mealCount * 10,
+      WATER: waterCount * 10,
+      EMOTION: chatCount * 10,
+      LIFESTYLE: exerciseCount * 10,
+      RETROSPECT: journalCount * 20,
+    };
+  }
 }

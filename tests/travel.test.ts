@@ -14,9 +14,16 @@ describe("타미 별여행 API 통합 테스트 (TRV)", () => {
       const res = await request(app).get("/api/planet-travel/state");
 
       expect(res.status).toBe(200);
-      expect(res.body).toHaveProperty("currentPlanet");
-      expect(res.body).toHaveProperty("explorationProgressPercent");
-      expect(res.body).toHaveProperty("currentFuel");
+      expect(res.body.data).toHaveProperty("currentPlanet");
+      expect(res.body.data).toHaveProperty("explorationProgressPercent");
+      expect(res.body.data).toHaveProperty("currentFuel");
+      expect(res.body.data).toHaveProperty("totalStarCount", 5);
+      expect(res.body.data).toHaveProperty("completedStarCount");
+      expect(res.body.data).toHaveProperty("planetList");
+      expect(Array.isArray(res.body.data.planetList)).toBe(true);
+      expect(res.body.data.planetList.length).toBe(5);
+      expect(res.body.data.planetList[0]).toHaveProperty("targetDistance");
+      expect(res.body.data.planetList[0]).toHaveProperty("currentDistance");
     });
 
     it("[성공 사례] POST /api/planet-travel/start - 적정 연료 사용 시 탐사 출발 성공", async () => {

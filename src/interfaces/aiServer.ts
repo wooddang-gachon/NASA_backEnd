@@ -39,6 +39,19 @@ export interface DetectedFood {
   boundingBox?: BoundingBox;
 }
 
+export interface YoloContext {
+  attempted: boolean;
+  detected: boolean;
+  reason?: "NO_OBJECTS_DETECTED" | "SCAN_ERROR" | "FILE_NOT_FOUND" | string;
+}
+
+export interface AiVisionInternalPayload {
+  imageUrl?: string;
+  imageBase64?: string;
+  mealType?: string;
+  yoloContext?: YoloContext;
+}
+
 export interface AiVisionInternalResponse {
   isIdentified: boolean;
   comment?: string;

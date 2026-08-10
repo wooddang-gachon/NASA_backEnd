@@ -1,6 +1,6 @@
 import { users, Gender, ChangeReason } from "@prisma/client";
 import { UserSignUpRequest, UserAuthProfile, UserAuthMeResponse, UserProfileResponseData, TammyHistoryResponse, UserLoginResponse } from "../dto";
-import { UserWithTammyStatus, DbTammyStatusLogItem, CreateTammyStatusLogParams } from "../models";
+import { UserWithTammyStatus, DbTammyStatusLogItem, CreateTammyStatusLogParams } from "../repositories/models";
 
 export class UserMapper {
   /**

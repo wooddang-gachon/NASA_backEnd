@@ -1,4 +1,5 @@
 import { Service, Inject } from "typedi";
+import { FUEL_REWARDS } from "@/constants/gamification.js";
 import AiService from "./aiService";
 import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
@@ -45,31 +46,12 @@ export default class ChatService {
       );
     }
 
-    let aiResult;
-    try {
-      aiResult = await this.aiService.processChat(
-        userId,
-        userMessage,
-        user.nickname,
-        history,
-      );
-    } catch (e) {
-      Logger.warn(
-        `[ChatService] AI Chat server unavailable fallback mock triggered: ${e}`,
-      );
-      aiResult = {
-        replyText: `안녕하세요 ${user.nickname || "탐험가"}님! 타미가 통신 신호를 수신했어요 📡 지금은 임시 통신 모드이지만, "${userMessage}" 메시지 잘 받았습니다!`,
-        motionTag: "HAPPY",
-        emotion: {
-          state: "HAPPY",
-          motionType: "HAPPY",
-        },
-        extractedMemory: {
-          category: "일상기록",
-          content: userMessage,
-        },
-      };
-    }
+    const aiResult = await this.aiService.processChat(
+      userId,
+      userMessage,
+      user.nickname,
+      history,
+    );
 
     const tammyMsg = await this.chatRepository.createChatMessage(
       ChatMapper.toTammyMessageInput(
@@ -85,7 +67,7 @@ export default class ChatService {
       )
     );
 
-    const gainedFuel = 10;
+    const gainedFuel = FUEL_REWARDS.CHAT;
     const updatedUser = await this.chatRepository.updateUserFuel(userId, gainedFuel);
 
     return ChatMapper.toResponse(

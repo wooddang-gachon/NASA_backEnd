@@ -1,8 +1,9 @@
 import { planet_travels } from "@prisma/client";
 import { TravelResultCreateRequest, TravelResultResponse, PlanetTravelStartRequest } from "../interfaces/travel";
-import { TravelResultDetailInfo, PlanetTravelStartApiResponse, TravelStateInfoResponse } from "../dto/travel.dto";
+import { TravelResultDetailInfo, PlanetTravelStartApiResponse, TravelStateInfoResponse, PlanetStateItem } from "../dto/travel.dto";
 import { PlanetType } from "../interfaces/enums";
-import { UserWithTammyStatus, DbTravelResultDetailItem } from "../models";
+import { UserWithTammyStatus, DbTravelResultDetailItem } from "../repositories/models";
+import { PLANET_CONFIGS, TOTAL_STAR_COUNT, TOTAL_TARGET_DISTANCE, WARP_FUEL_THRESHOLD } from "@/constants/gamification.js";
 
 export class TravelMapper {
   /**
@@ -38,17 +39,58 @@ export class TravelMapper {
   /**
    * 우주여행 현황 서비스 응답 DTO 반환
    */
-  public static toTravelStateResponse(user: UserWithTammyStatus): TravelStateInfoResponse {
+  public static toTravelStateResponse(
+    user: UserWithTammyStatus,
+    activeTravel?: planet_travels | null,
+    completedTravels: planet_travels[] = [],
+    actionDistances: Record<string, number> = {}
+  ): TravelStateInfoResponse {
     const currentFuel = user.current_fuel ?? 0;
-    const requiredFuel = 300;
-    const progressPercent = Math.min(Math.floor((currentFuel / requiredFuel) * 100), 100);
+
+
+
+    const completedTypeSet = new Set(completedTravels.map((t) => t.planet_type));
+    const completedMap = new Map<string, string>();
+    completedTravels.forEach((t) => {
+      if (t.completed_at) {
+        completedMap.set(t.planet_type, t.completed_at.toISOString());
+      }
+    });
+
+    const planetList: PlanetStateItem[] = PLANET_CONFIGS.map((config) => {
+      const isCompleted = completedTypeSet.has(config.planetType);
+      const rawDistance = actionDistances[config.planetType] ?? 0;
+      const currentDistance = isCompleted
+        ? config.targetDistance
+        : Math.min(rawDistance, config.targetDistance);
+
+      return {
+        planetType: config.planetType,
+        name: config.name,
+        targetDistance: config.targetDistance,
+        currentDistance,
+        isCompleted,
+        completedAt: isCompleted ? (completedMap.get(config.planetType) || null) : null,
+      };
+    });
+
+    const completedStarCount = completedTypeSet.size;
+    const activePlanetType = activeTravel?.planet_type || null;
+
+    const totalTarget = TOTAL_TARGET_DISTANCE;
+    const totalAchieved = planetList.reduce((acc, p) => acc + p.currentDistance, 0);
+    const progressPercent = Math.min(Math.floor((totalAchieved / totalTarget) * 100), 100);
 
     return {
-      currentPlanet: "아쿠아 웰니스 행성",
+      currentPlanet: activePlanetType || (completedStarCount > 0 ? Array.from(completedTypeSet).pop() : PlanetType.MEAL),
+      activePlanet: activePlanetType,
       explorationProgressPercent: progressPercent,
       currentFuel,
-      requiredFuelForNextPlanet: requiredFuel,
+      requiredFuelForNextPlanet: WARP_FUEL_THRESHOLD,
+      totalStarCount: TOTAL_STAR_COUNT,
+      completedStarCount,
       tammyRelationshipLevel: user.tammy_statuses?.level || 1,
+      planetList,
     };
   }
 

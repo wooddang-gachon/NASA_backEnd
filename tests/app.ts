@@ -38,3 +38,12 @@ export const getTestApp = async (): Promise<express.Application> => {
   return app;
 };
 
+export const closeTestApp = async (): Promise<void> => {
+  const { clearPrisma } = await import("../src/loaders/prisma");
+  await clearPrisma();
+  app = undefined as any;
+};
+
+afterAll(async () => {
+  await closeTestApp();
+});

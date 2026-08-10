@@ -21,12 +21,25 @@ export interface PlanetTravelStartApiResponse {
   travelResult?: TravelResultSummary;
 }
 
+export interface PlanetStateItem {
+  planetType: PlanetType;
+  name: string;
+  targetDistance: number;
+  currentDistance: number;
+  isCompleted: boolean;
+  completedAt?: string | null;
+}
+
 export interface TravelStateInfoResponse {
   currentPlanet?: string;
+  activePlanet?: PlanetType | null;
   explorationProgressPercent: number;
   currentFuel: number;
-  requiredFuelForNextPlanet: number;
+  requiredFuelForNextPlanet?: number;
+  totalStarCount: number;
+  completedStarCount: number;
   tammyRelationshipLevel: number;
+  planetList: PlanetStateItem[];
 }
 
 export interface FuelAddApiResponse {

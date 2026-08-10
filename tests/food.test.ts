@@ -18,7 +18,7 @@ describe("사진 비전 분석 & 식단 확정 API 통합 테스트 (FOD Module)
           foods: [
             {
               foodName: "연어 샐러드",
-              intakeGram: 200,
+              gram: 200,
               calories: 380,
               carbs: 14.5,
               protein: 32.0,
