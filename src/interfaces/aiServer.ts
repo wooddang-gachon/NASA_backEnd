@@ -16,7 +16,7 @@ export interface AiChatInternalResponse {
   emotion: EmotionStatus;
   motionTag?: string;
   intentLabel?: string;
-  labels?: any;
+  labels?: Record<string, unknown>;
   extractedMemory?: {
     category: string;
     content: string;
@@ -95,10 +95,10 @@ export interface AiReportInternalPayload {
   userId: number;
   nickname?: string;
   period?: { start: string; end: string };
-  dailyRecords?: any[];
-  waterLogs?: any[];
-  exerciseLogs?: any[];
-  chatLogs?: any[];
+  dailyRecords?: Record<string, unknown>[];
+  waterLogs?: Record<string, unknown>[];
+  exerciseLogs?: Record<string, unknown>[];
+  chatLogs?: Record<string, unknown>[];
   dailySteps?: Record<string, number>;
   dailyGoalMl?: number;
   weeklyStats?: {

@@ -27,7 +27,7 @@ export default class AiService {
   /**
    * 공통 HTTP POST 통신 및 예외 처리 헬퍼
    */
-  private async postJson<T>(endpoint: string, payload: any, serviceName: string): Promise<T> {
+  private async postJson<T>(endpoint: string, payload: unknown, serviceName: string): Promise<T> {
     const url = `${config.ai.serverUrl}${endpoint}`;
     try {
       Logger.info(`[AiService] Requesting ${serviceName} via ${endpoint}`);

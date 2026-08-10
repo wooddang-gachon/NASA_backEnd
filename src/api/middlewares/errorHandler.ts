@@ -22,7 +22,7 @@ export function globalErrorHandler(
       code: err.code,
       message: err.message,
       status: err.status,
-      ...(err.details && { details: err.details }),
+      ...(typeof err.details === 'object' && err.details !== null ? err.details : {}),
     });
     return;
   }

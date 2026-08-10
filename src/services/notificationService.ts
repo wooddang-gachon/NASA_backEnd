@@ -5,6 +5,8 @@ import fs from "fs";
 import path from "path";
 import { getPrisma } from "@/loaders/prisma";
 import Logger from "@/loaders/logger";
+import NotificationRepository from "@/repositories/NotificationRepository";
+import { Inject } from "typedi";
 import type {
   PushTokenRegisterRequest,
   PushTokenRegisterResponse,
@@ -33,6 +35,9 @@ function initFirebaseAdmin() {
 
 @Service()
 export default class NotificationService {
+  @Inject((type) => NotificationRepository)
+  private notificationRepository!: NotificationRepository;
+
   constructor() {
     initFirebaseAdmin();
   }
@@ -44,28 +49,9 @@ export default class NotificationService {
     userId: number,
     data: PushTokenRegisterRequest
   ): Promise<PushTokenRegisterResponse> {
-    const prisma = getPrisma();
     const deviceType = data.deviceType || "IOS";
 
-    await prisma.user_push_tokens.upsert({
-      where: {
-        user_id_device_token: {
-          user_id: userId,
-          device_token: data.deviceToken,
-        },
-      },
-      update: {
-        device_type: deviceType,
-        is_active: true,
-        updated_at: new Date(),
-      },
-      create: {
-        user_id: userId,
-        device_token: data.deviceToken,
-        device_type: deviceType,
-        is_active: true,
-      },
-    });
+    await this.notificationRepository.upsertPushToken(userId, data.deviceToken, deviceType);
 
     Logger.info(`[NotificationService] Registered push token for userId=${userId} (${deviceType})`);
 
@@ -79,14 +65,7 @@ export default class NotificationService {
    * [RPT-003] 별여행 탐사 및 리포트 완료 단일 사용자 푸시 알림 발송
    */
   public async sendPushNotification(request: SendPushNotificationRequest): Promise<boolean> {
-    const prisma = getPrisma();
-
-    const tokens = await prisma.user_push_tokens.findMany({
-      where: {
-        user_id: request.userId,
-        is_active: true,
-      },
-    });
+    const tokens = await this.notificationRepository.findActivePushTokens(request.userId);
 
     if (tokens.length === 0) {
       Logger.warn(`[NotificationService] No active push token found for userId=${request.userId}`);

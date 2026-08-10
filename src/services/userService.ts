@@ -3,20 +3,19 @@ import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
 import { UserNotFoundError } from "../errors";
 import { UserProfileResponseData, TammyHistoryResponse } from "../dto";
+import UserRepository from "../repositories/UserRepository";
+import { Inject } from "typedi";
 import { UserMapper } from "../mappers";
 
 @Service()
 export default class UserService {
+  @Inject((type) => UserRepository)
+  private userRepository!: UserRepository;
+
   public async getUserProfile(userId: number): Promise<UserProfileResponseData> {
-    const prisma = getPrisma();
     Logger.info(`[UserService] 프로필 조회: userId=${userId}`);
 
-    const user = await prisma.users.findUnique({
-      where: { id: userId },
-      include: {
-        tammy_statuses: true,
-      },
-    });
+    const user = await this.userRepository.findUserWithTammyStatus(userId);
 
     if (!user) {
       Logger.warn(`[UserService] 유저 미존재: userId=${userId}`);
@@ -27,15 +26,10 @@ export default class UserService {
   }
 
   public async getTammyHistory(userId: number): Promise<TammyHistoryResponse> {
-    const prisma = getPrisma();
-    const user = await prisma.users.findUnique({ where: { id: userId } });
+    const user = await this.userRepository.findUserById(userId);
     if (!user) throw new UserNotFoundError(userId);
 
-    const logs = await prisma.tammy_status_logs.findMany({
-      where: { user_id: userId },
-      orderBy: { created_at: "desc" },
-      take: 20,
-    });
+    const logs = await this.userRepository.findTammyStatusLogs(userId, 20);
 
     return UserMapper.toTammyHistoryResponse(logs);
   }

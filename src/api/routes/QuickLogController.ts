@@ -21,6 +21,10 @@ export class QuickLogController extends Controller {
     @Request() request: AuthenticatedRequest,
     @Body() requestBody: QuickLogApiRequest
   ): Promise<ApiResponse<QuickLogApiResponse>> {
+    if (requestBody.category === "WATER" && (requestBody.amount === undefined || requestBody.amount < 0)) {
+      this.setStatus(400);
+      return ApiResponse.error("수분 섭취량은 0 이상이어야 합니다.", 400) as any;
+    }
     const userId = getAuthenticatedUserId(request);
     this.setStatus(201);
     const result = await this.quickLogService.createQuickLog(userId, requestBody);

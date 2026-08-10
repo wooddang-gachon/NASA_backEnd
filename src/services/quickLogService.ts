@@ -3,28 +3,25 @@ import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
 import { QuickLogCreateRequest } from "../dto";
 import { QuickLogMapper } from "../mappers";
+import QuickLogRepository from "../repositories/QuickLogRepository";
+import { Inject } from "typedi";
 
 @Service()
 export default class QuickLogService {
+  @Inject((type) => QuickLogRepository)
+  private quickLogRepository!: QuickLogRepository;
+
   public async createQuickLog(userId: number, data: QuickLogCreateRequest) {
-    const prisma = getPrisma();
     Logger.info(
       `[QuickLogService] Creating quick log for userId ${userId}, category: ${data.category}`,
     );
     const earnedFuel = 10;
 
-    const log = await prisma.quick_logs.create({
-      data: QuickLogMapper.toCreateInput(userId, data, earnedFuel),
-    });
+    const log = await this.quickLogRepository.createQuickLog(
+      QuickLogMapper.toCreateInput(userId, data, earnedFuel)
+    );
 
-    const updatedUser = await prisma.users.update({
-      where: { id: userId },
-      data: {
-        current_fuel: {
-          increment: earnedFuel,
-        },
-      },
-    });
+    const updatedUser = await this.quickLogRepository.updateUserFuel(userId, earnedFuel);
 
     return {
       success: true,

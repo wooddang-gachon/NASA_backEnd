@@ -4,9 +4,9 @@
 export class AppError extends Error {
   public code: string;
   public status: number;
-  public details?: any;
+  public details?: unknown;
 
-  constructor(message: string, code: string = "INTERNAL_SERVER_ERROR", status: number = 500, details?: any) {
+  constructor(message: string, code: string = "INTERNAL_SERVER_ERROR", status: number = 500, details?: unknown) {
     super(message);
     this.name = this.constructor.name;
     this.code = code;
@@ -20,7 +20,7 @@ export class AppError extends Error {
  * 400 Bad Request Exception
  */
 export class BadRequestError extends AppError {
-  constructor(message: string = "잘못된 요청입니다.", code: string = "BAD_REQUEST", details?: any) {
+  constructor(message: string = "잘못된 요청입니다.", code: string = "BAD_REQUEST", details?: unknown) {
     super(message, code, 400, details);
   }
 }
@@ -81,3 +81,22 @@ export class AiServerError extends AppError {
     super(message, code, status);
   }
 }
+
+/**
+ * 502 Bad Gateway Exception
+ */
+export class BadGatewayError extends AppError {
+  constructor(message: string = "외부 서비스 연동 중 오류가 발생했습니다.", code: string = "BAD_GATEWAY", details?: unknown) {
+    super(message, code, 502, details);
+  }
+}
+
+/**
+ * 500 Internal Server Error
+ */
+export class InternalServerError extends AppError {
+  constructor(message: string = "서버 내부 오류가 발생했습니다.", code: string = "INTERNAL_SERVER_ERROR", details?: unknown) {
+    super(message, code, 500, details);
+  }
+}
+

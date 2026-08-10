@@ -77,7 +77,7 @@ export class AsyncQueue<T = any> {
       Logger.error(`[AsyncQueue] Job ${item.id} failed: ${err}`);
     } finally {
       this.activeCount--;
-      this.processNext();
+      this.processNext().catch((e) => Logger.error(`[AsyncQueue] processNext error: ${e}`));
     }
   }
 }

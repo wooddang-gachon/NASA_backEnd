@@ -5,6 +5,15 @@ const prisma = getPrisma();
 async function main() {
   console.log("🌱 Starting Prisma database seeding...");
 
+  // 기존 시드 데이터 초기화 (충돌 방지)
+  await prisma.chat_messages.deleteMany();
+  await prisma.quick_logs.deleteMany();
+  await prisma.meal_items.deleteMany();
+  await prisma.meal_images.deleteMany();
+  await prisma.meals.deleteMany();
+  await prisma.planet_travels.deleteMany();
+  console.log("🧹 Cleared existing transactional seed data.");
+
   // 1. 테스트 사용자 생성 (users)
   const user = await prisma.users.upsert({
     where: { email: "user@example.com" },

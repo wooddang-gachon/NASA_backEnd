@@ -5,7 +5,12 @@ import { execSync } from "child_process";
 
 // 1. TSOA Swagger JSON 명세서 및 라우트 최신화 생성
 console.log("🔄 TSOA OpenAPI spec-and-routes 생성 중...");
-execSync("npx tsoa spec-and-routes", { stdio: "inherit" });
+try {
+  execSync("npx tsoa spec-and-routes", { stdio: "inherit" });
+} catch (error) {
+  console.error("❌ TSOA 생성 중 오류 발생:", error);
+  process.exit(1);
+}
 
 // ESM 호환 패치: const multer = require('multer'); -> import multer from 'multer';
 const routesPath = path.join(process.cwd(), "src", "build", "routes.ts");

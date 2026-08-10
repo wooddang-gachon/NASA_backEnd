@@ -2,6 +2,7 @@ import { Service, Inject } from "typedi";
 import AiService from "./aiService";
 import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
+import TravelRepository from "../repositories/TravelRepository";
 import { UserNotFoundError, BadRequestError } from "../errors";
 import { PlanetType } from "../interfaces/enums";
 import {
@@ -19,6 +20,9 @@ export default class TravelService {
   @Inject((type) => AiService)
   private aiService!: AiService;
 
+  @Inject((type) => TravelRepository)
+  private travelRepository!: TravelRepository;
+
   /**
    * 별여행 출발 및 실시간 AI 탐사 결과 생성
    */
@@ -31,7 +35,7 @@ export default class TravelService {
       `[TravelService] Starting planet travel for userId ${userId}, planetType: ${data.planetType}`,
     );
 
-    const user = await prisma.users.findUnique({ where: { id: userId } });
+    const user = await this.travelRepository.findUserById(userId);
     if (!user) throw new UserNotFoundError(userId);
 
     const currentFuel = user.current_fuel ?? 0;
@@ -42,14 +46,7 @@ export default class TravelService {
       );
     }
 
-    const updatedUser = await prisma.users.update({
-      where: { id: userId },
-      data: {
-        current_fuel: {
-          decrement: data.fuelSpent,
-        },
-      },
-    });
+    const updatedUser = await this.travelRepository.updateUserFuel(userId, data.fuelSpent, "decrement");
 
     // AI 탐사 결과 온디맨드 생성 시도
     let reportTitle = "아쿠아 웰니스 탐사 완료 리포트 🌟";
@@ -92,15 +89,13 @@ export default class TravelService {
     }
 
     // planet_travels 레코드 생성 (탐사 상태 및 AI 탐사 결과 리포트를 1개 테이블에 통합 저장)
-    const travel = await prisma.planet_travels.create({
-      data: {
-        ...TravelMapper.toPlanetTravelCreateInput(userId, data),
-        status: "COMPLETED",
-        title: reportTitle,
-        summary_content: reportSummary,
-        recommendations: reportRecommendations,
-        completed_at: new Date(),
-      },
+    const travel = await this.travelRepository.createPlanetTravel({
+      ...TravelMapper.toPlanetTravelCreateInput(userId, data),
+      status: "COMPLETED",
+      title: reportTitle,
+      summary_content: reportSummary,
+      recommendations: reportRecommendations,
+      completed_at: new Date(),
     });
 
     const travelResultData = TravelMapper.toTravelResultResponse(travel);
@@ -119,13 +114,7 @@ export default class TravelService {
   public async getTravelState(
     userId: number,
   ): Promise<TravelStateInfoResponse> {
-    const prisma = getPrisma();
-    const user = await prisma.users.findUnique({
-      where: { id: userId },
-      include: {
-        tammy_statuses: true,
-      },
-    });
+    const user = await this.travelRepository.findUserWithTammyStatus(userId);
 
     if (!user) throw new UserNotFoundError(userId);
 
@@ -136,17 +125,11 @@ export default class TravelService {
    * 연료 적립 처리
    */
   public async addFuel(userId: number, actionType?: string): Promise<FuelAddApiResponse> {
-    const prisma = getPrisma();
-    const user = await prisma.users.findUnique({ where: { id: userId } });
+    const user = await this.travelRepository.findUserById(userId);
     if (!user) throw new UserNotFoundError(userId);
 
     const gainedFuel = 10;
-    const updatedUser = await prisma.users.update({
-      where: { id: userId },
-      data: {
-        current_fuel: { increment: gainedFuel },
-      },
-    });
+    const updatedUser = await this.travelRepository.updateUserFuel(userId, gainedFuel, "increment");
 
     return {
       gainedFuel,
@@ -159,13 +142,7 @@ export default class TravelService {
    * ID 기반 탐사 결과(TravelResult/Report) 상세 조회
    */
   public async getTravelResultById(travelResultId: string, userId: number) {
-    const prisma = getPrisma();
-    const travel = await prisma.planet_travels.findFirst({
-      where: {
-        id: BigInt(travelResultId),
-        user_id: userId,
-      },
-    });
+    const travel = await this.travelRepository.findPlanetTravelByIdAndUser(BigInt(travelResultId), userId);
 
     if (travel) {
       return TravelMapper.toTravelResultResponse(travel);
@@ -190,21 +167,14 @@ export default class TravelService {
     userId: number,
     period: string = "WEEKLY",
   ): Promise<DashboardSummaryInfo> {
-    const prisma = getPrisma();
-    const user = await prisma.users.findUnique({ where: { id: userId } });
+    const user = await this.travelRepository.findUserById(userId);
     if (!user) throw new UserNotFoundError(userId);
 
     const pastDays = period === "MONTHLY" ? 30 : 7;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - pastDays);
 
-    const meals = await prisma.meals.findMany({
-      where: {
-        user_id: userId,
-        registered_at: { gte: startDate },
-      },
-      orderBy: { registered_at: "asc" },
-    });
+    const meals = await this.travelRepository.findMealsByUserAndDate(userId, startDate);
 
     const calorieTrendsMap = new Map<string, number>();
     let totalCarbs = 0,
@@ -242,13 +212,7 @@ export default class TravelService {
       mineralPercent: 75,
     };
 
-    const workoutLogs = await prisma.quick_logs.findMany({
-      where: {
-        user_id: userId,
-        category: "EXERCISE",
-        created_at: { gte: startDate },
-      },
-    });
+    const workoutLogs = await this.travelRepository.findQuickLogsByUserCategoryAndDate(userId, "EXERCISE", startDate);
 
     return {
       calorieTrends,
@@ -264,8 +228,7 @@ export default class TravelService {
     userId: number,
     planetType: PlanetType = PlanetType.MEAL,
   ) {
-    const prisma = getPrisma();
-    const user = await prisma.users.findUnique({ where: { id: userId } });
+    const user = await this.travelRepository.findUserById(userId);
     if (!user) throw new UserNotFoundError(userId);
 
     const aiReportResult = await this.aiService.generatePlanetReport(
@@ -286,22 +249,20 @@ export default class TravelService {
       },
     );
 
-    const travel = await prisma.planet_travels.create({
-      data: {
-        user_id: userId,
-        planet_type: planetType,
-        fuel_spent: 100,
-        status: "COMPLETED",
-        title: aiReportResult.title || "별여행 탐사 결과 진단서",
-        summary_content:
-          aiReportResult.markdown ||
-          aiReportResult.findings ||
-          "탐사 진단 내용입니다.",
-        recommendations: Array.isArray(aiReportResult.nextActionChecks)
-          ? aiReportResult.nextActionChecks.join("\n")
-          : aiReportResult.nextActionChecks || "",
-        completed_at: new Date(),
-      },
+    const travel = await this.travelRepository.createPlanetTravel({
+      user_id: userId,
+      planet_type: planetType,
+      fuel_spent: 100,
+      status: "COMPLETED",
+      title: aiReportResult.title || "별여행 탐사 결과 진단서",
+      summary_content:
+        aiReportResult.markdown ||
+        aiReportResult.findings ||
+        "탐사 진단 내용입니다.",
+      recommendations: Array.isArray(aiReportResult.nextActionChecks)
+        ? aiReportResult.nextActionChecks.join("\n")
+        : aiReportResult.nextActionChecks || "",
+      completed_at: new Date(),
     });
 
     return TravelMapper.toTravelResultResponse(travel);
@@ -342,7 +303,7 @@ export default class TravelService {
       };
     }
 
-    const reportResult = job.result as any;
+    const reportResult = job.result as Record<string, unknown>;
     return {
       jobId,
       status: job.status,
@@ -354,5 +315,3 @@ export default class TravelService {
   }
 }
 
-// 하위 호환용 alias export
-export { TravelService as TravelResultService, TravelService as ReportService };

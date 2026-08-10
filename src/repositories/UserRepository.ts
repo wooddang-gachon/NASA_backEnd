@@ -1,0 +1,28 @@
+import { Service } from "typedi";
+import { getPrisma } from "@/loaders/prisma";
+
+@Service()
+export default class UserRepository {
+  public async findUserById(userId: number) {
+    return getPrisma().users.findUnique({
+      where: { id: userId },
+    });
+  }
+
+  public async findUserWithTammyStatus(userId: number) {
+    return getPrisma().users.findUnique({
+      where: { id: userId },
+      include: {
+        tammy_statuses: true,
+      },
+    });
+  }
+
+  public async findTammyStatusLogs(userId: number, take: number = 20) {
+    return getPrisma().tammy_status_logs.findMany({
+      where: { user_id: userId },
+      orderBy: { created_at: "desc" },
+      take,
+    });
+  }
+}

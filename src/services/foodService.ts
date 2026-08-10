@@ -2,6 +2,7 @@ import { Service, Inject } from "typedi";
 import AiService from "./aiService";
 import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
+import FoodRepository from "../repositories/FoodRepository";
 import { UserNotFoundError } from "../errors";
 import { MealType } from "../interfaces/enums";
 import { FoodMapper, UserMapper } from "../mappers";
@@ -17,6 +18,9 @@ import fs from "fs";
 export default class FoodService {
   @Inject(type => AiService)
   private aiService!: AiService;
+
+  @Inject(type => FoodRepository)
+  private foodRepository!: FoodRepository;
 
   public async uploadAndAnalyzeFoodVision(file?: Express.Multer.File, mealType?: string): Promise<FoodVisionScanResponse> {
     if (!file) {
@@ -41,19 +45,13 @@ export default class FoodService {
     const imageUrl = `/uploads/${filename}`;
 
     // 1. 이미지가 업로드되는 즉시 meal_images DB 테이블에 바로 연동/저장 (meal_id는 아직 null)
-    const prisma = getPrisma();
-    const savedImage = await prisma.meal_images.create({
-      data: {
-        image_url: imageUrl,
-        is_cover: true,
-      },
-    });
+    const savedImage = await this.foodRepository.createMealImage(imageUrl, true);
     Logger.info(`[FoodService] Immediate image registration created in DB: meal_images ID ${savedImage.id}`);
 
     const res = await this.analyzeFoodVision(imageUrl, mealType);
 
     return {
-      ...(res as any),
+      ...res,
       imageId: savedImage.id.toString(),
       imageUrl,
     };
@@ -66,13 +64,8 @@ export default class FoodService {
    * ➔ 매칭 성공 시 food_mappings에 'ALIAS'로 캐싱 저장!
    */
   public async getOrMapFood(rawName: string): Promise<FoodSmartMatchResultDto> {
-    const prisma = getPrisma();
-
     // Step 1: food_mappings 중간 매칭 테이블 1차 검색
-    const mapping = await prisma.food_mappings.findFirst({
-      where: { raw_name: rawName },
-      include: { food: true },
-    });
+    const mapping = await this.foodRepository.findFoodMappingByRawName(rawName);
 
     if (mapping && mapping.food) {
       Logger.info(`[FOD-005] Food mapping hit for '${rawName}' ➔ Standard food: '${mapping.food.name}' (${mapping.match_type})`);
@@ -83,27 +76,14 @@ export default class FoodService {
     const tokenAnalysis = tokenizeFoodName(rawName);
     const keywordCleaned = tokenAnalysis.normalizedName;
 
-    const masterFood = await prisma.foods.findFirst({
-      where: {
-        OR: [
-          { name: { contains: rawName } },
-          { name: { contains: keywordCleaned } },
-        ],
-      },
-    });
+    const masterFood = await this.foodRepository.findFoodMasterByNameOrKeyword(rawName, keywordCleaned);
 
     if (masterFood) {
       Logger.info(`[FOD-005] Keyword match in foods master: '${masterFood.name}' for rawName '${rawName}'`);
       
       // foods 테이블에는 새 레코드를 절대 추가하지 않고, food_mappings에만 ALIAS 연결 등록!
-      const newMapping = await prisma.food_mappings.create({
-        data: {
-          raw_name: rawName,
-          food_id: masterFood.id,
-          match_type: masterFood.name === rawName ? "EXACT" : "ALIAS",
-        },
-        include: { food: true },
-      });
+      const matchType = masterFood.name === rawName ? "EXACT" : "ALIAS";
+      const newMapping = await this.foodRepository.createFoodMapping(rawName, masterFood.id, matchType);
 
       return FoodMapper.toFoodSmartMatchResultFromMaster(masterFood as any, rawName, newMapping.match_type);
     }
@@ -111,15 +91,14 @@ export default class FoodService {
     // Step 3: foods DB에 상위 키워드조차 없는 생소한 음식일 경우
     // foods 마스터 DB는 훼손하지 않고, AI 영양소 추정값만 안전하게 반환
     Logger.info(`[FOD-005] Food '${rawName}' not in foods master. Fallback to AI estimation without modifying foods master.`);
-    let fallbackVision: any;
+    let fallbackVision: any = null;
     try {
       fallbackVision = await this.aiService.analyzeFoodVision("", rawName);
     } catch {
       fallbackVision = null;
     }
 
-    const detected =
-      fallbackVision && fallbackVision.detectedFoods && fallbackVision.detectedFoods.length > 0
+    const detected = fallbackVision && fallbackVision.detectedFoods && fallbackVision.detectedFoods.length > 0
         ? fallbackVision.detectedFoods[0]
         : { estimatedGram: 100, calories: 250, carbs: 30, protein: 20, fat: 5 };
 
@@ -135,6 +114,7 @@ export default class FoodService {
       Logger.warn(`[FoodService] AI Vision scan fallback mock triggered: ${e}`);
       aiVisionResult = {
         scanEngine: "YOLO" as const,
+        message: "AI 서버 연동이 지연되어 기본 식단 정보를 제공합니다.",
         detectedFoods: [
           {
             foodName: "연어 샐러드",
@@ -178,8 +158,7 @@ export default class FoodService {
   ): Promise<MealLogRegisterResponse> {
     Logger.info(`[FoodService] Logging meal for userId: ${userId}, mealType: ${data.mealType}`);
 
-    const prisma = getPrisma();
-    const user = await prisma.users.findUnique({ where: { id: userId } });
+    const user = await this.foodRepository.findUserById(userId);
     if (!user) {
       Logger.error(`[FoodService] User not found for userId: ${userId}`);
       throw new UserNotFoundError(userId);
@@ -294,121 +273,44 @@ export default class FoodService {
       data.comment ||
       (processedItems.length > 0 ? processedItems.map((i) => i.foodName).join(", ") : "식단 기록");
 
-    // 4. meals 1건 생성 (합계 데이터 저장)
-    const meal = await prisma.meals.create({
-      data: FoodMapper.toMealCreateInput(
-        userId,
-        data.mealType,
-        totalCalories,
-        totalCarbs,
-        totalProtein,
-        totalFat,
-        mainComment
-      ),
-    });
-
-    let defaultImageRecord: any = null;
-
-    // 4-1. imageId (PK) 전달 시 우선 조회
-    if (data.imageId) {
-      try {
-        const imgId = BigInt(data.imageId);
-        defaultImageRecord = await prisma.meal_images.findUnique({
-          where: { id: imgId },
-        });
-
-        if (defaultImageRecord) {
-          await prisma.meal_images.update({
-            where: { id: imgId },
-            data: { meal_id: meal.id },
-          });
-          Logger.info(`[FoodService] Linked existing meal_images via imageId (ID: ${imgId}) to mealId: ${meal.id}`);
-        }
-      } catch (err) {
-        Logger.warn(`[FoodService] Failed to find meal_images with imageId: ${data.imageId}`);
-      }
-    }
-
-    // 4-2. imageId로 조회가 안 되었고 imageUrl이 있는 경우 폴백 검색
-    if (!defaultImageRecord && data.imageUrl) {
-      const existingImage = await prisma.meal_images.findFirst({
-        where: { image_url: data.imageUrl },
-      });
-
-      if (existingImage) {
-        defaultImageRecord = existingImage;
-        await prisma.meal_images.update({
-          where: { id: existingImage.id },
-          data: { meal_id: meal.id },
-        });
-        Logger.info(`[FoodService] Linked existing meal_images via imageUrl (ID: ${existingImage.id}) to mealId: ${meal.id}`);
-      } else {
-        defaultImageRecord = await prisma.meal_images.create({
-          data: FoodMapper.toMealImageCreateInput(meal.id, data.imageUrl),
-        });
-        Logger.info(`[FoodService] Created new meal_images record for mealId: ${meal.id}`);
-      }
-    }
-
-    // 5. meal_items N건 생성 (food_id + intake_gram + boundingBox + meal_image_id 연동)
-    for (const item of processedItems) {
-      const targetImageId = item.imageId || (defaultImageRecord ? defaultImageRecord.id : null);
-      await prisma.meal_items.create({
-        data: FoodMapper.toMealItemCreateInput(
-          meal.id,
-          item.foodName,
-          item.intakeGram,
-          item.foodId,
-          item.boundingBox,
-          item.confidence,
-          targetImageId
-        ),
-      });
-    }
-
-    const gainedFuel = 50;
-    const gainedExp = 30;
-
-    const updatedUser = await prisma.users.update({
-      where: { id: userId },
-      data: {
-        current_fuel: { increment: gainedFuel },
-      },
-    });
-
-    const tammyStatus = await prisma.tammy_statuses.update({
-      where: { user_id: userId },
-      data: {
-        current_exp: { increment: gainedExp },
-      },
-    });
-
-    await prisma.tammy_status_logs.create({
-      data: UserMapper.toStatusLogCreateInput(
-        userId,
-        "MEAL_LOG",
-        gainedExp,
-        tammyStatus.level,
-        tammyStatus.current_exp
-      ),
-    });
-
-    Logger.info(
-      `[FoodService] Meal logged successfully (mealId: ${meal.id}, userId: ${userId}, itemsCount: ${processedItems.length}, totalCalories: ${totalCalories})`
+    // 트랜잭션(Interactive Transaction)으로 전체 데이터 생성/업데이트를 감싸서 무결성 보장
+    const mealData = FoodMapper.toMealCreateInput(
+      userId,
+      data.mealType,
+      totalCalories,
+      totalCarbs,
+      totalProtein,
+      totalFat,
+      mainComment
     );
 
-    return FoodMapper.toMealLogRegisterResponse(meal.id, gainedFuel, totalCalories, updatedUser.current_fuel ?? 0);
+    const result = await this.foodRepository.createMealLogWithTransaction(
+      userId,
+      mealData,
+      processedItems,
+      { imageId: data.imageId, imageUrl: data.imageUrl },
+      50, // gainedFuel
+      30, // gainedExp
+      FoodMapper.toMealItemCreateInput,
+      FoodMapper.toMealImageCreateInput,
+      UserMapper.toStatusLogCreateInput
+    );
+
+    Logger.info(
+      `[FoodService] Meal logged successfully (mealId: ${result.meal.id}, userId: ${userId}, itemsCount: ${processedItems.length}, totalCalories: ${totalCalories})`
+    );
+
+    return FoodMapper.toMealLogRegisterResponse(
+      result.meal.id,
+      result.gainedFuel,
+      totalCalories,
+      result.updatedUser.current_fuel ?? 0
+    );
   }
 
   public async searchFoods(keyword: string): Promise<FoodSearchResponse> {
     Logger.info(`[FoodService] Searching foods with keyword: '${keyword}'`);
-    const prisma = getPrisma();
-    const dbFoods = await prisma.foods.findMany({
-      where: {
-        name: { contains: keyword },
-      },
-      take: 10,
-    });
+    const dbFoods = await this.foodRepository.searchFoodsByKeyword(keyword, 10);
 
     Logger.info(`[FoodService] Found ${dbFoods.length} food items matching keyword: '${keyword}'`);
     return FoodMapper.toFoodSearchResponse(dbFoods);

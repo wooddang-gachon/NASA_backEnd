@@ -2,6 +2,7 @@ import { Service, Inject } from "typedi";
 import AiService from "./aiService";
 import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
+import ChatRepository from "../repositories/ChatRepository";
 import { UserNotFoundError } from "../errors";
 import { Sender } from "../interfaces/enums";
 import { ChatMapper } from "../mappers";
@@ -12,17 +13,17 @@ export default class ChatService {
   @Inject((type) => AiService)
   private aiService!: AiService;
 
+  @Inject((type) => ChatRepository)
+  private chatRepository!: ChatRepository;
+
   public async processChat(
     userId: number,
     userMessage: string,
   ): Promise<ChatMessageApiResponse> {
-    const prisma = getPrisma();
-    const user = await prisma.users.findUnique({ where: { id: userId } });
+    const user = await this.chatRepository.findUserById(userId);
     if (!user) throw new UserNotFoundError(userId);
 
-    await prisma.chat_messages.create({
-      data: ChatMapper.toUserMessageInput(userId, userMessage),
-    });
+    await this.chatRepository.createChatMessage(ChatMapper.toUserMessageInput(userId, userMessage));
 
     let history: {
       role: "user" | "tammy";
@@ -30,11 +31,7 @@ export default class ChatService {
       createdAt?: string;
     }[] = [];
     try {
-      const dbRecentMsgs = await prisma.chat_messages.findMany({
-        where: { user_id: userId },
-        take: 10,
-        orderBy: { created_at: "desc" },
-      });
+      const dbRecentMsgs = await this.chatRepository.findRecentChatMessages(userId, 10);
       history = dbRecentMsgs.reverse().map((m) => ({
         role: m.sender === Sender.USER ? ("user" as const) : ("tammy" as const),
         text: m.message_text,
@@ -74,27 +71,22 @@ export default class ChatService {
       };
     }
 
-    const tammyMsg = await prisma.chat_messages.create({
-      data: ChatMapper.toTammyMessageInput(
+    const tammyMsg = await this.chatRepository.createChatMessage(
+      ChatMapper.toTammyMessageInput(
         userId,
         aiResult.replyText,
         aiResult.motionTag || aiResult.emotion?.motionType,
-        (aiResult as any).intentLabel ||
+        aiResult.intentLabel ||
           (aiResult.extractedMemory?.category ? "MEMORY_EXTRACT" : "CHAT"),
-        (aiResult as any).labels ||
+        aiResult.labels ||
           (aiResult.extractedMemory
             ? { memory: aiResult.extractedMemory }
             : null),
-      ),
-    });
+      )
+    );
 
     const gainedFuel = 10;
-    const updatedUser = await prisma.users.update({
-      where: { id: userId },
-      data: {
-        current_fuel: { increment: gainedFuel },
-      },
-    });
+    const updatedUser = await this.chatRepository.updateUserFuel(userId, gainedFuel);
 
     return ChatMapper.toResponse(
       aiResult,
@@ -105,18 +97,10 @@ export default class ChatService {
   }
 
   public async deleteMessage(messageId: string) {
-    const prisma = getPrisma();
-    await prisma.chat_messages.update({
-      where: { id: BigInt(messageId) },
-      data: { is_deleted: true },
-    });
+    await this.chatRepository.updateMessageDeletedState(BigInt(messageId), true);
   }
 
   public async undoDeleteMessage(messageId: string) {
-    const prisma = getPrisma();
-    await prisma.chat_messages.update({
-      where: { id: BigInt(messageId) },
-      data: { is_deleted: false },
-    });
+    await this.chatRepository.updateMessageDeletedState(BigInt(messageId), false);
   }
 }
