@@ -91,10 +91,27 @@ describe("AiService (ai-swagger.yaml Specification Integration Tests)", () => {
         })
       );
 
+      // AI 서버는 foods[]로 주고, 어댑터가 백엔드 도메인 포맷인
+      // detectedFoods[]로 정규화한다. YOLO 결과와 같은 모양이다.
       expect(result.isIdentified).toBe(true);
-      expect(result.foods?.length).toBe(1);
-      expect(result.foods?.[0]?.name).toBe("김치찌개");
-      expect(result.foods?.[0]?.boundingBox?.x).toBe(0.12);
+      expect(result.scanEngine).toBe("VisionLLM");
+      expect(result.detectedFoods.length).toBe(1);
+      expect(result.detectedFoods[0]?.foodName).toBe("김치찌개");
+      expect(result.detectedFoods[0]?.boxId).toBe(0);
+      expect(result.detectedFoods[0]?.confidence).toBe(0.92);
+      expect(result.detectedFoods[0]?.boundingBox?.x).toBe(0.12);
+    });
+
+    it("should normalize an unidentified response to an empty detectedFoods list", async () => {
+      globalFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ isIdentified: false, comment: "음식을 찾지 못했어." }),
+      });
+
+      const result = await aiService.analyzeFoodVision("https://storage.tammy.app/blank.jpg");
+
+      expect(result.isIdentified).toBe(false);
+      expect(result.detectedFoods).toEqual([]);
     });
   });
 

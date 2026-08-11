@@ -10,6 +10,7 @@ import type {
   ChatTurn,
   PlanetType,
   AiVisionInternalResponse,
+  NormalizedVisionResult,
   NutritionLookupResponse,
   AiReportInternalResponse,
   YoloContext,
@@ -124,13 +125,28 @@ export class AiAdapter {
     mealType?: string,
     imageBase64Input?: string,
     yoloContext?: YoloContext
-  ): Promise<AiVisionInternalResponse> {
+  ): Promise<NormalizedVisionResult> {
     const imageBase64 = await this.processBase64Image(imageUrl, imageBase64Input);
-    return this.postJson<AiVisionInternalResponse>(
+    const data = await this.postJson<AiVisionInternalResponse>(
       "/v1/vision/analyze-food",
       { imageUrl, imageBase64, mealType, yoloContext },
       "Vision"
     );
+
+    // AI 서버는 음식명과 바운딩 박스만 담은 foods[]를 돌려준다. 리포트와
+    // 마찬가지로 어댑터 안에서 백엔드 도메인 포맷(detectedFoods[])으로
+    // 매핑해, 서비스 계층이 YOLO 결과와 동일하게 다루도록 한다.
+    return {
+      isIdentified: data.isIdentified,
+      comment: data.comment,
+      scanEngine: "VisionLLM",
+      detectedFoods: (data.foods ?? []).map((f, idx) => ({
+        boxId: idx,
+        foodName: f.name,
+        boundingBox: f.boundingBox,
+        confidence: f.confidence,
+      })),
+    };
   }
 
   public async lookupNutrition(foodNames: string[]): Promise<NutritionLookupResponse> {

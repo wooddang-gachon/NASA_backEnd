@@ -52,17 +52,32 @@ export interface AiVisionInternalPayload {
   yoloContext?: YoloContext;
 }
 
+/**
+ * AI 서버의 원본 비전 응답.
+ *
+ * 음식명과 바운딩 박스만 담긴 foods[]가 온다. 영양은 사용자가 인식 결과를
+ * 검수·수정한 뒤 /v1/nutrition/lookup 으로 따로 조회하는 계약이라 여기 없다.
+ *
+ * 어댑터가 이 응답을 detectedFoods[]로 정규화하므로, 서비스 계층은 YOLO
+ * 결과와 Vision LLM 결과를 같은 모양으로 다룰 수 있다.
+ */
 export interface AiVisionInternalResponse {
   isIdentified: boolean;
   comment?: string;
   foods?: DetectedFood[];
-  foodName?: string;
-  totalCaloriesKcal?: number;
-  carbohydrateG?: number;
-  proteinG?: number;
-  fatG?: number;
-  vitaminPercent?: number;
-  mineralPercent?: number;
+}
+
+/** 어댑터가 백엔드 도메인 포맷으로 정규화한 비전 결과. */
+export interface NormalizedVisionResult {
+  isIdentified: boolean;
+  comment?: string;
+  scanEngine?: string;
+  detectedFoods: Array<{
+    boxId: number;
+    foodName: string;
+    boundingBox?: BoundingBox;
+    confidence?: number;
+  }>;
 }
 
 // ==========================================
