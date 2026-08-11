@@ -1,5 +1,5 @@
 import { Service, Inject } from "typedi";
-import { FUEL_REWARDS, EXP_REWARDS } from "@/constants/gamification.js";
+import { FUEL_REWARDS, EXP_REWARDS } from "@/constants/gamification";
 import AiService from "./aiService";
 import LocalVisionService from "./localVisionService";
 import { getPrisma } from "../loaders/prisma";

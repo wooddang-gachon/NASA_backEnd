@@ -1,8 +1,9 @@
-import { Controller, Route, Post, Body, Security, Request, Tags } from "tsoa";
+import { Route, Post, Body, Security, Request, Tags } from "tsoa";
 import { Service, Container } from "typedi";
 import NotificationService from "../../services/notificationService";
-import { getAuthenticatedUserId, type AuthenticatedRequest } from "../../interfaces/express";
+import type { AuthenticatedRequest } from "../../interfaces/express";
 import { ApiResponse } from "../../dto";
+import { BaseController } from "./BaseController";
 import type {
   PushTokenRegisterRequest,
   PushTokenRegisterResponse,
@@ -11,7 +12,7 @@ import type {
 @Service()
 @Tags("8. Notification - 푸시 알림 및 디바이스 토큰")
 @Route("notifications")
-export class NotificationController extends Controller {
+export class NotificationController extends BaseController {
   private notificationService = Container.get(NotificationService);
 
   /**
@@ -24,10 +25,8 @@ export class NotificationController extends Controller {
     @Request() request: AuthenticatedRequest,
     @Body() requestBody: PushTokenRegisterRequest
   ): Promise<ApiResponse<PushTokenRegisterResponse>> {
-    const userId = getAuthenticatedUserId(request);
-    this.setStatus(200);
-    const result = await this.notificationService.registerPushToken(userId, requestBody);
-    return ApiResponse.success(result, "푸시 토큰 등록이 완료되었습니다.");
+    const result = await this.notificationService.registerPushToken(this.getUserId(request), requestBody);
+    return this.success(result, "푸시 토큰 등록이 완료되었습니다.");
   }
 }
 

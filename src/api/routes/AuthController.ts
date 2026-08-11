@@ -1,8 +1,9 @@
-import { Controller, Route, Post, Delete, Body, Security, Request, Tags } from "tsoa";
+import { Route, Post, Delete, Body, Security, Request, Tags } from "tsoa";
 import { Service, Container } from "typedi";
 import AuthService from "../../services/authService";
-import { getAuthenticatedUserId, type AuthenticatedRequest } from "../../interfaces/express";
+import type { AuthenticatedRequest } from "../../interfaces/express";
 import { ApiResponse } from "../../dto";
+import { BaseController } from "./BaseController";
 import type {
   UserSignUpRequest,
   UserLoginRequest,
@@ -17,7 +18,7 @@ import type {
 @Service()
 @Tags("1. Auth - 회원 인증 및 소셜 로그인")
 @Route("auth")
-export class AuthController extends Controller {
+export class AuthController extends BaseController {
   private authService = Container.get(AuthService);
 
   /**
@@ -26,9 +27,8 @@ export class AuthController extends Controller {
    */
   @Post("signup")
   public async signUp(@Body() requestBody: UserSignUpRequest): Promise<ApiResponse<UserLoginResponse>> {
-    this.setStatus(201);
     const result = await this.authService.signUp(requestBody);
-    return ApiResponse.success(result, "회원가입이 성공적으로 완료되었습니다.", 201);
+    return this.success(result, "회원가입이 성공적으로 완료되었습니다.", 201);
   }
 
   /**
@@ -37,7 +37,7 @@ export class AuthController extends Controller {
   @Post("login")
   public async login(@Body() requestBody: UserLoginRequest): Promise<ApiResponse<UserLoginResponse>> {
     const result = await this.authService.login(requestBody);
-    return ApiResponse.success(result, "로그인이 성공적으로 완료되었습니다.");
+    return this.success(result, "로그인이 성공적으로 완료되었습니다.");
   }
 
   /**
@@ -46,7 +46,7 @@ export class AuthController extends Controller {
   @Post("social-login")
   public async socialLogin(@Body() requestBody: SocialLoginRequest): Promise<ApiResponse<UserLoginResponse>> {
     const result = await this.authService.socialLogin(requestBody);
-    return ApiResponse.success(result, "소셜 로그인이 성공적으로 완료되었습니다.");
+    return this.success(result, "소셜 로그인이 성공적으로 완료되었습니다.");
   }
 
   /**
@@ -55,7 +55,7 @@ export class AuthController extends Controller {
   @Post("refresh")
   public async refresh(@Body() requestBody: TokenRefreshRequest): Promise<ApiResponse<TokenRefreshResponse>> {
     const result = await this.authService.refresh(requestBody);
-    return ApiResponse.success(result, "토큰이 성공적으로 갱신되었습니다.");
+    return this.success(result, "토큰이 성공적으로 갱신되었습니다.");
   }
 
   /**
@@ -67,9 +67,8 @@ export class AuthController extends Controller {
     @Request() request: AuthenticatedRequest,
     @Body() requestBody?: UserWithdrawRequest
   ): Promise<ApiResponse<UserWithdrawResponse>> {
-    const userId = getAuthenticatedUserId(request);
-    const result = await this.authService.withdraw(userId, requestBody);
-    return ApiResponse.success(result, "회원 탈퇴가 완료되었습니다.");
+    const result = await this.authService.withdraw(this.getUserId(request), requestBody);
+    return this.success(result, "회원 탈퇴가 완료되었습니다.");
   }
 
   @Delete("withdraw")
@@ -78,9 +77,8 @@ export class AuthController extends Controller {
     @Request() request: AuthenticatedRequest,
     @Body() requestBody?: UserWithdrawRequest
   ): Promise<ApiResponse<UserWithdrawResponse>> {
-    const userId = getAuthenticatedUserId(request);
-    const result = await this.authService.withdraw(userId, requestBody);
-    return ApiResponse.success(result, "회원 탈퇴가 완료되었습니다.");
+    const result = await this.authService.withdraw(this.getUserId(request), requestBody);
+    return this.success(result, "회원 탈퇴가 완료되었습니다.");
   }
 }
 

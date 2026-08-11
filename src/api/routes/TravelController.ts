@@ -1,9 +1,9 @@
-import { Controller, Route, Post, Get, Path, Body, Security, Request, Tags } from "tsoa";
+import { Route, Post, Get, Path, Body, Security, Request, Tags } from "tsoa";
 import { Service, Container } from "typedi";
 import TravelService from "../../services/travelService";
-import { getAuthenticatedUserId, type AuthenticatedRequest } from "../../interfaces/express";
+import type { AuthenticatedRequest } from "../../interfaces/express";
 import { ApiResponse } from "../../dto";
-
+import { BaseController } from "./BaseController";
 import {
   PlanetTravelStartApiRequest,
   PlanetTravelStartApiResponse,
@@ -16,7 +16,7 @@ import { toTravelResultDetailInfo } from "../../mappers";
 @Service()
 @Tags("6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서")
 @Route("")
-export class TravelController extends Controller {
+export class TravelController extends BaseController {
   private travelService = Container.get(TravelService);
 
   /**
@@ -29,10 +29,8 @@ export class TravelController extends Controller {
     @Request() request: AuthenticatedRequest,
     @Body() body: PlanetTravelStartApiRequest
   ): Promise<ApiResponse<PlanetTravelStartApiResponse>> {
-    const userId = getAuthenticatedUserId(request);
-    this.setStatus(200);
-    const result = await this.travelService.startPlanetTravel(userId, body);
-    return ApiResponse.success(result, "별여행 탐사가 성공적으로 시작되었습니다.");
+    const result = await this.travelService.startPlanetTravel(this.getUserId(request), body);
+    return this.success(result, "별여행 탐사가 성공적으로 시작되었습니다.");
   }
 
   /**
@@ -42,9 +40,8 @@ export class TravelController extends Controller {
   @Get("planet-travel/state")
   @Security("jwt")
   public async getTravelState(@Request() request: AuthenticatedRequest): Promise<ApiResponse<TravelStateInfoResponse>> {
-    const userId = getAuthenticatedUserId(request);
-    const result = await this.travelService.getTravelState(userId);
-    return ApiResponse.success(result, "우주여행 현황 조회가 완료되었습니다.");
+    const result = await this.travelService.getTravelState(this.getUserId(request));
+    return this.success(result, "우주여행 현황 조회가 완료되었습니다.");
   }
 
   /**
@@ -57,10 +54,9 @@ export class TravelController extends Controller {
     @Path() travelResultId: string,
     @Request() request: AuthenticatedRequest
   ): Promise<ApiResponse<TravelResultDetailInfo>> {
-    const userId = getAuthenticatedUserId(request);
-    const result = await this.travelService.getTravelResultById(travelResultId, userId);
+    const result = await this.travelService.getTravelResultById(travelResultId, this.getUserId(request));
     const data = toTravelResultDetailInfo(result);
-    return ApiResponse.success(data, "진단서 상세 조회가 완료되었습니다.");
+    return this.success(data, "진단서 상세 조회가 완료되었습니다.");
   }
 
   /**
@@ -72,8 +68,7 @@ export class TravelController extends Controller {
   public async getDashboardSummary(
     @Request() request: AuthenticatedRequest
   ): Promise<ApiResponse<DashboardSummaryInfo>> {
-    const userId = getAuthenticatedUserId(request);
-    const dashboard = await this.travelService.getDashboard(userId, "WEEKLY");
-    return ApiResponse.success(dashboard, "대시보드 통계 조회가 완료되었습니다.");
+    const dashboard = await this.travelService.getDashboard(this.getUserId(request), "WEEKLY");
+    return this.success(dashboard, "대시보드 통계 조회가 완료되었습니다.");
   }
 }

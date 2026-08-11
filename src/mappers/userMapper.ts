@@ -1,8 +1,9 @@
 import { users, Gender, ChangeReason } from "@prisma/client";
 import { UserSignUpRequest, UserAuthProfile, UserAuthMeResponse, UserProfileResponseData, TammyHistoryResponse, UserLoginResponse } from "../dto";
 import { UserWithTammyStatus, DbTammyStatusLogItem, CreateTammyStatusLogParams } from "../repositories/models";
+import { BaseMapper } from "./BaseMapper";
 
-export class UserMapper {
+export class UserMapper extends BaseMapper {
   /**
    * 일반 회원 가입 DB 생성 인풋 객체 생성
    */
@@ -141,7 +142,7 @@ export class UserMapper {
    */
   public static toTammyHistoryResponse(logs: DbTammyStatusLogItem[]): TammyHistoryResponse {
     return {
-      logs: logs.map((l) => ({
+      logs: BaseMapper.mapList(logs, (l) => ({
         id: Number(l.id),
         changeReason: String(l.change_reason),
         deltaExp: l.delta_exp,

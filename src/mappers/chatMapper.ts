@@ -7,8 +7,9 @@ import {
   CreateTammyMessageParams,
   CreateLongTermMemoryParams,
 } from "../repositories/models";
+import { BaseMapper } from "./BaseMapper";
 
-export class ChatMapper {
+export class ChatMapper extends BaseMapper {
   /**
    * 유저 전송 메시지 DB 생성 인풋 객체 생성
    */

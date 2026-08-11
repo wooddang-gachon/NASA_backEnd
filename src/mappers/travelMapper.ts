@@ -3,9 +3,10 @@ import { TravelResultCreateRequest, TravelResultResponse, PlanetTravelStartReque
 import { TravelResultDetailInfo, PlanetTravelStartApiResponse, TravelStateInfoResponse, PlanetStateItem } from "../dto/travel.dto";
 import { PlanetType } from "../interfaces/enums";
 import { UserWithTammyStatus, DbTravelResultDetailItem } from "../repositories/models";
-import { PLANET_CONFIGS, TOTAL_STAR_COUNT, TOTAL_TARGET_DISTANCE, WARP_FUEL_THRESHOLD } from "@/constants/gamification.js";
+import { PLANET_CONFIGS, TOTAL_STAR_COUNT, TOTAL_TARGET_DISTANCE, WARP_FUEL_THRESHOLD } from "@/constants/gamification";
+import { BaseMapper } from "./BaseMapper";
 
-export class TravelMapper {
+export class TravelMapper extends BaseMapper {
   /**
    * 별여행(PlanetTravel) 출발 DB 생성 인풋 객체 생성
    */
@@ -47,8 +48,6 @@ export class TravelMapper {
   ): TravelStateInfoResponse {
     const currentFuel = user.current_fuel ?? 0;
 
-
-
     const completedTypeSet = new Set(completedTravels.map((t) => t.planet_type));
     const completedMap = new Map<string, string>();
     completedTravels.forEach((t) => {
@@ -57,7 +56,7 @@ export class TravelMapper {
       }
     });
 
-    const planetList: PlanetStateItem[] = PLANET_CONFIGS.map((config) => {
+    const planetList: PlanetStateItem[] = BaseMapper.mapList(PLANET_CONFIGS, (config) => {
       const isCompleted = completedTypeSet.has(config.planetType);
       const rawDistance = actionDistances[config.planetType] ?? 0;
       const currentDistance = isCompleted

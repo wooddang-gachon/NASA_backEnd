@@ -1,15 +1,15 @@
-import { Controller, Route, Post, Delete, Body, Path, Security, Request, Tags } from "tsoa";
+import { Route, Post, Delete, Body, Path, Security, Request, Tags } from "tsoa";
 import { Service, Container } from "typedi";
 import ChatService from "../../services/chatService";
-import { getAuthenticatedUserId, type AuthenticatedRequest } from "../../interfaces/express";
+import type { AuthenticatedRequest } from "../../interfaces/express";
 import { ApiResponse } from "../../dto";
-
+import { BaseController } from "./BaseController";
 import { ChatMessageApiRequest } from "../../dto";
 
 @Service()
 @Tags("5. TammyChat - AI 타미 심리 공감 대화")
 @Route("chat")
-export class ChatController extends Controller {
+export class ChatController extends BaseController {
   private chatService = Container.get(ChatService);
 
   /**
@@ -22,9 +22,8 @@ export class ChatController extends Controller {
     @Request() request: AuthenticatedRequest,
     @Body() body: ChatMessageApiRequest
   ): Promise<ApiResponse<any>> {
-    const userId = getAuthenticatedUserId(request);
-    const result = await this.chatService.processChat(userId, body.messageText);
-    return ApiResponse.success(result, "메시지가 성공적으로 전달되었습니다.");
+    const result = await this.chatService.processChat(this.getUserId(request), body.messageText);
+    return this.success(result, "메시지가 성공적으로 전달되었습니다.");
   }
 
   /**
@@ -37,7 +36,7 @@ export class ChatController extends Controller {
     @Path() messageId: string
   ): Promise<ApiResponse<null>> {
     await this.chatService.deleteMessage(messageId);
-    return ApiResponse.success(null as any, "메시지가 성공적으로 삭제되었습니다.");
+    return this.success(null as any, "메시지가 성공적으로 삭제되었습니다.");
   }
 
   /**
@@ -50,7 +49,7 @@ export class ChatController extends Controller {
     @Path() messageId: string
   ): Promise<ApiResponse<null>> {
     await this.chatService.undoDeleteMessage(messageId);
-    return ApiResponse.success(null as any, "메시지 삭제가 취소되었습니다.");
+    return this.success(null as any, "메시지 삭제가 취소되었습니다.");
   }
 }
 

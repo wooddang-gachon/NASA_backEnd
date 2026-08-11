@@ -1,15 +1,26 @@
-export abstract class BaseMapper<Entity, Dto> {
+export abstract class BaseMapper<Entity = any, Dto = any> {
   /**
-   * Entity(Database Model)를 DTO로 변환합니다.
-   * 각 도메인 Mapper에서 반드시 구현해야 합니다.
+   * 단건 Entity ➔ DTO 변환 (자식 클래스에서 선택적 구현)
    */
-  abstract toDto(entity: Entity): Dto;
+  toDto?(entity: Entity): Dto;
 
   /**
-   * Entity 배열을 DTO 배열로 변환합니다.
-   * 기본적으로 toDto를 배열 요소마다 매핑하여 반환합니다.
+   * 인스턴스 기준 Entity 배열 ➔ DTO 배열 변환
    */
   toDtoList(entities: Entity[]): Dto[] {
-    return entities.map((entity) => this.toDto(entity));
+    if (!entities || !Array.isArray(entities)) return [];
+    if (this.toDto) {
+      return entities.map((entity) => this.toDto!(entity));
+    }
+    return [];
+  }
+
+  /**
+   * 정적(Static) 리스트 안전 매핑 헬퍼 메서드
+   */
+  public static mapList<E, D>(entities: readonly E[] | null | undefined, mapperFn: (entity: E) => D): D[] {
+    if (!entities || !Array.isArray(entities)) return [];
+    return (entities as readonly E[]).map(mapperFn);
   }
 }
+

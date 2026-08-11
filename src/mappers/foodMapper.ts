@@ -2,8 +2,9 @@ import { MealType } from "../interfaces/enums";
 import { MatchType } from "@prisma/client";
 import { MealLogRegisterResponse, FoodSearchResponse, FoodDto, FoodMappingDto, FoodSmartMatchResultDto } from "../dto";
 import { DbFoodMappingItem, DbFoodItem, CreateMealInputParams, CreateMealItemInputParams } from "../repositories/models";
+import { BaseMapper } from "./BaseMapper";
 
-export class FoodMapper {
+export class FoodMapper extends BaseMapper {
   /**
    * DB food_mappings 엔티티 ➔ FoodMappingDto 변환 [FOD-005]
    */
@@ -184,7 +185,7 @@ export class FoodMapper {
    * DB 음식 검색 목록 ➔ FoodSearchResponse DTO 변환
    */
   public static toFoodSearchResponse(dbFoods: DbFoodItem[]): FoodSearchResponse {
-    const foods: FoodDto[] = dbFoods.map((f) => ({
+    const foods: FoodDto[] = BaseMapper.mapList(dbFoods, (f) => ({
       id: f.id,
       name: f.name,
       standardServingG: Number(f.standard_serving_g),

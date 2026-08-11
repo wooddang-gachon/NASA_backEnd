@@ -1,17 +1,16 @@
-import { Controller, Route, Post, Body, Security, Request, UploadedFile, FormField, Tags } from "tsoa";
+import { Route, Post, Body, Security, Request, UploadedFile, FormField, Tags } from "tsoa";
 import { Service, Container } from "typedi";
 import FoodService from "../../services/foodService";
 import { MealType } from "../../interfaces/enums";
 import type { AuthenticatedRequest } from "../../interfaces/express";
-import { getAuthenticatedUserId } from "../../interfaces/express";
 import { ApiResponse } from "../../dto";
-
+import { BaseController } from "./BaseController";
 import { FoodLogConfirmRequest, FoodVisionScanResponse, FoodLogConfirmResponse } from "../../dto";
 
 @Service()
 @Tags("4. FoodVision - 식단 스캔 & 영양성분 기록")
 @Route("")
-export class FoodController extends Controller {
+export class FoodController extends BaseController {
   private foodService = Container.get(FoodService);
 
   /**
@@ -25,7 +24,7 @@ export class FoodController extends Controller {
     @FormField("mealType") mealType?: MealType
   ): Promise<ApiResponse<FoodVisionScanResponse>> {
     const data = await this.foodService.uploadAndAnalyzeFoodVision(file, mealType);
-    return ApiResponse.success(data as FoodVisionScanResponse);
+    return this.success(data as FoodVisionScanResponse);
   }
 
   /**
@@ -37,8 +36,7 @@ export class FoodController extends Controller {
     @Request() request: AuthenticatedRequest,
     @Body() body: FoodLogConfirmRequest
   ): Promise<ApiResponse<FoodLogConfirmResponse>> {
-    const userId = getAuthenticatedUserId(request);
-    const res = await this.foodService.logMeal(userId, {
+    const res = await this.foodService.logMeal(this.getUserId(request), {
       mealType: body.mealType as MealType,
       imageId: body.imageId,
       imageUrl: body.imageUrl,
@@ -52,7 +50,7 @@ export class FoodController extends Controller {
       earnedFuel: res.earnedFuel,
       totalCalories: res.totalCalories,
     };
-    return ApiResponse.success(data);
+    return this.success(data);
   }
 }
 

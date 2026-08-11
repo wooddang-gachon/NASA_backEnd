@@ -1,5 +1,5 @@
 import { Service } from "typedi";
-import { FUEL_REWARDS } from "@/constants/gamification.js";
+import { FUEL_REWARDS } from "@/constants/gamification";
 import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
 import { QuickLogCreateRequest } from "../dto";
