@@ -101,6 +101,7 @@ NODE_ENV="development" # "development"일 시 Mock DB 연동 / "production"일 �
 
 # AI Server Connection
 AI_SERVER_URL="http://localhost:8000"
+AI_INTERNAL_API_KEY="" # AI 서버와 공유하는 내부 API 키 (X-Internal-Api-Key 헤더)
 ```
 
 ### 2) 패키지 설치

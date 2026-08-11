@@ -4,7 +4,7 @@ import type {
   AiChatInternalResponse,
   ChatTurn,
   PlanetType,
-  AiVisionInternalResponse,
+  NormalizedVisionResult,
   NutritionLookupResponse,
   AiReportInternalResponse,
   YoloContext,
@@ -29,7 +29,7 @@ export default class AiService {
     mealType?: string,
     imageBase64Input?: string,
     yoloContext?: YoloContext
-  ): Promise<AiVisionInternalResponse> {
+  ): Promise<NormalizedVisionResult> {
     return this.aiAdapter.analyzeFoodVision(imageUrl, mealType, imageBase64Input, yoloContext);
   }
 

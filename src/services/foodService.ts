@@ -100,13 +100,31 @@ export default class FoodService {
     }
 
     // Step 3: foods DB에 상위 키워드조차 없는 생소한 음식일 경우
-    // foods 마스터 DB는 훼손하지 않고, AI 영양소 추정값만 안전하게 반환
-    Logger.info(`[FOD-005] Food '${rawName}' not in foods master. Fallback to AI estimation without modifying foods master.`);
-    const fallbackVision: any = await this.aiService.analyzeFoodVision("", rawName);
+    // foods 마스터 DB는 훼손하지 않고, AI 웹 검색 영양 조회값만 안전하게 반환
+    Logger.info(`[FOD-005] Food '${rawName}' not in foods master. Fallback to AI nutrition lookup without modifying foods master.`);
 
-    const detected = fallbackVision && fallbackVision.detectedFoods && fallbackVision.detectedFoods.length > 0
-        ? fallbackVision.detectedFoods[0]
-        : { estimatedGram: 100, calories: 0, carbs: 0, protein: 0, fat: 0 };
+    // 영양 조회는 비전이 아니라 /v1/nutrition/lookup 담당이다. 비전
+    // 엔드포인트는 이미지가 없으면 IMAGE_REQUIRED(400)를 돌려주므로
+    // 음식명만으로는 호출할 수 없다.
+    let detected: any = null;
+    try {
+      const lookup = await this.aiService.lookupNutrition([rawName]);
+      const item = lookup?.items?.[0];
+
+      // 검색으로 확인하지 못한 음식은 수치가 0, confidence가 0으로 온다.
+      if (item && item.confidence > 0) {
+        detected = {
+          estimatedGram: item.servingSizeG,
+          calories: item.caloriesKcal,
+          carbs: item.carbohydrateG,
+          protein: item.proteinG,
+          fat: item.fatG,
+        };
+      }
+    } catch (err) {
+      // 조회에 실패해도 스캔 전체가 무너지지 않도록 기본값으로 이어간다.
+      Logger.warn(`[FOD-005] Nutrition lookup failed for '${rawName}': ${err}`);
+    }
 
     return FoodMapper.toFoodSmartMatchResultFromFallback(rawName, detected);
   }
@@ -171,6 +189,14 @@ export default class FoodService {
           boxId: item.boxId !== undefined ? item.boxId : idx++,
           ...item,
           foodName: rawFoodName,
+          // 영양 수치는 foods 마스터 DB에서 온다. YOLO도 Vision LLM도
+          // 음식명과 좌표만 주므로, 여기서 채우지 않으면
+          // DetectedFoodItem의 필수 필드가 빈 채로 나간다.
+          estimatedGram: mapping.standardServingG,
+          calories: mapping.caloriesKcal,
+          carbs: mapping.carbohydrateG,
+          protein: mapping.proteinG,
+          fat: mapping.fatG,
           matchedStandardFoodName: mapping.foodId > 0 ? mapping.rawName : rawFoodName,
           matchedFoodId: mapping.foodId > 0 ? mapping.foodId : undefined,
           matchType: mapping.matchType,
