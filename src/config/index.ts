@@ -23,7 +23,9 @@ export default {
   },
   ai: {
     serverUrl: process.env.AI_SERVER_URL || "http://localhost:8000",
-    apiKey: process.env.NVIDIA_GLM_5_2_API_KEY || "",
+    // AI 서버와 공유하는 내부 API 키. X-Internal-Api-Key 헤더로 나갑니다.
+    // AI 서버는 Gemini를 자체 키로 호출하므로 모델 제공자 키와는 무관합니다.
+    apiKey: process.env.AI_INTERNAL_API_KEY || "",
   },
   jwtSecret: process.env.JWT_SECRET || "nasa_wellness_tammy_secret_key_2026",
 };
