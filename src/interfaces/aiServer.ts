@@ -39,17 +39,14 @@ export interface DetectedFood {
   boundingBox?: BoundingBox;
 }
 
+/**
+ * 비전 응답에는 영양 정보가 없다. 음식명과 바운딩 박스만 온다.
+ * 영양은 사용자가 인식 결과를 검수한 뒤 /v1/nutrition/lookup 으로 조회한다.
+ */
 export interface AiVisionInternalResponse {
   isIdentified: boolean;
   comment?: string;
   foods?: DetectedFood[];
-  foodName?: string;
-  totalCaloriesKcal?: number;
-  carbohydrateG?: number;
-  proteinG?: number;
-  fatG?: number;
-  vitaminPercent?: number;
-  mineralPercent?: number;
 }
 
 // ==========================================

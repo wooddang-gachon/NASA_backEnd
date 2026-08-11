@@ -109,19 +109,31 @@ export default class FoodService {
     }
 
     // Step 3: foods DB에 상위 키워드조차 없는 생소한 음식일 경우
-    // foods 마스터 DB는 훼손하지 않고, AI 영양소 추정값만 안전하게 반환
-    Logger.info(`[FOD-005] Food '${rawName}' not in foods master. Fallback to AI estimation without modifying foods master.`);
-    let fallbackVision: any;
-    try {
-      fallbackVision = await this.aiService.analyzeFoodVision("", rawName);
-    } catch {
-      fallbackVision = null;
-    }
+    // foods 마스터 DB는 훼손하지 않고, AI 웹 검색 영양 조회값만 안전하게 반환
+    Logger.info(`[FOD-005] Food '${rawName}' not in foods master. Fallback to AI nutrition lookup without modifying foods master.`);
 
-    const detected =
-      fallbackVision && fallbackVision.detectedFoods && fallbackVision.detectedFoods.length > 0
-        ? fallbackVision.detectedFoods[0]
-        : { estimatedGram: 100, calories: 250, carbs: 30, protein: 20, fat: 5 };
+    // 영양 조회는 비전이 아니라 /v1/nutrition/lookup 담당이다.
+    // 비전 엔드포인트는 이미지가 없으면 IMAGE_REQUIRED(400)를 돌려주므로
+    // 음식명만으로는 호출할 수 없다.
+    let detected: any = null;
+    try {
+      const lookup = await this.aiService.lookupNutrition([rawName]);
+      const item = lookup?.items?.[0];
+
+      // 검색으로 확인하지 못한 음식은 수치가 0, confidence가 0으로 온다.
+      // 그 경우 매퍼의 기본 추정치를 쓰는 편이 0kcal로 저장하는 것보다 낫다.
+      if (item && item.confidence > 0) {
+        detected = {
+          estimatedGram: item.servingSizeG,
+          calories: item.caloriesKcal,
+          carbs: item.carbohydrateG,
+          protein: item.proteinG,
+          fat: item.fatG,
+        };
+      }
+    } catch {
+      detected = null;
+    }
 
     return FoodMapper.toFoodSmartMatchResultFromFallback(rawName, detected);
   }
@@ -134,42 +146,59 @@ export default class FoodService {
     } catch (e) {
       Logger.warn(`[FoodService] AI Vision scan fallback mock triggered: ${e}`);
       aiVisionResult = {
-        scanEngine: "YOLO" as const,
-        detectedFoods: [
-          {
-            foodName: "연어 샐러드",
-            estimatedGram: 200,
-            calories: 250,
-            carbs: 10,
-            protein: 30,
-            fat: 5,
-          },
-        ],
+        isFallbackUsed: true,
+        foods: [{ name: "연어 샐러드", confidence: 0 }],
       };
     }
 
-    if (aiVisionResult.detectedFoods && aiVisionResult.detectedFoods.length > 0) {
+    // AI 서버의 비전 응답은 foods[]다. 음식명과 바운딩 박스만 담기며 영양은
+    // 들어있지 않다. 사용자가 인식 결과를 고친 뒤 영양을 조회할 수 있도록
+    // 두 단계로 분리된 계약이기 때문이다.
+    const scanned = aiVisionResult.foods;
+
+    if (scanned && scanned.length > 0) {
       const enrichedFoods = [];
       let idx = 0;
-      for (const item of aiVisionResult.detectedFoods) {
-        const rawFoodName = item.foodName || item.name || "음식";
+      for (const item of scanned) {
+        const rawFoodName = item.name || "음식";
+
+        // 영양 수치는 foods 마스터 DB에서 온다. 마스터에 없는 음식만
+        // getOrMapFood 내부에서 웹 검색 조회로 채워진다.
         const mapping = await this.getOrMapFood(rawFoodName);
+
         enrichedFoods.push({
-          boxId: item.boxId !== undefined ? item.boxId : idx++,
-          ...item,
+          boxId: idx++,
           foodName: rawFoodName,
+          boundingBox: item.boundingBox,
+          confidence: item.confidence,
+          estimatedGram: mapping.standardServingG,
+          calories: mapping.caloriesKcal,
+          carbs: mapping.carbohydrateG,
+          protein: mapping.proteinG,
+          fat: mapping.fatG,
           matchedStandardFoodName: mapping.foodId > 0 ? mapping.rawName : rawFoodName,
           matchedFoodId: mapping.foodId > 0 ? mapping.foodId : undefined,
           matchType: mapping.matchType,
         });
       }
       return {
-        ...aiVisionResult,
+        scanEngine: "VISION_LLM",
+        isFallbackUsed: aiVisionResult.isFallbackUsed === true,
+        imageId: "",
+        imageUrl,
         detectedFoods: enrichedFoods,
       };
     }
 
-    return aiVisionResult;
+    // 음식을 하나도 못 알아본 경우(isIdentified: false). 클라이언트는
+    // detectedFoods가 비어 있는 것을 보고 재촬영/수동 입력 UI를 띄운다.
+    return {
+      scanEngine: "VISION_LLM",
+      isFallbackUsed: aiVisionResult.isFallbackUsed === true,
+      imageId: "",
+      imageUrl,
+      detectedFoods: [],
+    };
   }
 
   public async logMeal(
