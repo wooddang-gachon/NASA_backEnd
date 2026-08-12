@@ -6,10 +6,10 @@ import Logger from "@/loaders/logger";
 
 export default ({ app }: { app: Application }) => {
   try {
-    let swaggerPath = path.join(process.cwd(), "src/build/swagger.json");
+    let swaggerPath = path.join(process.cwd(), "docs/swagger.json");
 
     if (!fs.existsSync(swaggerPath)) {
-      swaggerPath = path.join(process.cwd(), "dist/build/swagger.json");
+      swaggerPath = path.join(process.cwd(), "src/build/swagger.json");
     }
 
     if (!fs.existsSync(swaggerPath)) {

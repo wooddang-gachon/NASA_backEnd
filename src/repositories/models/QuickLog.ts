@@ -1,4 +1,4 @@
-import { LogCategory, EmotionState } from "../interfaces/enums";
+import { LogCategory, EmotionState } from "../../interfaces/enums";
 
 export interface QuickLog {
   id: number;

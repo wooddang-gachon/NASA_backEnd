@@ -1,4 +1,4 @@
-import { MealType } from "../interfaces/enums";
+import { MealType } from "../../interfaces/enums";
 import { MatchType } from "@prisma/client";
 
 export interface Food {

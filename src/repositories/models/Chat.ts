@@ -1,4 +1,4 @@
-import { Sender } from "../interfaces/enums";
+import { Sender } from "../../interfaces/enums";
 
 export interface ChatMessage {
   id: number;

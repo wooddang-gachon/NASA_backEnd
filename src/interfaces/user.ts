@@ -1,4 +1,4 @@
-import { User } from "../models/User";
+import { User } from "../repositories/models/User";
 import { Gender } from "./enums";
 
 export interface UserProfileUpdateRequest {

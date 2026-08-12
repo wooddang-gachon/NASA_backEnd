@@ -32,6 +32,7 @@ export const initPrisma = (): PrismaClient => {
     const database = dbUrl.pathname.replace("/", "");
 
     // 2. Prisma 7 호환용 MariaDB 드라이버 어댑터 생성
+    // (이 어댑터가 MySQL과 MariaDB 양쪽 연결을 모두 담당합니다)
     const adapter = new PrismaMariaDb({
       host,
       port,
@@ -42,7 +43,7 @@ export const initPrisma = (): PrismaClient => {
       allowPublicKeyRetrieval: true,
     } as any);
 
-    // 3. 어댑터를 주입하여 PrismaClient 초기화
+    // 3. PrismaClient 초기화
     prisma = new PrismaClient({
       adapter,
       log: isProduction
@@ -54,16 +55,18 @@ export const initPrisma = (): PrismaClient => {
           ],
     });
 
-    // 개발 환경일 때만 쿼리 이벤트를 debug 레벨로 출력
+    // 개발 환경일 때, 100ms 이상 걸리는 Slow Query만 출력하도록 변경하여 로그 도배 방지
     if (!isProduction) {
       (prisma as any).$on("query", (e: any) => {
-        Logger.debug(
-          `[Prisma Query] ${e.query} - Params: ${e.params} - Duration: ${e.duration}ms`
-        );
+        if (e.duration >= 100) {
+          Logger.warn(
+            `[Prisma Slow Query] ${e.query} - Params: ${e.params} - Duration: ${e.duration}ms`
+          );
+        }
       });
     }
 
-    Logger.info("✌️  Prisma Client (v7) initialized with MariaDB Adapter  ✌️");
+    Logger.info("✌️  Prisma Client initialized with MySQL Engine  ✌️");
     return prisma;
   } catch (error) {
     Logger.error("🔥  Failed to initialize Prisma Client  🔥", error);

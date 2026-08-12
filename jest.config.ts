@@ -9,8 +9,8 @@ export default {
     "^.+\\.tsx?$": ["ts-jest", {}]
   },
   testMatch: [
-    "**/__tests__/**/*.ts",
-    "**/?(*.)+(spec|test).ts"
+    "<rootDir>/src/tests/**/*.test.ts",
+    "<rootDir>/src/tests/**/*.spec.ts"
   ],
   testTimeout: 30000
 };

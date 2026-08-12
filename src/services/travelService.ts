@@ -1,5 +1,5 @@
 import { Service, Inject } from "typedi";
-import { FUEL_REWARDS, REPORT_FUEL_COST } from "@/constants/gamification";
+import { FUEL_REWARDS, REPORT_FUEL_COST, PLANET_CONFIGS, TOTAL_TARGET_DISTANCE } from "@/constants/gamification";
 import AiService from "./aiService";
 import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
@@ -12,6 +12,7 @@ import {
   TravelStateInfoResponse,
   DashboardSummaryInfo,
   FuelAddApiResponse,
+  PlanetStateItem,
 } from "../dto";
 import { TravelMapper } from "../mappers";
 import { reportQueue } from "../utils/asyncQueue";
@@ -126,7 +127,44 @@ export default class TravelService {
       this.travelRepository.getPlanetActionCounts(userId),
     ]);
 
-    return TravelMapper.toTravelStateResponse(user, activeTravel, completedTravels, actionDistances);
+    const completedTypeSet = new Set(completedTravels.map((t) => t.planet_type));
+    const completedMap = new Map<string, string>();
+    completedTravels.forEach((t) => {
+      if (t.completed_at) {
+        completedMap.set(t.planet_type, t.completed_at.toISOString());
+      }
+    });
+
+    // 1. 행성 리스트 데이터 조립 (비즈니스 로직)
+    const planetList: PlanetStateItem[] = PLANET_CONFIGS.map((config) => {
+      const isCompleted = completedTypeSet.has(config.planetType);
+      const rawDistance = actionDistances[config.planetType] ?? 0;
+      const currentDistance = isCompleted
+        ? config.targetDistance
+        : Math.min(rawDistance, config.targetDistance);
+
+      return {
+        planetType: config.planetType,
+        name: config.name,
+        targetDistance: config.targetDistance,
+        currentDistance,
+        isCompleted,
+        completedAt: isCompleted ? (completedMap.get(config.planetType) || null) : null,
+      };
+    });
+
+    // 2. 전체 탐사 진행률 계산 (비즈니스 로직)
+    const totalTarget = TOTAL_TARGET_DISTANCE;
+    const totalAchieved = planetList.reduce((acc, p) => acc + p.currentDistance, 0);
+    const progressPercent = Math.min(Math.floor((totalAchieved / totalTarget) * 100), 100);
+
+    return TravelMapper.toTravelStateResponse(
+      user, 
+      planetList, 
+      progressPercent, 
+      activeTravel, 
+      completedTravels
+    );
   }
 
   /**

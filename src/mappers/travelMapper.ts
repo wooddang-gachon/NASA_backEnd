@@ -26,14 +26,14 @@ export class TravelMapper extends BaseMapper {
     travel: { id: bigint | string; status: string },
     travelResultId: string | undefined,
     remainingFuel: number,
-    travelResultData: any
+    travelResultData: TravelResultResponse
   ): PlanetTravelStartApiResponse {
     return {
       travelId: travel.id.toString(),
       travelResultId: travelResultId || travel.id.toString(),
       remainingFuel,
       status: travel.status,
-      travelResult: travelResultData,
+      travelResult: travelResultData as any,
     };
   }
 
@@ -42,9 +42,10 @@ export class TravelMapper extends BaseMapper {
    */
   public static toTravelStateResponse(
     user: UserWithTammyStatus,
+    planetList: PlanetStateItem[],
+    progressPercent: number,
     activeTravel?: planet_travels | null,
-    completedTravels: planet_travels[] = [],
-    actionDistances: Record<string, number> = {}
+    completedTravels: planet_travels[] = []
   ): TravelStateInfoResponse {
     const currentFuel = user.current_fuel ?? 0;
 
@@ -56,29 +57,8 @@ export class TravelMapper extends BaseMapper {
       }
     });
 
-    const planetList: PlanetStateItem[] = BaseMapper.mapList(PLANET_CONFIGS, (config) => {
-      const isCompleted = completedTypeSet.has(config.planetType);
-      const rawDistance = actionDistances[config.planetType] ?? 0;
-      const currentDistance = isCompleted
-        ? config.targetDistance
-        : Math.min(rawDistance, config.targetDistance);
-
-      return {
-        planetType: config.planetType,
-        name: config.name,
-        targetDistance: config.targetDistance,
-        currentDistance,
-        isCompleted,
-        completedAt: isCompleted ? (completedMap.get(config.planetType) || null) : null,
-      };
-    });
-
     const completedStarCount = completedTypeSet.size;
     const activePlanetType = activeTravel?.planet_type || null;
-
-    const totalTarget = TOTAL_TARGET_DISTANCE;
-    const totalAchieved = planetList.reduce((acc, p) => acc + p.currentDistance, 0);
-    const progressPercent = Math.min(Math.floor((totalAchieved / totalTarget) * 100), 100);
 
     return {
       currentPlanet: activePlanetType || (completedStarCount > 0 ? Array.from(completedTypeSet).pop() : PlanetType.MEAL),

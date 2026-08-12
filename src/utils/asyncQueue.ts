@@ -1,4 +1,5 @@
 import Logger from "../loaders/logger";
+import { EventEmitter } from "events";
 
 export type JobStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
 
@@ -12,13 +13,14 @@ export interface Job<T = any> {
   updatedAt: Date;
 }
 
-export class AsyncQueue<T = any> {
+export class AsyncQueue<T = any> extends EventEmitter {
   private jobs: Map<string, Job<T>> = new Map();
   private queue: Array<{ id: string; taskFn: () => Promise<T> }> = [];
   private activeCount = 0;
   private concurrency: number;
 
   constructor(concurrency = 2) {
+    super();
     this.concurrency = concurrency;
   }
 
@@ -33,6 +35,7 @@ export class AsyncQueue<T = any> {
 
     this.jobs.set(jobId, job);
     this.queue.push({ id: jobId, taskFn });
+    this.emit("job_updated", job);
     this.processNext();
 
     return jobId;
@@ -56,6 +59,7 @@ export class AsyncQueue<T = any> {
       job.status = "IN_PROGRESS";
       job.progressPercent = 30;
       job.updatedAt = new Date();
+      this.emit("job_updated", job);
     }
 
     try {
@@ -66,6 +70,7 @@ export class AsyncQueue<T = any> {
         job.progressPercent = 100;
         job.result = result;
         job.updatedAt = new Date();
+        this.emit("job_updated", job);
       }
       Logger.info(`[AsyncQueue] Successfully completed job ${item.id}`);
     } catch (err: any) {
@@ -73,6 +78,7 @@ export class AsyncQueue<T = any> {
         job.status = "FAILED";
         job.error = err?.message || String(err);
         job.updatedAt = new Date();
+        this.emit("job_updated", job);
       }
       Logger.error(`[AsyncQueue] Job ${item.id} failed: ${err}`);
     } finally {

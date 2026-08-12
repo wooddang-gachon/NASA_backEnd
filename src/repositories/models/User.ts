@@ -1,4 +1,4 @@
-import { Gender, AuthProvider, UserStatus } from "../interfaces/enums";
+import { Gender, AuthProvider, UserStatus } from "../../interfaces/enums";
 import { users, tammy_statuses, ChangeReason } from "@prisma/client";
 
 export type UserWithTammyStatus = users & {

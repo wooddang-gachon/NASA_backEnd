@@ -1,6 +1,7 @@
 import { Route, Post, Get, Path, Body, Security, Request, Tags } from "tsoa";
 import { Service, Container } from "typedi";
 import TravelService from "../../services/travelService";
+import { reportQueue } from "../../utils/asyncQueue";
 import type { AuthenticatedRequest } from "../../interfaces/express";
 import { ApiResponse } from "../../dto";
 import { BaseController } from "./BaseController";
@@ -70,5 +71,56 @@ export class TravelController extends BaseController {
   ): Promise<ApiResponse<DashboardSummaryInfo>> {
     const dashboard = await this.travelService.getDashboard(this.getUserId(request), "WEEKLY");
     return this.success(dashboard, "대시보드 통계 조회가 완료되었습니다.");
+  }
+
+  /**
+   * 비동기 리포트 작업의 진행 상황을 Server-Sent Events(SSE)로 실시간 푸시합니다.
+   * @summary 비동기 리포트 생성 실시간 상태 조회 (SSE)
+   */
+  @Get("reports/sse/{jobId}")
+  public async getReportSSE(
+    @Path() jobId: string,
+    @Request() request: any
+  ): Promise<void> {
+    const res = request.res;
+    if (!res) throw new Error("Express Response 객체를 찾을 수 없습니다.");
+
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    });
+    res.write(`data: ${JSON.stringify({ status: "CONNECTED", message: "SSE 연결 성공" })}\n\n`);
+
+    const onUpdate = (job: any) => {
+      if (job.id === jobId) {
+        res.write(`data: ${JSON.stringify(job)}\n\n`);
+        if (job.status === "COMPLETED" || job.status === "FAILED") {
+          res.end();
+          reportQueue.off("job_updated", onUpdate);
+        }
+      }
+    };
+
+    reportQueue.on("job_updated", onUpdate);
+
+    // 즉시 현재 상태 전송
+    const currentJob = reportQueue.getJob(jobId);
+    if (currentJob) {
+      res.write(`data: ${JSON.stringify(currentJob)}\n\n`);
+      if (currentJob.status === "COMPLETED" || currentJob.status === "FAILED") {
+        res.end();
+        reportQueue.off("job_updated", onUpdate);
+        return;
+      }
+    }
+
+    // 클라이언트 연결 종료 시 리스너 해제
+    request.on("close", () => {
+      reportQueue.off("job_updated", onUpdate);
+    });
+
+    // SSE 연결 유지를 위해 Promise를 해결하지 않고 대기
+    return new Promise(() => {});
   }
 }
