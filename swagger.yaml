@@ -684,8 +684,6 @@ components:
           type: boolean
         imageId:
           type: string
-        imageUrl:
-          type: string
         detectedFoods:
           items:
             $ref: "#/components/schemas/DetectedFoodItem"
@@ -694,7 +692,6 @@ components:
         - scanEngine
         - isFallbackUsed
         - imageId
-        - imageUrl
         - detectedFoods
       type: object
       additionalProperties: false

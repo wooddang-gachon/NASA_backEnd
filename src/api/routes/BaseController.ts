@@ -1,6 +1,6 @@
-import { Controller } from "tsoa";
-import { ApiResponse } from "../../dto";
-import { getAuthenticatedUserId, type AuthenticatedRequest } from "../../interfaces/express";
+import { Controller } from 'tsoa';
+import { ApiResponse } from '../../dto';
+import { getAuthenticatedUserId, type AuthenticatedRequest } from '../../interfaces/express';
 
 export abstract class BaseController extends Controller {
   /**

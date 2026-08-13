@@ -1,7 +1,7 @@
-import sharp from "sharp";
-import fs from "fs";
-import path from "path";
-import Logger from "../loaders/logger";
+import sharp from 'sharp';
+import fs from 'fs';
+import path from 'path';
+import Logger from '../loaders/logger';
 
 export interface BoundingBoxInput {
   foodName?: string;
@@ -26,7 +26,7 @@ export interface BoundingBoxInput {
  */
 export async function drawBoundingBoxesAndSave(
   imagePath: string,
-  items: BoundingBoxInput[]
+  items: BoundingBoxInput[],
 ): Promise<string | null> {
   try {
     if (!fs.existsSync(imagePath)) {
@@ -46,12 +46,12 @@ export async function drawBoundingBoxesAndSave(
       if (!box) continue;
 
       const { x, y, width, height } = box;
-      const label = item.foodName || item.className || "Food";
-      const confStr = item.confidence ? ` (${(item.confidence * 100).toFixed(0)}%)` : "";
+      const label = item.foodName || item.className || 'Food';
+      const confStr = item.confidence ? ` (${(item.confidence * 100).toFixed(0)}%)` : '';
 
       // 네모 상자 (빨간색 테두리)
       svgElements.push(
-        `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="none" stroke="#FF0000" stroke-width="4" />`
+        `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="none" stroke="#FF0000" stroke-width="4" />`,
       );
 
       // 라벨 배경 (빨간색 투명 레이어) & 흰색 텍스트
@@ -60,10 +60,10 @@ export async function drawBoundingBoxesAndSave(
       const labelBgY = Math.max(y - 25, 0);
 
       svgElements.push(
-        `<rect x="${x}" y="${labelBgY}" width="${Math.min(width, 180)}" height="24" fill="#FF0000" opacity="0.8" />`
+        `<rect x="${x}" y="${labelBgY}" width="${Math.min(width, 180)}" height="24" fill="#FF0000" opacity="0.8" />`,
       );
       svgElements.push(
-        `<text x="${textX}" y="${textY}" fill="#FFFFFF" font-size="16" font-weight="bold" font-family="sans-serif">${label}${confStr}</text>`
+        `<text x="${textX}" y="${textY}" fill="#FFFFFF" font-size="16" font-weight="bold" font-family="sans-serif">${label}${confStr}</text>`,
       );
     }
 
@@ -72,7 +72,7 @@ export async function drawBoundingBoxesAndSave(
       return null;
     }
 
-    const svgOverlay = `<svg width="${imgWidth}" height="${imgHeight}">${svgElements.join("")}</svg>`;
+    const svgOverlay = `<svg width="${imgWidth}" height="${imgHeight}">${svgElements.join('')}</svg>`;
 
     const parsedPath = path.parse(imagePath);
     const debugFilePath = path.join(parsedPath.dir, `${parsedPath.name}_debug${parsedPath.ext}`);

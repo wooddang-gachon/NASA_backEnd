@@ -1,7 +1,7 @@
-import Logger from "../loaders/logger";
-import { EventEmitter } from "events";
+import Logger from '../loaders/logger';
+import { EventEmitter } from 'events';
 
-export type JobStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+export type JobStatus = 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
 
 export interface Job<T = any> {
   id: string;
@@ -27,7 +27,7 @@ export class AsyncQueue<T = any> extends EventEmitter {
   public enqueue(jobId: string, taskFn: () => Promise<T>): string {
     const job: Job<T> = {
       id: jobId,
-      status: "PENDING",
+      status: 'PENDING',
       progressPercent: 0,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -35,7 +35,7 @@ export class AsyncQueue<T = any> extends EventEmitter {
 
     this.jobs.set(jobId, job);
     this.queue.push({ id: jobId, taskFn });
-    this.emit("job_updated", job);
+    this.emit('job_updated', job);
     this.processNext();
 
     return jobId;
@@ -56,29 +56,29 @@ export class AsyncQueue<T = any> extends EventEmitter {
     this.activeCount++;
     const job = this.jobs.get(item.id);
     if (job) {
-      job.status = "IN_PROGRESS";
+      job.status = 'IN_PROGRESS';
       job.progressPercent = 30;
       job.updatedAt = new Date();
-      this.emit("job_updated", job);
+      this.emit('job_updated', job);
     }
 
     try {
       Logger.info(`[AsyncQueue] Processing job ${item.id}`);
       const result = await item.taskFn();
       if (job) {
-        job.status = "COMPLETED";
+        job.status = 'COMPLETED';
         job.progressPercent = 100;
         job.result = result;
         job.updatedAt = new Date();
-        this.emit("job_updated", job);
+        this.emit('job_updated', job);
       }
       Logger.info(`[AsyncQueue] Successfully completed job ${item.id}`);
     } catch (err: any) {
       if (job) {
-        job.status = "FAILED";
+        job.status = 'FAILED';
         job.error = err?.message || String(err);
         job.updatedAt = new Date();
-        this.emit("job_updated", job);
+        this.emit('job_updated', job);
       }
       Logger.error(`[AsyncQueue] Job ${item.id} failed: ${err}`);
     } finally {

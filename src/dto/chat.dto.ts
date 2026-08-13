@@ -1,4 +1,4 @@
-import { Sender } from "../interfaces/enums";
+import { Sender } from '../interfaces/enums';
 
 export interface ChatMessageApiRequest {
   messageText: string;
@@ -17,15 +17,4 @@ export interface ChatMessageApiResponse {
   gainedFuel: number;
   currentFuel: number;
   emotion?: ChatEmotionResponse;
-}
-
-export interface ChatMessageDto {
-  id: string;
-  userId: number;
-  sender: Sender;
-  messageText: string;
-  motionTag?: string | null;
-  isDeleted: boolean;
-  isEdited: boolean;
-  createdAt: string;
 }

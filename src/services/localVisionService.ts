@@ -1,9 +1,9 @@
-import { Service } from "typedi";
-import * as ort from "onnxruntime-node";
-import sharp from "sharp";
-import path from "path";
-import fs from "fs";
-import Logger from "../loaders/logger";
+import { Service } from 'typedi';
+import * as ort from 'onnxruntime-node';
+import sharp from 'sharp';
+import path from 'path';
+import fs from 'fs';
+import Logger from '../loaders/logger';
 
 export interface LocalDetectionResult {
   className: string;
@@ -15,7 +15,7 @@ export interface LocalDetectionResult {
 @Service()
 export default class LocalVisionService {
   private session: ort.InferenceSession | null = null;
-  private modelPath = path.join(process.cwd(), "models", "yolo", "best.onnx");
+  private modelPath = path.join(process.cwd(), 'models', 'yolo', 'best.onnx');
 
   /**
    * ONNX 런타임 세션 초기화 (싱글톤 방식 캐싱)
@@ -23,7 +23,9 @@ export default class LocalVisionService {
   private async getSession(): Promise<ort.InferenceSession> {
     if (!this.session) {
       if (!fs.existsSync(this.modelPath)) {
-        throw new Error(`ONNX model not found at ${this.modelPath}. Please run 'yolo export model=best.pt format=onnx' first.`);
+        throw new Error(
+          `ONNX model not found at ${this.modelPath}. Please run 'yolo export model=best.pt format=onnx' first.`,
+        );
       }
       Logger.info(`[LocalVisionService] Loading ONNX model from: ${this.modelPath}`);
       this.session = await ort.InferenceSession.create(this.modelPath);
@@ -43,13 +45,13 @@ export default class LocalVisionService {
     const TARGET_SIZE = 640;
 
     const rawRgb = await sharp(buffer)
-      .resize(TARGET_SIZE, TARGET_SIZE, { fit: "fill" })
+      .resize(TARGET_SIZE, TARGET_SIZE, { fit: 'fill' })
       .removeAlpha()
       .raw()
       .toBuffer();
 
     const float32Data = new Float32Array(1 * 3 * TARGET_SIZE * TARGET_SIZE);
-    
+
     // NCHW 변환 및 정규화 (0~1)
     const channelSize = TARGET_SIZE * TARGET_SIZE;
     for (let i = 0; i < channelSize; i++) {
@@ -58,8 +60,14 @@ export default class LocalVisionService {
       float32Data[channelSize * 2 + i] = (rawRgb[i * 3 + 2] ?? 0) / 255.0; // B
     }
 
-    const tensor = new ort.Tensor("float32", float32Data, [1, 3, TARGET_SIZE, TARGET_SIZE]);
-    return { tensor, origWidth, origHeight, scaleX: origWidth / TARGET_SIZE, scaleY: origHeight / TARGET_SIZE };
+    const tensor = new ort.Tensor('float32', float32Data, [1, 3, TARGET_SIZE, TARGET_SIZE]);
+    return {
+      tensor,
+      origWidth,
+      origHeight,
+      scaleX: origWidth / TARGET_SIZE,
+      scaleY: origHeight / TARGET_SIZE,
+    };
   }
 
   /**
@@ -87,7 +95,7 @@ export default class LocalVisionService {
     scaleX: number,
     scaleY: number,
     confThresh: number,
-    iouThresh: number = 0.45
+    iouThresh: number = 0.45,
   ): LocalDetectionResult[] {
     const numClasses = dims[1]! - 4; // 보통 84 - 4 = 80
     const numAnchors = dims[2]!; // 보통 8400
@@ -130,14 +138,19 @@ export default class LocalVisionService {
 
     // 클래스 매핑
     const YOLO_CLASSES: Record<number, string> = {
-      0: '고등어구이', 1: '김밥', 2: '김치볶음밥', 3: '불고기', 4: '삼겹살', 5: '양념치킨'
+      0: '고등어구이',
+      1: '김밥',
+      2: '김치볶음밥',
+      3: '불고기',
+      4: '삼겹살',
+      5: '양념치킨',
     };
 
     // NMS 적용
     const finalResults: LocalDetectionResult[] = [];
     while (candidates.length > 0) {
       const current = candidates.shift()!;
-      
+
       // 원본 스케일 복원
       const x1 = Math.max(0, current.box[0]! * scaleX);
       const y1 = Math.max(0, current.box[1]! * scaleY);
@@ -153,7 +166,7 @@ export default class LocalVisionService {
           y: Math.round(y1),
           width: Math.round(x2 - x1),
           height: Math.round(y2 - y1),
-        }
+        },
       });
 
       // IoU 체크하여 겹치는 박스 제거
@@ -170,10 +183,13 @@ export default class LocalVisionService {
   /**
    * 로컬 YOLO ONNX 모델 기반 음식 객체 탐지
    */
-  public async detectFoodObjects(imageBuffer: Buffer, confThreshold = 0.6): Promise<LocalDetectionResult[]> {
+  public async detectFoodObjects(
+    imageBuffer: Buffer,
+    confThreshold = 0.6,
+  ): Promise<LocalDetectionResult[]> {
     try {
       const session = await this.getSession();
-      
+
       const { tensor, scaleX, scaleY } = await this.preprocessImage(imageBuffer);
 
       // 추론 수행
@@ -187,7 +203,7 @@ export default class LocalVisionService {
         outputTensor.dims,
         scaleX,
         scaleY,
-        confThreshold
+        confThreshold,
       );
 
       Logger.info(`[LocalVisionService] Detected ${results.length} objects.`);

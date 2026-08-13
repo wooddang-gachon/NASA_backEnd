@@ -1,4 +1,4 @@
-import { LogCategory, EmotionState } from "../interfaces/enums";
+import { LogCategory, EmotionState } from '../interfaces/enums';
 
 export interface QuickLogCreateRequest {
   category: LogCategory;
@@ -9,7 +9,7 @@ export interface QuickLogCreateRequest {
 }
 
 export interface QuickLogApiRequest {
-  category: LogCategory | "WATER" | "EMOTION" | "JOURNAL" | "EXERCISE";
+  category: LogCategory | 'WATER' | 'EMOTION' | 'JOURNAL' | 'EXERCISE';
   amount?: number;
   emotionType?: EmotionState | string;
   journalContent?: string;

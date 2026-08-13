@@ -5,7 +5,7 @@
  * 한 곳에서 관리합니다. 보상 밸런스 조정 시 이 파일만 수정하면 됩니다.
  */
 
-import { PlanetType } from "@/interfaces/enums";
+import { PlanetType } from '@/interfaces/enums';
 
 // ─────────────────────────────────────────────
 // 연료(Fuel) 보상
@@ -41,18 +41,15 @@ export const REPORT_FUEL_COST = 100;
 
 /** 행성 설정 목록 */
 export const PLANET_CONFIGS = [
-  { planetType: PlanetType.MEAL, name: "식단 탐사 별", targetDistance: 100 },
-  { planetType: PlanetType.WATER, name: "수분 탐사 별", targetDistance: 100 },
-  { planetType: PlanetType.EMOTION, name: "감정 대화 별", targetDistance: 100 },
-  { planetType: PlanetType.LIFESTYLE, name: "라이프스타일 별", targetDistance: 100 },
-  { planetType: PlanetType.RETROSPECT, name: "회고 별", targetDistance: 100 },
+  { planetType: PlanetType.MEAL, name: '식단 탐사 별', targetDistance: 100 },
+  { planetType: PlanetType.WATER, name: '수분 탐사 별', targetDistance: 100 },
+  { planetType: PlanetType.EMOTION, name: '감정 대화 별', targetDistance: 100 },
+  { planetType: PlanetType.LIFESTYLE, name: '라이프스타일 별', targetDistance: 100 },
+  { planetType: PlanetType.RETROSPECT, name: '회고 별', targetDistance: 100 },
 ] as const;
 
 /** 전체 행성 수 */
 export const TOTAL_STAR_COUNT = PLANET_CONFIGS.length;
 
 /** 탐사 전체 목표 총거리 */
-export const TOTAL_TARGET_DISTANCE = PLANET_CONFIGS.reduce(
-  (sum, p) => sum + p.targetDistance,
-  0
-);
+export const TOTAL_TARGET_DISTANCE = PLANET_CONFIGS.reduce((sum, p) => sum + p.targetDistance, 0);

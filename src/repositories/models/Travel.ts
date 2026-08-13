@@ -1,4 +1,4 @@
-import { PlanetType, TravelStatus } from "../../interfaces/enums";
+import { PlanetType, TravelStatus } from '../../interfaces/enums';
 
 export interface Planet {
   id: number;

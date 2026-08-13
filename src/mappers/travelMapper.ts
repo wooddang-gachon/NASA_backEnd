@@ -1,10 +1,24 @@
-import { planet_travels } from "@prisma/client";
-import { TravelResultCreateRequest, TravelResultResponse, PlanetTravelStartRequest } from "../interfaces/travel";
-import { TravelResultDetailInfo, PlanetTravelStartApiResponse, TravelStateInfoResponse, PlanetStateItem } from "../dto/travel.dto";
-import { PlanetType } from "../interfaces/enums";
-import { UserWithTammyStatus, DbTravelResultDetailItem } from "../repositories/models";
-import { PLANET_CONFIGS, TOTAL_STAR_COUNT, TOTAL_TARGET_DISTANCE, WARP_FUEL_THRESHOLD } from "@/constants/gamification";
-import { BaseMapper } from "./BaseMapper";
+import { planet_travels } from '@prisma/client';
+import {
+  TravelResultCreateRequest,
+  TravelResultResponse,
+  PlanetTravelStartRequest,
+} from '../interfaces/travel';
+import {
+  TravelResultDetailInfo,
+  PlanetTravelStartApiResponse,
+  TravelStateInfoResponse,
+  PlanetStateItem,
+} from '../dto/travel.dto';
+import { PlanetType } from '../interfaces/enums';
+import { UserWithTammyStatus, DbTravelResultDetailItem } from '../repositories/models';
+import {
+  PLANET_CONFIGS,
+  TOTAL_STAR_COUNT,
+  TOTAL_TARGET_DISTANCE,
+  WARP_FUEL_THRESHOLD,
+} from '@/constants/gamification';
+import { BaseMapper } from './BaseMapper';
 
 export class TravelMapper extends BaseMapper {
   /**
@@ -26,7 +40,7 @@ export class TravelMapper extends BaseMapper {
     travel: { id: bigint | string; status: string },
     travelResultId: string | undefined,
     remainingFuel: number,
-    travelResultData: TravelResultResponse
+    travelResultData: TravelResultResponse,
   ): PlanetTravelStartApiResponse {
     return {
       travelId: travel.id.toString(),
@@ -45,7 +59,7 @@ export class TravelMapper extends BaseMapper {
     planetList: PlanetStateItem[],
     progressPercent: number,
     activeTravel?: planet_travels | null,
-    completedTravels: planet_travels[] = []
+    completedTravels: planet_travels[] = [],
   ): TravelStateInfoResponse {
     const currentFuel = user.current_fuel ?? 0;
 
@@ -61,7 +75,9 @@ export class TravelMapper extends BaseMapper {
     const activePlanetType = activeTravel?.planet_type || null;
 
     return {
-      currentPlanet: activePlanetType || (completedStarCount > 0 ? Array.from(completedTypeSet).pop() : PlanetType.MEAL),
+      currentPlanet:
+        activePlanetType ||
+        (completedStarCount > 0 ? Array.from(completedTypeSet).pop() : PlanetType.MEAL),
       activePlanet: activePlanetType,
       explorationProgressPercent: progressPercent,
       currentFuel,
@@ -82,9 +98,9 @@ export class TravelMapper extends BaseMapper {
       userId: travel.user_id,
       planetTravelId: travel.id.toString(),
       planetType: travel.planet_type,
-      title: travel.title || "아쿠아 웰니스 탐사 완료 리포트 🌟",
-      summaryContent: travel.summary_content || "별여행 탐사가 완료되었습니다.",
-      recommendations: travel.recommendations || "",
+      title: travel.title || '아쿠아 웰니스 탐사 완료 리포트 🌟',
+      summaryContent: travel.summary_content || '별여행 탐사가 완료되었습니다.',
+      recommendations: travel.recommendations || '',
       createdAt: travel.started_at.toISOString(),
     };
   }
@@ -93,18 +109,22 @@ export class TravelMapper extends BaseMapper {
    * DB 객체 ➔ TravelResultDetailInfo DTO 변환
    */
   public static toTravelResultDetailInfo(result: DbTravelResultDetailItem): TravelResultDetailInfo {
-    const recommendationsArray = typeof result.recommendations === "string"
-      ? result.recommendations.split("\n").filter(Boolean)
-      : (result.recommendations as string[]) || [];
+    const recommendationsArray =
+      typeof result.recommendations === 'string'
+        ? result.recommendations.split('\n').filter(Boolean)
+        : (result.recommendations as string[]) || [];
 
     return {
       reportId: String(result.id),
       travelResultId: String(result.id),
       userId: Number(result.userId || 0),
-      title: result.title || "",
-      summaryContent: result.summaryContent || "",
+      title: result.title || '',
+      summaryContent: result.summaryContent || '',
       recommendations: recommendationsArray,
-      createdAt: typeof result.createdAt === "string" ? result.createdAt : result.createdAt?.toISOString() || new Date().toISOString(),
+      createdAt:
+        typeof result.createdAt === 'string'
+          ? result.createdAt
+          : result.createdAt?.toISOString() || new Date().toISOString(),
     };
   }
 }

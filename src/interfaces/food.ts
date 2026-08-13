@@ -1,4 +1,4 @@
-import { MealType } from "./enums";
+import { MealType } from './enums';
 
 export interface FoodAnalyzeRequest {
   imageUrl: string;
@@ -17,8 +17,6 @@ export interface FoodAnalyzeResponse {
   comment?: string;
   fallbackUi?: string;
 }
-
-
 
 export interface MealLogRegisterRequest {
   mealType: MealType;

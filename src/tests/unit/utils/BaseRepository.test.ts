@@ -1,6 +1,6 @@
-import "reflect-metadata";
-import { BaseRepository } from "../../../repositories/BaseRepository";
-import { PrismaClient } from "@prisma/client";
+import 'reflect-metadata';
+import { BaseRepository } from '../../../repositories/BaseRepository';
+import { PrismaClient } from '@prisma/client';
 
 // Mocking Prisma Client
 const mockPrisma = {
@@ -16,7 +16,7 @@ class TestRepository extends BaseRepository<any, any, any> {
   }
 }
 
-describe("BaseRepository Unit Tests", () => {
+describe('BaseRepository Unit Tests', () => {
   let repository: TestRepository;
 
   beforeEach(() => {
@@ -27,9 +27,9 @@ describe("BaseRepository Unit Tests", () => {
     jest.clearAllMocks();
   });
 
-  it("should call findFirst on the injected delegate", async () => {
+  it('should call findFirst on the injected delegate', async () => {
     // given
-    mockPrisma.findFirst.mockResolvedValue({ id: 1, name: "Test" });
+    mockPrisma.findFirst.mockResolvedValue({ id: 1, name: 'Test' });
     const query = { id: 1 };
 
     // when
@@ -37,6 +37,6 @@ describe("BaseRepository Unit Tests", () => {
 
     // then
     expect(mockPrisma.findFirst).toHaveBeenCalledWith({ where: query });
-    expect(result).toEqual({ id: 1, name: "Test" });
+    expect(result).toEqual({ id: 1, name: 'Test' });
   });
 });

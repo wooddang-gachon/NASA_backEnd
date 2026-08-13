@@ -11,11 +11,15 @@ export class ApiResponse<T> {
     this.code = code;
   }
 
-  public static success<T>(data: T, message = "성공", code = 200): ApiResponse<T> {
+  public static success<T>(data: T, message = '성공', code = 200): ApiResponse<T> {
     return new ApiResponse<T>(true, message, data, code);
   }
 
-  public static error<T = null>(message = "오류가 발생했습니다.", code = 400, data: T | null = null): ApiResponse<T> {
+  public static error<T = null>(
+    message = '오류가 발생했습니다.',
+    code = 400,
+    data: T | null = null,
+  ): ApiResponse<T> {
     return new ApiResponse<T>(false, message, data, code);
   }
 }

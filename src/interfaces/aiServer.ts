@@ -1,5 +1,5 @@
-import { ChatTurn, EmotionStatus } from "./chat";
-import { PlanetType } from "./enums";
+import { ChatTurn, EmotionStatus } from './chat';
+import { PlanetType } from './enums';
 
 // ==========================================
 // 1. BE ↔ AI Chat Protocol
@@ -42,7 +42,7 @@ export interface DetectedFood {
 export interface YoloContext {
   attempted: boolean;
   detected: boolean;
-  reason?: "NO_OBJECTS_DETECTED" | "SCAN_ERROR" | "FILE_NOT_FOUND" | string;
+  reason?: 'NO_OBJECTS_DETECTED' | 'SCAN_ERROR' | 'FILE_NOT_FOUND' | string;
 }
 
 export interface AiVisionInternalPayload {

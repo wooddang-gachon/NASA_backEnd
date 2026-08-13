@@ -1,5 +1,5 @@
-import { PrismaClient } from "@prisma/client";
-import { EntityId } from "@/interfaces";
+import { PrismaClient } from '@prisma/client';
+import { EntityId } from '@/interfaces';
 
 // PrismaClient의 delegate 구조와 호환되는 타입 정의
 export type Delegate<T> = {

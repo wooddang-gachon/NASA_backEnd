@@ -1,7 +1,7 @@
-import { PrismaClient } from "@prisma/client";
-import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-import config from "../config";
-import Logger from "./logger";
+import { PrismaClient } from '@prisma/client';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import config from '../config';
+import Logger from './logger';
 
 let prisma: PrismaClient;
 
@@ -9,19 +9,22 @@ export const initPrisma = (): PrismaClient => {
   try {
     // 1. .env 파일에 명시된 NODE_ENV 값 기반으로 DB 연결 스위칭
     const currentEnv = config.nodeEnv.toLowerCase();
-    const isProduction = currentEnv === "production";
+    const isProduction = currentEnv === 'production';
     const useMockDb = !isProduction;
 
     if (useMockDb) {
-      Logger.info(`⚡  Running in [${config.nodeEnv}] mode. Using Mock Database URL (nasa_mock_db). ⚡`);
+      Logger.info(
+        `⚡  Running in [${config.nodeEnv}] mode. Using Mock Database URL (nasa_mock_db). ⚡`,
+      );
     } else {
       Logger.info(`⚡  Running in [PRODUCTION] mode. Using Real Database URL (nasa_db). ⚡`);
     }
 
-    const urlString = useMockDb && config.mockDatabaseURL ? config.mockDatabaseURL : config.databaseURL;
+    const urlString =
+      useMockDb && config.mockDatabaseURL ? config.mockDatabaseURL : config.databaseURL;
 
     if (!urlString) {
-      throw new Error("Database connection URL is not configured in .env file.");
+      throw new Error('Database connection URL is not configured in .env file.');
     }
 
     const dbUrl = new URL(urlString);
@@ -29,7 +32,7 @@ export const initPrisma = (): PrismaClient => {
     const port = dbUrl.port ? parseInt(dbUrl.port) : 3306;
     const user = decodeURIComponent(dbUrl.username);
     const password = decodeURIComponent(dbUrl.password);
-    const database = dbUrl.pathname.replace("/", "");
+    const database = dbUrl.pathname.replace('/', '');
 
     // 2. Prisma 7 호환용 MariaDB 드라이버 어댑터 생성
     // (이 어댑터가 MySQL과 MariaDB 양쪽 연결을 모두 담당합니다)
@@ -39,7 +42,7 @@ export const initPrisma = (): PrismaClient => {
       user,
       password,
       database,
-      connectionLimit: config.nodeEnv === "test" ? 3 : 10,
+      connectionLimit: config.nodeEnv === 'test' ? 3 : 10,
       allowPublicKeyRetrieval: true,
     } as any);
 
@@ -47,29 +50,29 @@ export const initPrisma = (): PrismaClient => {
     prisma = new PrismaClient({
       adapter,
       log: isProduction
-        ? [{ emit: "stdout", level: "error" }]
+        ? [{ emit: 'stdout', level: 'error' }]
         : [
-            { emit: "event", level: "query" },
-            { emit: "stdout", level: "warn" },
-            { emit: "stdout", level: "error" },
+            { emit: 'event', level: 'query' },
+            { emit: 'stdout', level: 'warn' },
+            { emit: 'stdout', level: 'error' },
           ],
     });
 
     // 개발 환경일 때, 100ms 이상 걸리는 Slow Query만 출력하도록 변경하여 로그 도배 방지
     if (!isProduction) {
-      (prisma as any).$on("query", (e: any) => {
+      (prisma as any).$on('query', (e: any) => {
         if (e.duration >= 100) {
           Logger.warn(
-            `[Prisma Slow Query] ${e.query} - Params: ${e.params} - Duration: ${e.duration}ms`
+            `[Prisma Slow Query] ${e.query} - Params: ${e.params} - Duration: ${e.duration}ms`,
           );
         }
       });
     }
 
-    Logger.info("✌️  Prisma Client initialized with MySQL Engine  ✌️");
+    Logger.info('✌️  Prisma Client initialized with MySQL Engine  ✌️');
     return prisma;
   } catch (error) {
-    Logger.error("🔥  Failed to initialize Prisma Client  🔥", error);
+    Logger.error('🔥  Failed to initialize Prisma Client  🔥', error);
     throw error;
   }
 };

@@ -1,11 +1,4 @@
-import { Gender } from "../interfaces/enums";
-
-export interface UserProfileUpdateRequest {
-  nickname?: string;
-  gender?: Gender;
-  age?: number;
-  currentFuel?: number;
-}
+import { Gender } from '../interfaces/enums';
 
 export interface TammyStatusDto {
   level: number;

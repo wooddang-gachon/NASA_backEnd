@@ -1,15 +1,15 @@
-import { Route, Post, Body, Security, Request, UploadedFile, FormField, Tags } from "tsoa";
-import { Service, Container } from "typedi";
-import FoodService from "../../services/foodService";
-import { MealType } from "../../interfaces/enums";
-import type { AuthenticatedRequest } from "../../interfaces/express";
-import { ApiResponse } from "../../dto";
-import { BaseController } from "./BaseController";
-import { FoodLogConfirmRequest, FoodVisionScanResponse, FoodLogConfirmResponse } from "../../dto";
+import { Route, Post, Body, Security, Request, UploadedFile, FormField, Tags } from 'tsoa';
+import { Service, Container } from 'typedi';
+import FoodService from '../../services/foodService';
+import { MealType } from '../../interfaces/enums';
+import type { AuthenticatedRequest } from '../../interfaces/express';
+import { ApiResponse } from '../../dto';
+import { BaseController } from './BaseController';
+import { FoodLogConfirmRequest, FoodVisionScanResponse, FoodLogConfirmResponse } from '../../dto';
 
 @Service()
-@Tags("4. FoodVision - 식단 스캔 & 영양성분 기록")
-@Route("")
+@Tags('4. FoodVision - 식단 스캔 & 영양성분 기록')
+@Route('')
 export class FoodController extends BaseController {
   private foodService = Container.get(FoodService);
 
@@ -17,11 +17,11 @@ export class FoodController extends BaseController {
    * 촬영하거나 선택한 식단 사진 이미지 파일(multipart/form-data)을 업로드하고 AI 비전 모델로 5대 영양 성분을 스캔 분석합니다.
    * @summary 식단 사진 파일 업로드 & AI 비전 분석 스캔
    */
-  @Post("food-vision/scan")
-  @Security("jwt")
+  @Post('food-vision/scan')
+  @Security('jwt')
   public async scanFoodVision(
-    @UploadedFile("file") file: Express.Multer.File,
-    @FormField("mealType") mealType?: MealType
+    @UploadedFile('file') file: Express.Multer.File,
+    @FormField('mealType') mealType?: MealType,
   ): Promise<ApiResponse<FoodVisionScanResponse>> {
     const data = await this.foodService.uploadAndAnalyzeFoodVision(file, mealType);
     return this.success(data as FoodVisionScanResponse);
@@ -31,10 +31,10 @@ export class FoodController extends BaseController {
    * [추가] 외부 AI 서버를 통한 음식 사진 객체 검출 API
    * @summary 외부 AI 서버 기반 식단 검출 및 매칭
    */
-  @Post("food-vision/ai-detect")
-  @Security("jwt")
+  @Post('food-vision/ai-detect')
+  @Security('jwt')
   public async detectFoodFromAiServer(
-    @UploadedFile("file") file: Express.Multer.File
+    @UploadedFile('file') file: Express.Multer.File,
   ): Promise<ApiResponse<any>> {
     const data = await this.foodService.detectFoodViaExternalAi(file);
     return this.success(data);
@@ -43,19 +43,16 @@ export class FoodController extends BaseController {
   /**
    * [3.2] Food Log 확정 저장 API
    */
-  @Post("food-log/confirm")
-  @Security("jwt")
+  @Post('food-log/confirm')
+  @Security('jwt')
   public async confirmFoodLog(
     @Request() request: AuthenticatedRequest,
-    @Body() body: FoodLogConfirmRequest
+    @Body() body: FoodLogConfirmRequest,
   ): Promise<ApiResponse<FoodLogConfirmResponse>> {
     const res = await this.foodService.logMeal(this.getUserId(request), {
       mealType: body.mealType as MealType,
       imageId: body.imageId,
-      imageUrl: body.imageUrl,
       foods: body.foods,
-      foodName: body.foodName,
-      intakeGram: body.intakeGram,
       comment: body.comment,
     });
     const data: FoodLogConfirmResponse = {
@@ -66,6 +63,3 @@ export class FoodController extends BaseController {
     return this.success(data);
   }
 }
-
-
-

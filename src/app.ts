@@ -1,8 +1,8 @@
-import "reflect-metadata";
-import express from "express";
-import Logger from "@/loaders/logger";
-import config from "@/config";
-import loaders from "@/loaders";
+import 'reflect-metadata';
+import express from 'express';
+import Logger from '@/loaders/logger';
+import config from '@/config';
+import loaders from '@/loaders';
 
 async function startServer() {
   const app = express();
@@ -17,7 +17,7 @@ async function startServer() {
       ################################################
     `);
     })
-    .on("error", (err) => {
+    .on('error', (err) => {
       Logger.error(err);
       process.exit(1);
     });

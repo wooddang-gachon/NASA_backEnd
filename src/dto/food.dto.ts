@@ -1,10 +1,10 @@
-import { MealType } from "../interfaces/enums";
+import { MealType } from '../interfaces/enums';
 
 export interface FoodMappingDto {
   rawName: string;
   matchedFoodId: number;
   matchedFoodName: string;
-  matchType: "EXACT" | "ALIAS" | "USER_CONFIRMED";
+  matchType: 'EXACT' | 'ALIAS' | 'USER_CONFIRMED';
   standardServingG: number;
   caloriesKcal: number;
   carbohydrateG: number;
@@ -23,7 +23,7 @@ export interface FoodSmartMatchResultDto {
   carbohydrateG: number;
   proteinG: number;
   fatG: number;
-  matchType: "EXACT" | "ALIAS" | "USER_CONFIRMED" | string;
+  matchType: 'EXACT' | 'ALIAS' | 'USER_CONFIRMED' | string;
 }
 
 export interface BoundingBoxDto {
@@ -49,10 +49,9 @@ export interface DetectedFoodItem {
 }
 
 export interface FoodVisionScanResponse {
-  scanEngine: "YOLO" | "VISION_LLM" | string;
+  scanEngine: 'YOLO' | 'VISION_LLM' | string;
   isFallbackUsed: boolean;
   imageId: string;
-  imageUrl: string;
   detectedFoods: DetectedFoodItem[];
 }
 
@@ -68,7 +67,7 @@ export interface FoodItemInput {
  * 식단 확정 저장 요청 DTO (POST /api/food-log/confirm)
  */
 export interface FoodLogConfirmRequest {
-  mealType: MealType | "BREAKFAST" | "LUNCH" | "DINNER" | "SNACK";
+  mealType: MealType | 'BREAKFAST' | 'LUNCH' | 'DINNER' | 'SNACK';
   imageId: string | number;
   comment?: string;
   foods: FoodItemInput[];

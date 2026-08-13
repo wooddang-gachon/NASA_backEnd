@@ -1,4 +1,4 @@
-import { PlanetType, TravelStatus } from "./enums";
+import { PlanetType, TravelStatus } from './enums';
 
 // ==========================================
 // 1. 별여행(PlanetTravel) & 연료 관련 인터페이스
@@ -37,10 +37,10 @@ export interface TravelStateResponse {
 export interface FuelAddRequest {
   userId?: number;
   triggerType?: string;
-  actionType?: "CHAT_MESSAGE" | "MEAL_LOG" | "WORKOUT_DONE" | "WATER_INTAKE" | string;
+  actionType?: 'CHAT_MESSAGE' | 'MEAL_LOG' | 'WORKOUT_DONE' | 'WATER_INTAKE' | string;
 }
 
-export interface TravelFuelRequest extends FuelAddRequest {}
+export type TravelFuelRequest = FuelAddRequest;
 
 export interface FuelAddResponse {
   gainedFuel: number;
@@ -49,7 +49,7 @@ export interface FuelAddResponse {
   newPlanetName?: string;
 }
 
-export interface TravelFuelResponse extends FuelAddResponse {}
+export type TravelFuelResponse = FuelAddResponse;
 
 // ==========================================
 // 2. 별여행 탐사 결과(TravelResult / Report) 인터페이스
@@ -90,18 +90,18 @@ export interface OndemandTravelResultRequest {
 }
 
 export interface AsyncTravelResultGenerateRequest {
-  period?: "WEEKLY" | "MONTHLY";
+  period?: 'WEEKLY' | 'MONTHLY';
 }
 
 export interface AsyncTravelResultGenerateResponse {
   jobId: string;
-  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
   message: string;
 }
 
 export interface TravelResultJobStatusResponse {
   jobId: string;
-  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+  status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
   travelResultId?: string | number;
   reportId?: string | number;
   progressPercent: number;
@@ -125,8 +125,6 @@ export interface OndemandTravelResultResponse {
   nextActionChecks: string[];
 }
 
-
-
 // 호환용 Alias
 export type ReportCreateRequest = TravelResultCreateRequest;
 export type ReportResponse = TravelResultResponse;
@@ -137,7 +135,7 @@ export type AsyncReportGenerateResponse = AsyncTravelResultGenerateResponse;
 export type ReportJobStatusResponse = TravelResultJobStatusResponse;
 export type ReportDetailResponse = TravelResultDetailResponse;
 export type OndemandReportResponse = OndemandTravelResultResponse;
-import { AiReportInternalPayload, AiReportInternalResponse } from "./aiServer";
+import { AiReportInternalPayload, AiReportInternalResponse } from './aiServer';
 
 export type AiReportInternalPayloadAlias = AiReportInternalPayload;
 export type AiReportInternalResponseAlias = AiReportInternalResponse;

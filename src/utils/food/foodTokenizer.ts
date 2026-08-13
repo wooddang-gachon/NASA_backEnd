@@ -2,26 +2,26 @@
  * 음식 수식어/접두어 사전 (Modifier Dictionary)
  */
 export const FOOD_MODIFIER_DICTIONARY = new Set([
-  "고추",
-  "매운",
-  "치즈",
-  "국물",
-  "로제",
-  "짜장",
-  "수제",
-  "마라",
-  "크림",
-  "불",
-  "대파",
-  "직화",
-  "바삭한",
-  "얼큰한",
-  "달콤한",
-  "훈제",
-  "양념",
-  "간장",
-  "후라이드",
-  "양념반",
+  '고추',
+  '매운',
+  '치즈',
+  '국물',
+  '로제',
+  '짜장',
+  '수제',
+  '마라',
+  '크림',
+  '불',
+  '대파',
+  '직화',
+  '바삭한',
+  '얼큰한',
+  '달콤한',
+  '훈제',
+  '양념',
+  '간장',
+  '후라이드',
+  '양념반',
 ]);
 
 /**
@@ -48,10 +48,10 @@ export interface FoodTokenAnalysisResult {
 export function tokenizeFoodName(rawName: string): FoodTokenAnalysisResult {
   if (!rawName || !rawName.trim()) {
     return {
-      rawName: "",
+      rawName: '',
       modifiers: [],
-      coreFoodName: "",
-      normalizedName: "",
+      coreFoodName: '',
+      normalizedName: '',
       tokens: [],
     };
   }
@@ -73,9 +73,9 @@ export function tokenizeFoodName(rawName: string): FoodTokenAnalysisResult {
     }
   }
 
-  let coreFoodName = coreTokens.join(" ");
+  let coreFoodName = coreTokens.join(' ');
   if (!coreFoodName) {
-    coreFoodName = rawTokens.filter((t) => !QUANTITY_PATTERN.test(t)).join(" ");
+    coreFoodName = rawTokens.filter((t) => !QUANTITY_PATTERN.test(t)).join(' ');
   }
 
   return {

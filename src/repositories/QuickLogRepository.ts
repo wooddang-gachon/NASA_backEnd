@@ -1,10 +1,14 @@
-import { Service } from "typedi";
-import { getPrisma } from "@/loaders/prisma";
-import { Prisma, quick_logs } from "@prisma/client";
-import { BaseRepository } from "./BaseRepository";
+import { Service } from 'typedi';
+import { getPrisma } from '@/loaders/prisma';
+import { Prisma, quick_logs } from '@prisma/client';
+import { BaseRepository } from './BaseRepository';
 
 @Service()
-export default class QuickLogRepository extends BaseRepository<quick_logs, Prisma.quick_logsCreateInput, Prisma.quick_logsUpdateInput> {
+export default class QuickLogRepository extends BaseRepository<
+  quick_logs,
+  Prisma.quick_logsCreateInput,
+  Prisma.quick_logsUpdateInput
+> {
   constructor() {
     super(getPrisma().quick_logs);
   }

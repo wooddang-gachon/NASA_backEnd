@@ -1,7 +1,18 @@
-import { users, Gender, ChangeReason } from "@prisma/client";
-import { UserSignUpRequest, UserAuthProfile, UserAuthMeResponse, UserProfileResponseData, TammyHistoryResponse, UserLoginResponse } from "../dto";
-import { UserWithTammyStatus, DbTammyStatusLogItem, CreateTammyStatusLogParams } from "../repositories/models";
-import { BaseMapper } from "./BaseMapper";
+import { users, Gender, ChangeReason } from '@prisma/client';
+import {
+  UserSignUpRequest,
+  UserAuthProfile,
+  UserAuthMeResponse,
+  UserProfileResponseData,
+  TammyHistoryResponse,
+  UserLoginResponse,
+} from '../dto';
+import {
+  UserWithTammyStatus,
+  DbTammyStatusLogItem,
+  CreateTammyStatusLogParams,
+} from '../repositories/models';
+import { BaseMapper } from './BaseMapper';
 
 export class UserMapper extends BaseMapper {
   /**
@@ -12,10 +23,10 @@ export class UserMapper extends BaseMapper {
       email: data.email,
       password_hash: passwordHash,
       nickname: data.nickname,
-      auth_provider: "LOCAL" as const,
+      auth_provider: 'LOCAL' as const,
       gender: (data.gender as Gender) || null,
       age: data.age || null,
-      status: "ACTIVE" as const,
+      status: 'ACTIVE' as const,
       current_fuel: 0,
       tammy_statuses: {
         create: {
@@ -33,12 +44,16 @@ export class UserMapper extends BaseMapper {
   /**
    * 소셜 회원 가입 DB 생성 인풋 객체 생성
    */
-  public static toSocialUserCreateInput(email: string, provider: "GOOGLE" | "KAKAO" | "APPLE", nickname: string) {
+  public static toSocialUserCreateInput(
+    email: string,
+    provider: 'GOOGLE' | 'KAKAO' | 'APPLE',
+    nickname: string,
+  ) {
     return {
       email,
       auth_provider: provider,
       nickname,
-      status: "ACTIVE" as const,
+      status: 'ACTIVE' as const,
       current_fuel: 0,
       tammy_statuses: {
         create: {
@@ -56,7 +71,10 @@ export class UserMapper extends BaseMapper {
   /**
    * 로그인/회원가입/소셜로그인 최종 응답 DTO 반환
    */
-  public static toLoginResponse(user: users, tokens: { accessToken: string; refreshToken: string }): UserLoginResponse {
+  public static toLoginResponse(
+    user: users,
+    tokens: { accessToken: string; refreshToken: string },
+  ): UserLoginResponse {
     return {
       user: UserMapper.toUserAuthProfile(user),
       accessToken: tokens.accessToken,
@@ -72,9 +90,9 @@ export class UserMapper extends BaseMapper {
     changeReason?: ChangeReason | string,
     deltaExp?: number,
     snapshotLevel?: number,
-    snapshotTotalExp?: number
+    snapshotTotalExp?: number,
   ) {
-    if (typeof paramsOrUserId === "object") {
+    if (typeof paramsOrUserId === 'object') {
       return {
         user_id: paramsOrUserId.userId,
         change_reason: paramsOrUserId.changeReason as ChangeReason,

@@ -1,10 +1,14 @@
-import { Service } from "typedi";
-import { getPrisma } from "@/loaders/prisma";
-import { Prisma, chat_messages } from "@prisma/client";
-import { BaseRepository } from "./BaseRepository";
+import { Service } from 'typedi';
+import { getPrisma } from '@/loaders/prisma';
+import { Prisma, chat_messages } from '@prisma/client';
+import { BaseRepository } from './BaseRepository';
 
 @Service()
-export default class ChatRepository extends BaseRepository<chat_messages, Prisma.chat_messagesCreateInput, Prisma.chat_messagesUpdateInput> {
+export default class ChatRepository extends BaseRepository<
+  chat_messages,
+  Prisma.chat_messagesCreateInput,
+  Prisma.chat_messagesUpdateInput
+> {
   constructor() {
     super(getPrisma().chat_messages);
   }
@@ -18,7 +22,7 @@ export default class ChatRepository extends BaseRepository<chat_messages, Prisma
   }
 
   public async findRecentChatMessages(userId: number, take: number = 10) {
-    return this.findMany({ user_id: userId }, undefined, take, { created_at: "desc" });
+    return this.findMany({ user_id: userId }, undefined, take, { created_at: 'desc' });
   }
 
   public async updateUserFuel(userId: number, amount: number) {

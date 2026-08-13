@@ -1,19 +1,19 @@
-import { Service } from "typedi";
-import { getPrisma } from "@/loaders/prisma";
-import { Prisma, user_push_tokens } from "@prisma/client";
-import { BaseRepository } from "./BaseRepository";
+import { Service } from 'typedi';
+import { getPrisma } from '@/loaders/prisma';
+import { Prisma, user_push_tokens } from '@prisma/client';
+import { BaseRepository } from './BaseRepository';
 
 @Service()
-export default class NotificationRepository extends BaseRepository<user_push_tokens, Prisma.user_push_tokensCreateInput, Prisma.user_push_tokensUpdateInput> {
+export default class NotificationRepository extends BaseRepository<
+  user_push_tokens,
+  Prisma.user_push_tokensCreateInput,
+  Prisma.user_push_tokensUpdateInput
+> {
   constructor() {
     super(getPrisma().user_push_tokens);
   }
 
-  public async upsertPushToken(
-    userId: number,
-    deviceToken: string,
-    deviceType: any
-  ) {
+  public async upsertPushToken(userId: number, deviceToken: string, deviceType: any) {
     return getPrisma().user_push_tokens.upsert({
       where: {
         user_id_device_token: {

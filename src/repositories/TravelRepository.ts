@@ -1,10 +1,14 @@
-import { Service } from "typedi";
-import { getPrisma } from "@/loaders/prisma";
-import { Prisma, planet_travels } from "@prisma/client";
-import { BaseRepository } from "./BaseRepository";
+import { Service } from 'typedi';
+import { getPrisma } from '@/loaders/prisma';
+import { Prisma, planet_travels } from '@prisma/client';
+import { BaseRepository } from './BaseRepository';
 
 @Service()
-export default class TravelRepository extends BaseRepository<planet_travels, Prisma.planet_travelsCreateInput, Prisma.planet_travelsUpdateInput> {
+export default class TravelRepository extends BaseRepository<
+  planet_travels,
+  Prisma.planet_travelsCreateInput,
+  Prisma.planet_travelsUpdateInput
+> {
   constructor() {
     super(getPrisma().planet_travels);
   }
@@ -26,7 +30,11 @@ export default class TravelRepository extends BaseRepository<planet_travels, Pri
     });
   }
 
-  public async updateUserFuel(userId: number, amount: number, operation: "increment" | "decrement") {
+  public async updateUserFuel(
+    userId: number,
+    amount: number,
+    operation: 'increment' | 'decrement',
+  ) {
     const prisma = getPrisma();
     return prisma.users.update({
       where: { id: userId },
@@ -54,7 +62,7 @@ export default class TravelRepository extends BaseRepository<planet_travels, Pri
         user_id: userId,
         registered_at: { gte: startDate },
       },
-      orderBy: { registered_at: "asc" },
+      orderBy: { registered_at: 'asc' },
     });
   }
 
@@ -72,7 +80,7 @@ export default class TravelRepository extends BaseRepository<planet_travels, Pri
   public async findActivePlanetTravelByUser(userId: number) {
     return this.findFirst({
       user_id: userId,
-      status: "IN_PROGRESS",
+      status: 'IN_PROGRESS',
     });
   }
 
@@ -80,11 +88,11 @@ export default class TravelRepository extends BaseRepository<planet_travels, Pri
     return this.findMany(
       {
         user_id: userId,
-        status: "COMPLETED",
+        status: 'COMPLETED',
       },
       undefined,
       undefined,
-      { completed_at: "desc" }
+      { completed_at: 'desc' },
     );
   }
 
@@ -92,10 +100,10 @@ export default class TravelRepository extends BaseRepository<planet_travels, Pri
     const prisma = getPrisma();
     const [mealCount, waterCount, chatCount, exerciseCount, journalCount] = await Promise.all([
       prisma.meals.count({ where: { user_id: userId } }),
-      prisma.quick_logs.count({ where: { user_id: userId, category: "WATER" } }),
-      prisma.chat_messages.count({ where: { user_id: userId, sender: "USER" } }),
-      prisma.quick_logs.count({ where: { user_id: userId, category: "EXERCISE" } }),
-      prisma.quick_logs.count({ where: { user_id: userId, category: "JOURNAL" } }),
+      prisma.quick_logs.count({ where: { user_id: userId, category: 'WATER' } }),
+      prisma.chat_messages.count({ where: { user_id: userId, sender: 'USER' } }),
+      prisma.quick_logs.count({ where: { user_id: userId, category: 'EXERCISE' } }),
+      prisma.quick_logs.count({ where: { user_id: userId, category: 'JOURNAL' } }),
     ]);
 
     return {

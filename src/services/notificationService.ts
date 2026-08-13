@@ -1,32 +1,36 @@
-import { Service } from "typedi";
-import { initializeApp, cert, getApps } from "firebase-admin/app";
-import { getMessaging } from "firebase-admin/messaging";
-import fs from "fs";
-import path from "path";
-import { getPrisma } from "@/loaders/prisma";
-import Logger from "@/loaders/logger";
-import NotificationRepository from "@/repositories/NotificationRepository";
-import { Inject } from "typedi";
+import { Service } from 'typedi';
+import { initializeApp, cert, getApps } from 'firebase-admin/app';
+import { getMessaging } from 'firebase-admin/messaging';
+import fs from 'fs';
+import path from 'path';
+import { getPrisma } from '@/loaders/prisma';
+import Logger from '@/loaders/logger';
+import NotificationRepository from '@/repositories/NotificationRepository';
+import { Inject } from 'typedi';
 import type {
   PushTokenRegisterRequest,
   PushTokenRegisterResponse,
   SendPushNotificationRequest,
-} from "@/dto";
+} from '@/dto';
 
 // Firebase Admin SDK 초기화 헬퍼
 function initFirebaseAdmin() {
   if (getApps().length > 0) return;
 
   try {
-    const certPath = path.join(process.cwd(), "src", "config", "firebase-service-account.json");
+    const certPath = path.join(process.cwd(), 'src', 'config', 'firebase-service-account.json');
     if (fs.existsSync(certPath)) {
-      const serviceAccount = JSON.parse(fs.readFileSync(certPath, "utf-8"));
+      const serviceAccount = JSON.parse(fs.readFileSync(certPath, 'utf-8'));
       initializeApp({
         credential: cert(serviceAccount),
       });
-      Logger.info("🔥 [Firebase] Firebase Admin SDK successfully initialized with service account (nasa-alarm).");
+      Logger.info(
+        '🔥 [Firebase] Firebase Admin SDK successfully initialized with service account (nasa-alarm).',
+      );
     } else {
-      Logger.warn("⚠️ [Firebase] firebase-service-account.json file not found. Running in sandbox/fallback mode.");
+      Logger.warn(
+        '⚠️ [Firebase] firebase-service-account.json file not found. Running in sandbox/fallback mode.',
+      );
     }
   } catch (error) {
     Logger.error(`🔥 [Firebase] Failed to initialize Firebase Admin SDK: ${error}`);
@@ -47,9 +51,9 @@ export default class NotificationService {
    */
   public async registerPushToken(
     userId: number,
-    data: PushTokenRegisterRequest
+    data: PushTokenRegisterRequest,
   ): Promise<PushTokenRegisterResponse> {
-    const deviceType = data.deviceType || "IOS";
+    const deviceType = data.deviceType || 'IOS';
 
     await this.notificationRepository.upsertPushToken(userId, data.deviceToken, deviceType);
 
@@ -57,7 +61,7 @@ export default class NotificationService {
 
     return {
       success: true,
-      message: "디바이스 푸시 토큰이 성공적으로 등록되었습니다.",
+      message: '디바이스 푸시 토큰이 성공적으로 등록되었습니다.',
     };
   }
 
@@ -77,7 +81,7 @@ export default class NotificationService {
       deviceTokens,
       request.title,
       request.body,
-      request.data
+      request.data,
     );
 
     return result.successCount > 0;
@@ -90,7 +94,7 @@ export default class NotificationService {
     deviceTokens: string[],
     title: string,
     body: string,
-    data?: Record<string, string>
+    data?: Record<string, string>,
   ): Promise<{ successCount: number; failureCount: number }> {
     if (deviceTokens.length === 0) {
       return { successCount: 0, failureCount: 0 };
@@ -103,7 +107,7 @@ export default class NotificationService {
     for (let i = 0; i < deviceTokens.length; i += CHUNK_SIZE) {
       const chunk = deviceTokens.slice(i, i + CHUNK_SIZE);
       Logger.info(
-        `[NotificationService] [FCM Multicast] Processing batch #${Math.floor(i / CHUNK_SIZE) + 1} (${chunk.length} tokens)`
+        `[NotificationService] [FCM Multicast] Processing batch #${Math.floor(i / CHUNK_SIZE) + 1} (${chunk.length} tokens)`,
       );
 
       if (getApps().length > 0) {
@@ -120,7 +124,7 @@ export default class NotificationService {
           totalSuccess += response.successCount;
           totalFailure += response.failureCount;
           Logger.info(
-            ` -> [FCM Dispatch Success] Batch Success: ${response.successCount}, Failures: ${response.failureCount}`
+            ` -> [FCM Dispatch Success] Batch Success: ${response.successCount}, Failures: ${response.failureCount}`,
           );
         } catch (err) {
           Logger.error(` -> [FCM Dispatch Failed]: ${err}`);

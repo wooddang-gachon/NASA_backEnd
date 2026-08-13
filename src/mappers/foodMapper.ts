@@ -1,34 +1,27 @@
-import { MealType } from "../interfaces/enums";
-import { MatchType } from "@prisma/client";
-import { MealLogRegisterResponse, FoodSearchResponse, FoodDto, FoodMappingDto, FoodSmartMatchResultDto } from "../dto";
-import { DbFoodMappingItem, DbFoodItem, CreateMealInputParams, CreateMealItemInputParams } from "../repositories/models";
-import { BaseMapper } from "./BaseMapper";
+import { MealType } from '../interfaces/enums';
+import { MatchType } from '@prisma/client';
+import {
+  MealLogRegisterResponse,
+  FoodSearchResponse,
+  FoodDto,
+  FoodMappingDto,
+  FoodSmartMatchResultDto,
+} from '../dto';
+import {
+  DbFoodMappingItem,
+  DbFoodItem,
+  CreateMealInputParams,
+  CreateMealItemInputParams,
+} from '../repositories/models';
+import { BaseMapper } from './BaseMapper';
 
 export class FoodMapper extends BaseMapper {
-  /**
-   * DB food_mappings 엔티티 ➔ FoodMappingDto 변환 [FOD-005]
-   */
-  public static toFoodMappingDto(dbMapping: DbFoodMappingItem): FoodMappingDto {
-    const food = dbMapping.food;
-    return {
-      rawName: dbMapping.raw_name,
-      matchedFoodId: food.id,
-      matchedFoodName: food.name,
-      matchType: dbMapping.match_type as MatchType,
-      standardServingG: Number(food.standard_serving_g),
-      caloriesKcal: food.calories_kcal,
-      carbohydrateG: Number(food.carbohydrate_g),
-      proteinG: Number(food.protein_g),
-      fatG: Number(food.fat_g),
-    };
-  }
-
   /**
    * DB food_mappings 엔티티 ➔ FoodSmartMatchResultDto 변환
    */
   public static toFoodSmartMatchResultFromMapping(
     dbMapping: DbFoodMappingItem,
-    rawName: string
+    rawName: string,
   ): FoodSmartMatchResultDto {
     const food = dbMapping.food;
     return {
@@ -49,7 +42,7 @@ export class FoodMapper extends BaseMapper {
   public static toFoodSmartMatchResultFromMaster(
     masterFood: DbFoodItem,
     rawName: string,
-    matchType: string
+    matchType: string,
   ): FoodSmartMatchResultDto {
     return {
       rawName,
@@ -68,7 +61,7 @@ export class FoodMapper extends BaseMapper {
    */
   public static toFoodSmartMatchResultFromFallback(
     rawName: string,
-    detected: any
+    detected: any,
   ): FoodSmartMatchResultDto {
     return {
       rawName,
@@ -78,7 +71,7 @@ export class FoodMapper extends BaseMapper {
       carbohydrateG: detected?.carbs || 30,
       proteinG: detected?.protein || 20,
       fatG: detected?.fat || 5,
-      matchType: "USER_CONFIRMED",
+      matchType: 'USER_CONFIRMED',
     };
   }
 
@@ -92,9 +85,9 @@ export class FoodMapper extends BaseMapper {
     carbs?: number,
     protein?: number,
     fat?: number,
-    comment?: string
+    comment?: string,
   ) {
-    if (typeof paramsOrUserId === "object") {
+    if (typeof paramsOrUserId === 'object') {
       return {
         user_id: paramsOrUserId.userId,
         meal_type: paramsOrUserId.mealType,
@@ -126,16 +119,19 @@ export class FoodMapper extends BaseMapper {
     foodId?: number | null,
     boundingBox?: any,
     confidence?: number | null,
-    mealImageId?: bigint | string | null
+    mealImageId?: bigint | string | null,
   ) {
-    if (typeof paramsOrMealId === "object") {
+    if (typeof paramsOrMealId === 'object') {
       return {
         meal_id: paramsOrMealId.mealId,
         food_id: paramsOrMealId.foodId || null,
         custom_food_name: paramsOrMealId.foodName,
         intake_gram: paramsOrMealId.intakeGram,
         bounding_box: paramsOrMealId.boundingBox || null,
-        confidence: paramsOrMealId.confidence !== undefined && paramsOrMealId.confidence !== null ? paramsOrMealId.confidence : null,
+        confidence:
+          paramsOrMealId.confidence !== undefined && paramsOrMealId.confidence !== null
+            ? paramsOrMealId.confidence
+            : null,
         meal_image_id: paramsOrMealId.mealImageId ? BigInt(paramsOrMealId.mealImageId) : null,
       };
     }
@@ -168,7 +164,7 @@ export class FoodMapper extends BaseMapper {
     mealId: bigint | string,
     gainedFuel: number,
     totalCalories: number,
-    currentFuel: number
+    currentFuel: number,
   ): MealLogRegisterResponse {
     return {
       mealId: mealId.toString(),

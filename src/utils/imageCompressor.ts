@@ -1,13 +1,13 @@
-import sharp from "sharp";
-import path from "path";
-import fs from "fs";
-import Logger from "../loaders/logger";
+import sharp from 'sharp';
+import path from 'path';
+import fs from 'fs';
+import Logger from '../loaders/logger';
 
 export interface CompressionOptions {
   maxWidth?: number;
   maxHeight?: number;
   quality?: number; // 1 ~ 100 (기본값: 60)
-  format?: "jpeg" | "webp" | "png";
+  format?: 'jpeg' | 'webp' | 'png';
 }
 
 /**
@@ -15,23 +15,23 @@ export interface CompressionOptions {
  */
 export async function compressImageBuffer(
   inputBuffer: Buffer,
-  options: CompressionOptions = {}
+  options: CompressionOptions = {},
 ): Promise<Buffer> {
-  const { maxWidth = 512, maxHeight = 512, quality = 60, format = "jpeg" } = options;
+  const { maxWidth = 512, maxHeight = 512, quality = 60, format = 'jpeg' } = options;
 
   try {
     let pipeline = sharp(inputBuffer).resize({
       width: maxWidth,
       height: maxHeight,
-      fit: "inside",
+      fit: 'inside',
       withoutEnlargement: true,
     });
 
-    if (format === "jpeg") {
+    if (format === 'jpeg') {
       pipeline = pipeline.jpeg({ quality });
-    } else if (format === "webp") {
+    } else if (format === 'webp') {
       pipeline = pipeline.webp({ quality });
-    } else if (format === "png") {
+    } else if (format === 'png') {
       pipeline = pipeline.png({ quality: Math.min(quality, 80) });
     }
 
@@ -48,13 +48,13 @@ export async function compressImageBuffer(
 export async function compressImageFile(
   inputPath: string,
   outputPath?: string,
-  options: CompressionOptions = {}
+  options: CompressionOptions = {},
 ): Promise<string> {
   if (!fs.existsSync(inputPath)) {
     throw new Error(`압축할 이미지 파일을 찾을 수 없습니다: ${inputPath}`);
   }
 
-  const { maxWidth = 512, maxHeight = 512, quality = 60, format = "jpeg" } = options;
+  const { maxWidth = 512, maxHeight = 512, quality = 60, format = 'jpeg' } = options;
 
   if (!outputPath) {
     const parsed = path.parse(inputPath);
@@ -65,15 +65,15 @@ export async function compressImageFile(
     let pipeline = sharp(inputPath).resize({
       width: maxWidth,
       height: maxHeight,
-      fit: "inside",
+      fit: 'inside',
       withoutEnlargement: true,
     });
 
-    if (format === "jpeg") {
+    if (format === 'jpeg') {
       pipeline = pipeline.jpeg({ quality });
-    } else if (format === "webp") {
+    } else if (format === 'webp') {
       pipeline = pipeline.webp({ quality });
-    } else if (format === "png") {
+    } else if (format === 'png') {
       pipeline = pipeline.png({ quality: Math.min(quality, 80) });
     }
 

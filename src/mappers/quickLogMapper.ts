@@ -1,6 +1,6 @@
-import { QuickLogCreateRequest, QuickLogApiResponse } from "../dto";
-import { DbQuickLogItem } from "../repositories/models";
-import { BaseMapper } from "./BaseMapper";
+import { QuickLogCreateRequest, QuickLogApiResponse } from '../dto';
+import { DbQuickLogItem } from '../repositories/models';
+import { BaseMapper } from './BaseMapper';
 
 export class QuickLogMapper extends BaseMapper {
   /**

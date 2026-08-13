@@ -1,11 +1,15 @@
-import { Service } from "typedi";
-import { getPrisma } from "../loaders/prisma";
-import Logger from "../loaders/logger";
-import { Prisma, foods } from "@prisma/client";
-import { BaseRepository } from "./BaseRepository";
+import { Service } from 'typedi';
+import { getPrisma } from '../loaders/prisma';
+import Logger from '../loaders/logger';
+import { Prisma, foods } from '@prisma/client';
+import { BaseRepository } from './BaseRepository';
 
 @Service()
-export default class FoodRepository extends BaseRepository<foods, Prisma.foodsCreateInput, Prisma.foodsUpdateInput> {
+export default class FoodRepository extends BaseRepository<
+  foods,
+  Prisma.foodsCreateInput,
+  Prisma.foodsUpdateInput
+> {
   constructor() {
     super(getPrisma().foods);
   }
@@ -30,14 +34,11 @@ export default class FoodRepository extends BaseRepository<foods, Prisma.foodsCr
 
   public async findFoodMasterByNameOrKeyword(rawName: string, keywordCleaned: string) {
     return this.findFirst({
-      OR: [
-        { name: { contains: rawName } },
-        { name: { contains: keywordCleaned } },
-      ],
+      OR: [{ name: { contains: rawName } }, { name: { contains: keywordCleaned } }],
     });
   }
 
-  public async createFoodMapping(rawName: string, foodId: number, matchType: "EXACT" | "ALIAS") {
+  public async createFoodMapping(rawName: string, foodId: number, matchType: 'EXACT' | 'ALIAS') {
     const prisma = getPrisma();
     return prisma.food_mappings.create({
       data: {
@@ -50,11 +51,7 @@ export default class FoodRepository extends BaseRepository<foods, Prisma.foodsCr
   }
 
   public async searchFoodsByKeyword(keyword: string, take: number = 10) {
-    return this.findMany(
-      { name: { contains: keyword } },
-      undefined,
-      take
-    );
+    return this.findMany({ name: { contains: keyword } }, undefined, take);
   }
 
   public async findUserById(userId: number) {
@@ -86,10 +83,19 @@ export default class FoodRepository extends BaseRepository<foods, Prisma.foodsCr
       foodId?: number | null,
       boundingBox?: any,
       confidence?: number,
-      imageId?: bigint | null
+      imageId?: bigint | null,
     ) => Prisma.meal_itemsUncheckedCreateInput,
-    toMealImageCreateInput: (mealId: bigint, imageUrl: string) => Prisma.meal_imagesUncheckedCreateInput,
-    toStatusLogCreateInput: (userId: number, actionType: string, expChange: number, currentLevel: number, currentExp: number) => Prisma.tammy_status_logsUncheckedCreateInput
+    toMealImageCreateInput: (
+      mealId: bigint,
+      imageUrl: string,
+    ) => Prisma.meal_imagesUncheckedCreateInput,
+    toStatusLogCreateInput: (
+      userId: number,
+      actionType: string,
+      expChange: number,
+      currentLevel: number,
+      currentExp: number,
+    ) => Prisma.tammy_status_logsUncheckedCreateInput,
   ) {
     const prisma = getPrisma();
 
@@ -110,10 +116,14 @@ export default class FoodRepository extends BaseRepository<foods, Prisma.foodsCr
               where: { id: imgId },
               data: { meal_id: meal.id },
             });
-            Logger.info(`[FoodRepository] Linked existing meal_images via imageId (ID: ${imgId}) to mealId: ${meal.id}`);
+            Logger.info(
+              `[FoodRepository] Linked existing meal_images via imageId (ID: ${imgId}) to mealId: ${meal.id}`,
+            );
           }
         } catch (err) {
-          Logger.warn(`[FoodRepository] Failed to find meal_images with imageId: ${imageInfo.imageId}`);
+          Logger.warn(
+            `[FoodRepository] Failed to find meal_images with imageId: ${imageInfo.imageId}`,
+          );
         }
       }
 
@@ -129,7 +139,9 @@ export default class FoodRepository extends BaseRepository<foods, Prisma.foodsCr
             where: { id: existingImage.id },
             data: { meal_id: meal.id },
           });
-          Logger.info(`[FoodRepository] Linked existing meal_images via imageUrl (ID: ${existingImage.id}) to mealId: ${meal.id}`);
+          Logger.info(
+            `[FoodRepository] Linked existing meal_images via imageUrl (ID: ${existingImage.id}) to mealId: ${meal.id}`,
+          );
         } else {
           defaultImageRecord = await tx.meal_images.create({
             data: toMealImageCreateInput(meal.id, imageInfo.imageUrl),
@@ -148,7 +160,7 @@ export default class FoodRepository extends BaseRepository<foods, Prisma.foodsCr
           item.foodId,
           item.boundingBox,
           item.confidence,
-          targetImageId ? BigInt(targetImageId) : null
+          targetImageId ? BigInt(targetImageId) : null,
         );
       });
 
@@ -170,10 +182,10 @@ export default class FoodRepository extends BaseRepository<foods, Prisma.foodsCr
       await tx.tammy_status_logs.create({
         data: toStatusLogCreateInput(
           userId,
-          "MEAL_LOG",
+          'MEAL_LOG',
           gainedExp,
           tammyStatus.level,
-          tammyStatus.current_exp
+          tammyStatus.current_exp,
         ),
       });
 

@@ -1,4 +1,4 @@
-import { AuthProvider } from "../interfaces/enums";
+import { AuthProvider } from '../interfaces/enums';
 
 export interface UserSignUpRequest {
   /**
@@ -49,7 +49,7 @@ export interface UserAuthProfile {
   id: number;
   email: string;
   nickname: string;
-  authProvider: AuthProvider | "LOCAL" | "KAKAO" | "GOOGLE" | "APPLE";
+  authProvider: AuthProvider | 'LOCAL' | 'KAKAO' | 'GOOGLE' | 'APPLE';
 }
 
 export interface UserLoginResponse {
@@ -99,7 +99,7 @@ export interface UserAuthMeResponse {
   id: number;
   email: string;
   nickname: string;
-  authProvider: AuthProvider | "LOCAL" | "KAKAO" | "GOOGLE" | "APPLE";
+  authProvider: AuthProvider | 'LOCAL' | 'KAKAO' | 'GOOGLE' | 'APPLE';
   targetDailyWaterMl?: number;
   targetDailyCaloriesKcal?: number;
   createdAt: string;
@@ -123,7 +123,7 @@ export interface SocialLoginRequest {
    * 소셜 로그인 제공자 (GOOGLE | KAKAO | APPLE)
    * @example "KAKAO"
    */
-  provider: "GOOGLE" | "KAKAO" | "APPLE";
+  provider: 'GOOGLE' | 'KAKAO' | 'APPLE';
 
   /**
    * 구글/카카오/애플 소셜 로그인 인증 토큰 (access_token 또는 id_token)

@@ -12,4 +12,4 @@ export {
   ProactiveStatus,
   ActionType,
   ChangeReason,
-} from "@prisma/client";
+} from '@prisma/client';

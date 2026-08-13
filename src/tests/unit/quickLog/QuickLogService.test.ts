@@ -1,29 +1,29 @@
-import "reflect-metadata";
-import { Container } from "typedi";
-import QuickLogService from "../../../services/quickLogService";
-import QuickLogRepository from "../../../repositories/QuickLogRepository";
-import { QuickLogMapper } from "../../../mappers";
+import 'reflect-metadata';
+import { Container } from 'typedi';
+import QuickLogService from '../../../services/quickLogService';
+import QuickLogRepository from '../../../repositories/QuickLogRepository';
+import { QuickLogMapper } from '../../../mappers';
 
-jest.mock("../../../mappers", () => ({
+jest.mock('../../../mappers', () => ({
   QuickLogMapper: {
     toCreateInput: jest.fn(),
     toApiResponse: jest.fn(),
   },
 }));
 
-jest.mock("../../../constants/gamification", () => ({
+jest.mock('../../../constants/gamification', () => ({
   FUEL_REWARDS: {
     QUICK_LOG: 5,
   },
 }));
 
-jest.mock("../../../loaders/logger", () => ({
+jest.mock('../../../loaders/logger', () => ({
   info: jest.fn(),
   error: jest.fn(),
   warn: jest.fn(),
 }));
 
-describe("QuickLogService", () => {
+describe('QuickLogService', () => {
   let service: QuickLogService;
   let mockQuickLogRepository: jest.Mocked<QuickLogRepository>;
 
@@ -42,14 +42,14 @@ describe("QuickLogService", () => {
     jest.clearAllMocks();
   });
 
-  describe("createQuickLog", () => {
-    it("should create a quick log and update user fuel correctly", async () => {
+  describe('createQuickLog', () => {
+    it('should create a quick log and update user fuel correctly', async () => {
       const userId = 1;
-      const data = { category: "MOOD", content: "Happy" } as any;
-      const mappedInput = { user_id: userId, category: "MOOD", earned_fuel: 5 };
-      const createdLog = { id: 100, user_id: userId, category: "MOOD" };
+      const data = { category: 'MOOD', content: 'Happy' } as any;
+      const mappedInput = { user_id: userId, category: 'MOOD', earned_fuel: 5 };
+      const createdLog = { id: 100, user_id: userId, category: 'MOOD' };
       const updatedUser = { id: userId, current_fuel: 105 };
-      const apiResponse = { id: 100, category: "MOOD", current_fuel: 105 };
+      const apiResponse = { id: 100, category: 'MOOD', current_fuel: 105 };
 
       (QuickLogMapper.toCreateInput as jest.Mock).mockReturnValue(mappedInput);
       mockQuickLogRepository.createQuickLog.mockResolvedValue(createdLog as any);
@@ -69,10 +69,10 @@ describe("QuickLogService", () => {
       });
     });
 
-    it("should handle undefined current_fuel gracefully", async () => {
+    it('should handle undefined current_fuel gracefully', async () => {
       const userId = 1;
-      const data = { category: "DIARY" } as any;
-      
+      const data = { category: 'DIARY' } as any;
+
       mockQuickLogRepository.createQuickLog.mockResolvedValue({ id: 101 } as any);
       // Return user without current_fuel
       mockQuickLogRepository.updateUserFuel.mockResolvedValue({ id: userId } as any);

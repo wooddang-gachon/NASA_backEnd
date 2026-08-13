@@ -1,13 +1,13 @@
-import { Sender } from "../interfaces/enums";
-import { ChatMessageApiResponse } from "../dto";
-import { AiChatInternalResponse } from "../interfaces/aiServer";
+import { Sender } from '../interfaces/enums';
+import { ChatMessageApiResponse } from '../dto';
+import { AiChatInternalResponse } from '../interfaces/aiServer';
 import {
   DbMemoryItem,
   CreateUserMessageParams,
   CreateTammyMessageParams,
   CreateLongTermMemoryParams,
-} from "../repositories/models";
-import { BaseMapper } from "./BaseMapper";
+} from '../repositories/models';
+import { BaseMapper } from './BaseMapper';
 
 export class ChatMapper extends BaseMapper {
   /**
@@ -17,7 +17,7 @@ export class ChatMapper extends BaseMapper {
     paramsOrUserId: CreateUserMessageParams | number,
     userMessage?: string,
   ) {
-    if (typeof paramsOrUserId === "object") {
+    if (typeof paramsOrUserId === 'object') {
       return {
         user_id: paramsOrUserId.userId,
         sender: Sender.USER,
@@ -41,12 +41,12 @@ export class ChatMapper extends BaseMapper {
     intentLabel?: string,
     labels?: any,
   ) {
-    if (typeof paramsOrUserId === "object") {
+    if (typeof paramsOrUserId === 'object') {
       return {
         user_id: paramsOrUserId.userId,
         sender: Sender.TAMMY_AI,
         message_text: paramsOrUserId.replyText,
-        motion_tag: paramsOrUserId.motionTag || "COMFORT_WARM",
+        motion_tag: paramsOrUserId.motionTag || 'COMFORT_WARM',
         intent_label: paramsOrUserId.intentLabel || null,
         labels: paramsOrUserId.labels || null,
       };
@@ -55,7 +55,7 @@ export class ChatMapper extends BaseMapper {
       user_id: paramsOrUserId,
       sender: Sender.TAMMY_AI,
       message_text: replyText!,
-      motion_tag: motionTag || "COMFORT_WARM",
+      motion_tag: motionTag || 'COMFORT_WARM',
       intent_label: intentLabel || null,
       labels: labels || null,
     };
@@ -73,7 +73,7 @@ export class ChatMapper extends BaseMapper {
     return {
       reply: aiResult.replyText,
       emotion: aiResult.emotion,
-      motionTag: tammyMsg.motion_tag || "COMFORT_WARM",
+      motionTag: tammyMsg.motion_tag || 'COMFORT_WARM',
       gainedFuel,
       currentFuel,
     };

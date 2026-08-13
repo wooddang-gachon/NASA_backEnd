@@ -1,6 +1,6 @@
-import type { Request, Response, NextFunction } from "express";
-import { AppError } from "../../errors";
-import Logger from "../../loaders/logger";
+import type { Request, Response, NextFunction } from 'express';
+import { AppError } from '../../errors';
+import Logger from '../../loaders/logger';
 
 /**
  * Global Error Handling Middleware for Express & TSOA
@@ -9,7 +9,7 @@ export function globalErrorHandler(
   err: any,
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void {
   if (res.headersSent) {
     return next(err);
@@ -17,7 +17,9 @@ export function globalErrorHandler(
 
   // 1. 커스텀 애플리케이션 예외 (AppError)
   if (err instanceof AppError) {
-    Logger.warn(`[AppError] ${req.method} ${req.path} - ${err.code} (${err.status}): ${err.message}`);
+    Logger.warn(
+      `[AppError] ${req.method} ${req.path} - ${err.code} (${err.status}): ${err.message}`,
+    );
     res.status(err.status).json({
       code: err.code,
       message: err.message,
@@ -28,11 +30,11 @@ export function globalErrorHandler(
   }
 
   // 2. TSOA Request Body / Query Validation Error
-  if (err.name === "ValidateError" || err.status === 400) {
+  if (err.name === 'ValidateError' || err.status === 400) {
     Logger.warn(`[ValidationError] ${req.method} ${req.path} - ${err.message}`);
     res.status(400).json({
-      code: "VALIDATION_ERROR",
-      message: "요청 데이터 유효성 검증에 실패하였습니다.",
+      code: 'VALIDATION_ERROR',
+      message: '요청 데이터 유효성 검증에 실패하였습니다.',
       status: 400,
       details: err.fields || err.message,
     });
@@ -40,11 +42,11 @@ export function globalErrorHandler(
   }
 
   // 3. 처리되지 않은 500 Internal Server Error (스택 트레이스는 로거로 기록 후 은닉)
-  console.error("🔥 [Unhandled Error Detail]:", err);
+  console.error('🔥 [Unhandled Error Detail]:', err);
   Logger.error(`[UnhandledError] ${req.method} ${req.path} - ${err.stack || err.message}`);
   res.status(500).json({
-    code: "INTERNAL_SERVER_ERROR",
-    message: "서버 내부 오류가 발생하였습니다. 잠시 후 다시 시도해주세요.",
+    code: 'INTERNAL_SERVER_ERROR',
+    message: '서버 내부 오류가 발생하였습니다. 잠시 후 다시 시도해주세요.',
     status: 500,
   });
 }

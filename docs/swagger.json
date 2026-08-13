@@ -1024,9 +1024,6 @@
 					"imageId": {
 						"type": "string"
 					},
-					"imageUrl": {
-						"type": "string"
-					},
 					"detectedFoods": {
 						"items": {
 							"$ref": "#/components/schemas/DetectedFoodItem"
@@ -1038,7 +1035,6 @@
 					"scanEngine",
 					"isFallbackUsed",
 					"imageId",
-					"imageUrl",
 					"detectedFoods"
 				],
 				"type": "object",

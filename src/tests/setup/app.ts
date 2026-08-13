@@ -1,6 +1,6 @@
-import express from "express";
-import loaders from "../../loaders";
-import { getPrisma } from "../../loaders/prisma";
+import express from 'express';
+import loaders from '../../loaders';
+import { getPrisma } from '../../loaders/prisma';
 
 let app: express.Application;
 
@@ -17,9 +17,9 @@ export const getTestApp = async (): Promise<express.Application> => {
     update: {},
     create: {
       id: 1,
-      email: "testuser@example.com",
-      nickname: "우당탕탕",
-      gender: "FEMALE",
+      email: 'testuser@example.com',
+      nickname: '우당탕탕',
+      gender: 'FEMALE',
       age: 26,
       current_fuel: 100,
     },
@@ -39,7 +39,7 @@ export const getTestApp = async (): Promise<express.Application> => {
 };
 
 export const closeTestApp = async (): Promise<void> => {
-  const { clearPrisma } = await import("../../loaders/prisma");
+  const { clearPrisma } = await import('../../loaders/prisma');
   await clearPrisma();
   app = undefined as any;
 };
