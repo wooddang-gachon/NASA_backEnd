@@ -223,102 +223,32 @@ export default class FoodService {
       throw new UserNotFoundError(userId);
     }
 
-    let itemsInput: Array<{
-      foodName: string;
-      gram: number;
-      boxId?: number;
-      calories?: number;
-      carbs?: number;
-      protein?: number;
-      fat?: number;
-      boundingBox?: any;
-      confidence?: number;
-      imageId?: string | number;
-    }> = [];
+    let itemsInput: Array<{ foodName: string; gram: number }> = [];
 
     if (data.foods && data.foods.length > 0) {
       itemsInput = data.foods.map((f) => ({
         foodName: f.foodName,
         gram: f.gram || 100,
-        boxId: f.boxId,
-        calories: f.calories,
-        carbs: f.carbs,
-        protein: f.protein,
-        fat: f.fat,
-        boundingBox: f.boundingBox,
-        confidence: f.confidence,
-        imageId: f.imageId,
       }));
-    } else if (data.foodName) {
-      itemsInput = [
-        {
-          foodName: data.foodName,
-          gram: data.intakeGram || 100,
-        },
-      ];
     } else {
-      itemsInput = [
-        {
-          foodName: "식단 기록",
-          gram: 100,
-        },
-      ];
+      throw new Error("음식 항목(foods)은 최소 1개 이상 전송해야 합니다.");
     }
 
-    const processedItems: Array<{
-      foodName: string;
-      intakeGram: number;
-      foodId?: number | null;
-      calories: number;
-      carbs: number;
-      protein: number;
-      fat: number;
-      boxId?: number;
-      boundingBox?: any;
-      confidence?: number;
-      imageId?: string | number;
-    }> = [];
+    const processedItems: any[] = [];
 
     for (const item of itemsInput) {
       const intakeG = item.gram;
-      let itemCal = 0;
-      let itemCarbs = 0;
-      let itemProtein = 0;
-      let itemFat = 0;
-      let matchedFoodId: number | null = null;
-
-      if (
-        item.calories !== undefined &&
-        item.carbs !== undefined &&
-        item.protein !== undefined &&
-        item.fat !== undefined
-      ) {
-        itemCal = item.calories;
-        itemCarbs = item.carbs;
-        itemProtein = item.protein;
-        itemFat = item.fat;
-      } else {
-        const mapped = await this.getOrMapFood(item.foodName);
-        matchedFoodId = mapped.foodId;
-        const ratio = intakeG / (mapped.standardServingG || 100);
-        itemCal = Math.round(mapped.caloriesKcal * ratio);
-        itemCarbs = Math.round(mapped.carbohydrateG * ratio);
-        itemProtein = Math.round(mapped.proteinG * ratio);
-        itemFat = Math.round(mapped.fatG * ratio);
-      }
-
+      const mapped = await this.getOrMapFood(item.foodName);
+      
+      const ratio = intakeG / (mapped.standardServingG || 100);
       processedItems.push({
         foodName: item.foodName,
         intakeGram: intakeG,
-        foodId: matchedFoodId,
-        calories: itemCal,
-        carbs: itemCarbs,
-        protein: itemProtein,
-        fat: itemFat,
-        boxId: item.boxId,
-        boundingBox: item.boundingBox,
-        confidence: item.confidence,
-        imageId: item.imageId,
+        foodId: mapped.foodId,
+        calories: Math.round(mapped.caloriesKcal * ratio),
+        carbs: Math.round(mapped.carbohydrateG * ratio),
+        protein: Math.round(mapped.proteinG * ratio),
+        fat: Math.round(mapped.fatG * ratio),
       });
     }
 
@@ -347,7 +277,7 @@ export default class FoodService {
       userId,
       mealData,
       processedItems,
-      { imageId: data.imageId, imageUrl: data.imageUrl },
+      { imageId: data.imageId },
       FUEL_REWARDS.FOOD_CONFIRM, // gainedFuel
       EXP_REWARDS.FOOD_CONFIRM, // gainedExp
       FoodMapper.toMealItemCreateInput,
@@ -373,6 +303,64 @@ export default class FoodService {
 
     Logger.info(`[FoodService] Found ${dbFoods.length} food items matching keyword: '${keyword}'`);
     return FoodMapper.toFoodSearchResponse(dbFoods);
+  }
+
+  public async detectFoodViaExternalAi(file: Express.Multer.File): Promise<any> {
+    if (!file) {
+      throw new Error("업로드할 이미지 파일이 없습니다.");
+    }
+    
+    // 1. 이미지 임시 저장 (AiAdapter가 파일을 읽을 수 있도록)
+    const uploadsDir = path.join(process.cwd(), "uploads");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    const ext = path.extname(file.originalname) || ".jpg";
+    const filename = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+    
+    fs.writeFileSync(filePath, file.buffer);
+    const imageUrl = `/uploads/${filename}`;
+
+    // 2. 로컬 YOLO를 건너뛰고, 메인 AI 서버(Vision LLM)로 바로 요청!
+    let aiVisionResult: any = null;
+    try {
+      aiVisionResult = await this.aiService.analyzeFoodVision(imageUrl);
+      if (aiVisionResult) aiVisionResult.scanEngine = "VisionLLM_Direct";
+    } catch (error) {
+      Logger.error(`[FoodService] 메인 AI 서버 Vision 연동 실패: ${error}`);
+      throw new Error("AI 서버에서 이미지를 분석하는 데 실패했습니다.");
+    }
+
+    // 3. 검출된 음식들을 getOrMapFood(매칭 테이블 조회 및 추가 로직)로 영양성분 매핑
+    const enrichedFoods = [];
+    let idx = 0;
+    
+    if (aiVisionResult && aiVisionResult.detectedFoods && aiVisionResult.detectedFoods.length > 0) {
+      for (const item of aiVisionResult.detectedFoods) {
+        const rawFoodName = item.foodName || item.name || "음식";
+        const mapping = await this.getOrMapFood(rawFoodName);
+        
+        enrichedFoods.push({
+          boxId: item.boxId !== undefined ? item.boxId : idx++,
+          ...item,
+          foodName: rawFoodName,
+          estimatedGram: mapping.standardServingG,
+          calories: mapping.caloriesKcal,
+          carbs: mapping.carbohydrateG,
+          protein: mapping.proteinG,
+          fat: mapping.fatG,
+          matchedStandardFoodName: mapping.foodId > 0 ? mapping.rawName : rawFoodName,
+          matchedFoodId: mapping.foodId > 0 ? mapping.foodId : undefined,
+          matchType: mapping.matchType,
+        });
+      }
+    }
+
+    return {
+      ...(aiVisionResult || {}),
+      detectedFoods: enrichedFoods,
+    };
   }
 }
 

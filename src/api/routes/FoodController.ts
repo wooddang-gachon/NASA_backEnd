@@ -28,6 +28,19 @@ export class FoodController extends BaseController {
   }
 
   /**
+   * [추가] 외부 AI 서버를 통한 음식 사진 객체 검출 API
+   * @summary 외부 AI 서버 기반 식단 검출 및 매칭
+   */
+  @Post("food-vision/ai-detect")
+  @Security("jwt")
+  public async detectFoodFromAiServer(
+    @UploadedFile("file") file: Express.Multer.File
+  ): Promise<ApiResponse<any>> {
+    const data = await this.foodService.detectFoodViaExternalAi(file);
+    return this.success(data);
+  }
+
+  /**
    * [3.2] Food Log 확정 저장 API
    */
   @Post("food-log/confirm")

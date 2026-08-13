@@ -1086,6 +1086,31 @@
 			"MealType": {
 				"$ref": "#/components/schemas/_36_Enums.MealType"
 			},
+			"ApiResponse_any_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"FoodLogConfirmResponse": {
 				"properties": {
 					"mealId": {
@@ -1147,7 +1172,7 @@
 				"additionalProperties": false
 			},
 			"FoodItemInput": {
-				"description": "식단 확정 요청 시 개별 음식 항목 DTO (최소 필수: foodName, gram)\n스캔 단계에서 발급받은 boxId를 보내면 해당 좌표가 자동으로 연결됩니다.",
+				"description": "식단 확정 요청 시 개별 음식 항목 DTO",
 				"properties": {
 					"foodName": {
 						"type": "string"
@@ -1155,44 +1180,6 @@
 					"gram": {
 						"type": "number",
 						"format": "double"
-					},
-					"boxId": {
-						"type": "number",
-						"format": "double"
-					},
-					"boundingBox": {
-						"$ref": "#/components/schemas/BoundingBoxDto"
-					},
-					"confidence": {
-						"type": "number",
-						"format": "double"
-					},
-					"calories": {
-						"type": "number",
-						"format": "double"
-					},
-					"carbs": {
-						"type": "number",
-						"format": "double"
-					},
-					"protein": {
-						"type": "number",
-						"format": "double"
-					},
-					"fat": {
-						"type": "number",
-						"format": "double"
-					},
-					"imageId": {
-						"anyOf": [
-							{
-								"type": "string"
-							},
-							{
-								"type": "number",
-								"format": "double"
-							}
-						]
 					}
 				},
 				"required": [
@@ -1231,9 +1218,6 @@
 							}
 						]
 					},
-					"imageUrl": {
-						"type": "string"
-					},
 					"comment": {
 						"type": "string"
 					},
@@ -1242,42 +1226,12 @@
 							"$ref": "#/components/schemas/FoodItemInput"
 						},
 						"type": "array"
-					},
-					"foodName": {
-						"type": "string"
-					},
-					"intakeGram": {
-						"type": "number",
-						"format": "double"
 					}
 				},
 				"required": [
-					"mealType"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
-			"ApiResponse_any_": {
-				"properties": {
-					"success": {
-						"type": "boolean"
-					},
-					"message": {
-						"type": "string"
-					},
-					"data": {
-						"nullable": true
-					},
-					"code": {
-						"type": "number",
-						"format": "double"
-					}
-				},
-				"required": [
-					"success",
-					"message",
-					"data",
-					"code"
+					"mealType",
+					"imageId",
+					"foods"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -1978,6 +1932,53 @@
 									},
 									"mealType": {
 										"$ref": "#/components/schemas/MealType"
+									}
+								},
+								"required": [
+									"file"
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		"/food-vision/ai-detect": {
+			"post": {
+				"operationId": "DetectFoodFromAiServer",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApiResponse_any_"
+								}
+							}
+						}
+					}
+				},
+				"description": "[추가] 외부 AI 서버를 통한 음식 사진 객체 검출 API",
+				"summary": "외부 AI 서버 기반 식단 검출 및 매칭",
+				"tags": [
+					"4. FoodVision - 식단 스캔 & 영양성분 기록"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"multipart/form-data": {
+							"schema": {
+								"type": "object",
+								"properties": {
+									"file": {
+										"type": "string",
+										"format": "binary"
 									}
 								},
 								"required": [

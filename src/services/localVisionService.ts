@@ -170,7 +170,7 @@ export default class LocalVisionService {
   /**
    * 로컬 YOLO ONNX 모델 기반 음식 객체 탐지
    */
-  public async detectFoodObjects(imageBuffer: Buffer, confThreshold = 0.25): Promise<LocalDetectionResult[]> {
+  public async detectFoodObjects(imageBuffer: Buffer, confThreshold = 0.6): Promise<LocalDetectionResult[]> {
     try {
       const session = await this.getSession();
       

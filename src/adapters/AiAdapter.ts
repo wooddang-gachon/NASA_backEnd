@@ -29,33 +29,50 @@ export class AiAdapter {
 
   private async postJson<T>(endpoint: string, payload: unknown, serviceName: string): Promise<T> {
     const url = `${config.ai.serverUrl}${endpoint}`;
-    try {
-      Logger.info(`[AiAdapter] Requesting ${serviceName} via ${endpoint}`);
-      const response = await fetch(url, {
-        method: "POST",
-        headers: this.getHeaders(),
-        body: JSON.stringify(payload),
-      });
+    const MAX_RETRIES = 3;
+    let lastError: unknown;
 
-      if (!response.ok) {
-        Logger.error(`[AiAdapter] ${serviceName} server error with status: ${response.status}`);
-        throw new AiServerError(
-          `AI ${serviceName} 서버 응답에 오류가 발생했습니다. (Status: ${response.status})`,
-          "AI_SERVER_ERROR",
-          response.status
-        );
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        Logger.info(`[AiAdapter] Requesting ${serviceName} via ${endpoint} (Attempt ${attempt}/${MAX_RETRIES})`);
+        
+        // 30초 타임아웃 설정
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: this.getHeaders(),
+          body: JSON.stringify(payload),
+          signal: controller.signal as any,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`AI 서버 응답 오류 (Status: ${response.status})`);
+        }
+
+        return (await response.json()) as T;
+      } catch (error) {
+        lastError = error;
+        Logger.warn(`[AiAdapter] ${serviceName} request failed (Attempt ${attempt}): ${error}`);
+        
+        if (attempt < MAX_RETRIES) {
+          // Exponential backoff: 1초, 2초 대기
+          const delay = Math.pow(2, attempt - 1) * 1000;
+          await new Promise((res) => setTimeout(res, delay));
+        }
       }
-
-      return (await response.json()) as T;
-    } catch (error) {
-      if (error instanceof AiServerError) throw error;
-      Logger.error(`[AiAdapter] Failed to connect to AI ${serviceName} server: ${error}`);
-      throw new AiServerError(
-        `AI ${serviceName} 서버와 통신할 수 없습니다. AI 서버 상태를 확인해 주세요.`,
-        "AI_SERVER_UNAVAILABLE",
-        503
-      );
     }
+
+    // 3회 모두 실패 시 무조건 503 예외 발생 (Mock 데이터 반환 안 함)
+    Logger.error(`[AiAdapter] Failed to connect to AI ${serviceName} server after ${MAX_RETRIES} attempts. Last error: ${lastError}`);
+    throw new AiServerError(
+      `현재 우주 통신망이 불안정합니다. 잠시 후 다시 시도해주세요.`,
+      "AI_SERVER_UNAVAILABLE",
+      503
+    );
   }
 
   private async processBase64Image(imageUrl?: string, inputBase64?: string): Promise<string | undefined> {
