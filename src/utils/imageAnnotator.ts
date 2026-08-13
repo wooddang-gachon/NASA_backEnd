@@ -1,7 +1,7 @@
-import sharp from 'sharp';
-import fs from 'fs';
-import path from 'path';
-import Logger from '../loaders/logger';
+import sharp from "sharp";
+import fs from "fs";
+import path from "path";
+import Logger from "../loaders/logger";
 
 export interface BoundingBoxInput {
   foodName?: string;
@@ -23,6 +23,9 @@ export interface BoundingBoxInput {
 
 /**
  * 이미지 상에 감지된 Bounding Box 좌표와 라벨을 시각화하여 테스트용 디버그 이미지(_debug.jpg)로 추가 저장합니다.
+ * @param imagePath 원본 이미지 파일 경로
+ * @param items 렌더링할 Bounding Box 정보 배열
+ * @returns 저장된 디버그 이미지의 경로 또는 실패 시 null
  */
 export async function drawBoundingBoxesAndSave(
   imagePath: string,
@@ -46,8 +49,10 @@ export async function drawBoundingBoxesAndSave(
       if (!box) continue;
 
       const { x, y, width, height } = box;
-      const label = item.foodName || item.className || 'Food';
-      const confStr = item.confidence ? ` (${(item.confidence * 100).toFixed(0)}%)` : '';
+      const label = item.foodName || item.className || "Food";
+      const confStr = item.confidence
+        ? ` (${(item.confidence * 100).toFixed(0)}%)`
+        : "";
 
       // 네모 상자 (빨간색 테두리)
       svgElements.push(
@@ -72,16 +77,21 @@ export async function drawBoundingBoxesAndSave(
       return null;
     }
 
-    const svgOverlay = `<svg width="${imgWidth}" height="${imgHeight}">${svgElements.join('')}</svg>`;
+    const svgOverlay = `<svg width="${imgWidth}" height="${imgHeight}">${svgElements.join("")}</svg>`;
 
     const parsedPath = path.parse(imagePath);
-    const debugFilePath = path.join(parsedPath.dir, `${parsedPath.name}_debug${parsedPath.ext}`);
+    const debugFilePath = path.join(
+      parsedPath.dir,
+      `${parsedPath.name}_debug${parsedPath.ext}`,
+    );
 
     await sharp(imageBuffer)
       .composite([{ input: Buffer.from(svgOverlay), top: 0, left: 0 }])
       .toFile(debugFilePath);
 
-    Logger.info(`[ImageAnnotator] Saved debug image with bounding boxes to: ${debugFilePath}`);
+    Logger.info(
+      `[ImageAnnotator] Saved debug image with bounding boxes to: ${debugFilePath}`,
+    );
     return debugFilePath;
   } catch (error) {
     Logger.error(`[ImageAnnotator] Failed to draw bounding boxes: ${error}`);

@@ -1,4 +1,4 @@
-import { Gender } from '../interfaces/enums';
+import { Gender } from "../interfaces/enums";
 
 export interface TammyStatusDto {
   level: number;

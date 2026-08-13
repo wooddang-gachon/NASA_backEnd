@@ -1,5 +1,5 @@
-import sharp from 'sharp';
-import Logger from '../../loaders/logger';
+import sharp from "sharp";
+import Logger from "../../loaders/logger";
 
 export interface BoundingBox {
   x: number;
@@ -19,6 +19,8 @@ export interface DetectionOptions {
 
 /**
  * 흑백 픽셀 히스토그램을 기반으로 Otsu 이진화 최적 임계값을 계산합니다.
+ * @param data 흑백 이미지 데이터 버퍼
+ * @returns Otsu 이진화 최적 임계값 (0~255)
  */
 function calculateOtsuThreshold(data: Uint8Array): number {
   const histogram = new Array(256).fill(0);
@@ -64,8 +66,14 @@ function calculateOtsuThreshold(data: Uint8Array): number {
 
 /**
  * 겹치거나 근접한 거리(gap) 내의 Bounding Box들을 하나의 큰 박스로 통합/병합합니다.
+ * @param boxes 병합할 Bounding Box 배열
+ * @param gap 박스를 병합할 최대 거리 픽셀 (기본값: 15)
+ * @returns 병합이 완료된 Bounding Box 배열
  */
-export function mergeBoundingBoxes(boxes: BoundingBox[], gap: number = 15): BoundingBox[] {
+export function mergeBoundingBoxes(
+  boxes: BoundingBox[],
+  gap: number = 15,
+): BoundingBox[] {
   if (boxes.length <= 1) return boxes;
 
   let mergedList = [...boxes];
@@ -89,15 +97,23 @@ export function mergeBoundingBoxes(boxes: BoundingBox[], gap: number = 15): Boun
         if (!other) continue;
 
         const overlapX =
-          current.x - gap <= other.x + other.width && current.x + current.width + gap >= other.x;
+          current.x - gap <= other.x + other.width &&
+          current.x + current.width + gap >= other.x;
         const overlapY =
-          current.y - gap <= other.y + other.height && current.y + current.height + gap >= other.y;
+          current.y - gap <= other.y + other.height &&
+          current.y + current.height + gap >= other.y;
 
         if (overlapX && overlapY) {
           const minX = Math.min(current.x, other.x);
           const minY = Math.min(current.y, other.y);
-          const maxX = Math.max(current.x + current.width, other.x + other.width);
-          const maxY = Math.max(current.y + current.height, other.y + other.height);
+          const maxX = Math.max(
+            current.x + current.width,
+            other.x + other.width,
+          );
+          const maxY = Math.max(
+            current.y + current.height,
+            other.y + other.height,
+          );
 
           current = {
             x: minX,
@@ -126,6 +142,9 @@ export function mergeBoundingBoxes(boxes: BoundingBox[], gap: number = 15): Boun
  * [전통 이미지 처리 알고리즘]
  * 고해상도 실사 사진에 대해 내부 다운스케일링 + Otsu 이진화 + 연결 성분 분석 + 박스 병합을 수행하여
  * 원본 이미지 비율에 맞는 Bounding Box 좌표들을 탐지합니다.
+ * @param inputBuffer 입력 이미지 바이너리 버퍼
+ * @param options 탐지 옵션
+ * @returns 감지된 Bounding Box 배열
  */
 export async function detectObjectBoundingBoxes(
   inputBuffer: Buffer,
@@ -144,12 +163,13 @@ export async function detectObjectBoundingBoxes(
     const origHeight = origMetadata.height || 600;
 
     // 고해상도 사진의 노이즈 감소 및 속도 향상을 위한 분석용 다운스케일링
-    const scaleFactor = origWidth > analysisWidth ? analysisWidth / origWidth : 1;
+    const scaleFactor =
+      origWidth > analysisWidth ? analysisWidth / origWidth : 1;
     const targetWidth = Math.round(origWidth * scaleFactor);
     const targetHeight = Math.round(origHeight * scaleFactor);
 
     const { data, info } = await sharp(inputBuffer)
-      .resize(targetWidth, targetHeight, { fit: 'inside' })
+      .resize(targetWidth, targetHeight, { fit: "inside" })
       .greyscale()
       .raw()
       .toBuffer({ resolveWithObject: true });
@@ -159,10 +179,15 @@ export async function detectObjectBoundingBoxes(
     const totalArea = width * height;
 
     const minAreaPixels = (totalArea * minAreaRatio) / 100;
-    const mergeGapPixels = Math.max(5, Math.round((width * mergeGapRatio) / 100));
+    const mergeGapPixels = Math.max(
+      5,
+      Math.round((width * mergeGapRatio) / 100),
+    );
 
     const targetThreshold =
-      options.threshold !== undefined ? options.threshold : calculateOtsuThreshold(data);
+      options.threshold !== undefined
+        ? options.threshold
+        : calculateOtsuThreshold(data);
 
     const visited = new Uint8Array(width * height);
     const rawBoxes: BoundingBox[] = [];
@@ -179,7 +204,9 @@ export async function detectObjectBoundingBoxes(
         const index = y * width + x;
         const val = data[index] ?? 0;
 
-        const isForeground = isDarkBackground ? val >= targetThreshold : val < targetThreshold;
+        const isForeground = isDarkBackground
+          ? val >= targetThreshold
+          : val < targetThreshold;
 
         if (visited[index] || !isForeground) {
           continue;
@@ -266,7 +293,8 @@ export async function detectObjectBoundingBoxes(
         };
       })
       .filter((b) => {
-        const areaPercent = ((b.width * b.height) / (origWidth * origHeight)) * 100;
+        const areaPercent =
+          ((b.width * b.height) / (origWidth * origHeight)) * 100;
         return areaPercent <= maxAreaPercent;
       });
 
@@ -275,13 +303,17 @@ export async function detectObjectBoundingBoxes(
     );
     return rescaledBoxes;
   } catch (error) {
-    Logger.error(`[ObjectDetector] Failed to detect object bounding boxes: ${error}`);
+    Logger.error(
+      `[ObjectDetector] Failed to detect object bounding boxes: ${error}`,
+    );
     throw error;
   }
 }
 
 /**
  * 라플라시안 컨볼루션 필터를 적용하여 이미지의 외곽선(Edge)을 추출한 Buffer를 반환합니다.
+ * @param inputBuffer 원본 이미지 버퍼
+ * @returns 외곽선이 추출된 이미지 버퍼
  */
 export async function extractImageEdges(inputBuffer: Buffer): Promise<Buffer> {
   try {

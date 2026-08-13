@@ -1,6 +1,6 @@
-import winston from 'winston';
-import config from '@/config';
-import { AsyncLocalStorage } from 'async_hooks';
+import winston from "winston";
+import config from "@/config";
+import { AsyncLocalStorage } from "async_hooks";
 
 export const asyncLocalStorage = new AsyncLocalStorage<string>();
 
@@ -14,11 +14,11 @@ const correlationIdFormat = winston.format((info) => {
 
 const transports = [];
 
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === "production") {
   transports.push(
     new winston.transports.Console({
       format: winston.format.combine(
-        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
         correlationIdFormat(),
         winston.format.errors({ stack: true }),
         winston.format.splat(),
@@ -30,12 +30,12 @@ if (process.env.NODE_ENV === 'production') {
   transports.push(
     new winston.transports.Console({
       format: winston.format.combine(
-        winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
         winston.format.colorize(),
         correlationIdFormat(),
         winston.format.printf(
           (info) =>
-            `[${info.timestamp}] [${info.level}]${info.correlationId ? ` [${info.correlationId}]` : ''}: ${info.message}`,
+            `[${info.timestamp}] [${info.level}]${info.correlationId ? ` [${info.correlationId}]` : ""}: ${info.message}`,
         ),
       ),
     }),

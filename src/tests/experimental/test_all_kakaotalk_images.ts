@@ -1,14 +1,22 @@
-import fs from 'fs';
-import path from 'path';
-import sharp from 'sharp';
-import { detectObjectBoundingBoxes, extractImageEdges } from '../../utils/food/objectDetector';
+import fs from "fs";
+import path from "path";
+import sharp from "sharp";
+import {
+  detectObjectBoundingBoxes,
+  extractImageEdges,
+} from "../../utils/food/objectDetector";
 
+/**
+ *
+ */
 async function testAllKakaoTalkImages() {
-  const imageDir = path.join(process.cwd(), 'image');
+  const imageDir = path.join(process.cwd(), "image");
   const files = fs.readdirSync(imageDir);
 
   const kakaoFiles = files.filter(
-    (f) => f.startsWith('KakaoTalk_Photo_') && (f.endsWith('.jpeg') || f.endsWith('.jpg')),
+    (f) =>
+      f.startsWith("KakaoTalk_Photo_") &&
+      (f.endsWith(".jpeg") || f.endsWith(".jpg")),
   );
 
   console.log(`====================================================`);
@@ -55,7 +63,7 @@ async function testAllKakaoTalkImages() {
             (b) =>
               `<rect x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" fill="none" stroke="red" stroke-width="4" />`,
           )
-          .join('\n');
+          .join("\n");
 
         const svgOverlay = Buffer.from(
           `<svg width="${metadata.width}" height="${metadata.height}">${rectSvgs}</svg>`,
@@ -80,5 +88,5 @@ async function testAllKakaoTalkImages() {
 }
 
 testAllKakaoTalkImages().catch((err) => {
-  console.error('Batch test failed:', err);
+  console.error("Batch test failed:", err);
 });

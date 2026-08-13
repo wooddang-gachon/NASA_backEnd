@@ -1,30 +1,37 @@
-import { planet_travels } from '@prisma/client';
+/* eslint-disable camelcase */
+import { planet_travels } from "@prisma/client";
 import {
-  TravelResultCreateRequest,
   TravelResultResponse,
   PlanetTravelStartRequest,
-} from '../interfaces/travel';
+} from "../interfaces/travel";
 import {
   TravelResultDetailInfo,
   PlanetTravelStartApiResponse,
   TravelStateInfoResponse,
   PlanetStateItem,
-} from '../dto/travel.dto';
-import { PlanetType } from '../interfaces/enums';
-import { UserWithTammyStatus, DbTravelResultDetailItem } from '../repositories/models';
+} from "../dto/travel.dto";
+import { PlanetType } from "../interfaces/enums";
 import {
-  PLANET_CONFIGS,
+  UserWithTammyStatus,
+  DbTravelResultDetailItem,
+} from "../repositories/models";
+import {
   TOTAL_STAR_COUNT,
-  TOTAL_TARGET_DISTANCE,
   WARP_FUEL_THRESHOLD,
-} from '@/constants/gamification';
-import { BaseMapper } from './BaseMapper';
+} from "@/constants/gamification";
+import { BaseMapper } from "./BaseMapper";
 
 export class TravelMapper extends BaseMapper {
   /**
    * 별여행(PlanetTravel) 출발 DB 생성 인풋 객체 생성
+   * @param userId - User ID
+   * @param data - Planet travel start request data
+   * @returns Created planet travel input object
    */
-  public static toPlanetTravelCreateInput(userId: number, data: PlanetTravelStartRequest) {
+  public static toPlanetTravelCreateInput(
+    userId: number,
+    data: PlanetTravelStartRequest,
+  ) {
     return {
       user_id: userId,
       planet_id: data.planetId ? Number(data.planetId) : null,
@@ -35,6 +42,13 @@ export class TravelMapper extends BaseMapper {
 
   /**
    * 별여행 탐사 출발 서비스 응답 DTO 반환
+   * @param travel - Travel DB object
+   * @param travel.id - Travel ID
+   * @param travel.status - Travel status
+   * @param travelResultId - Travel result ID
+   * @param remainingFuel - Remaining fuel
+   * @param travelResultData - Travel result data
+   * @returns Planet travel start API response
    */
   public static toStartApiResponse(
     travel: { id: bigint | string; status: string },
@@ -47,12 +61,18 @@ export class TravelMapper extends BaseMapper {
       travelResultId: travelResultId || travel.id.toString(),
       remainingFuel,
       status: travel.status,
-      travelResult: travelResultData as any,
+      travelResult: travelResultData as unknown as TravelResultDetailInfo,
     };
   }
 
   /**
    * 우주여행 현황 서비스 응답 DTO 반환
+   * @param user - User object with Tammy status
+   * @param planetList - List of planet states
+   * @param progressPercent - Exploration progress percentage
+   * @param activeTravel - Currently active travel (optional)
+   * @param completedTravels - List of completed travels
+   * @returns Travel state info response DTO
    */
   public static toTravelStateResponse(
     user: UserWithTammyStatus,
@@ -63,7 +83,9 @@ export class TravelMapper extends BaseMapper {
   ): TravelStateInfoResponse {
     const currentFuel = user.current_fuel ?? 0;
 
-    const completedTypeSet = new Set(completedTravels.map((t) => t.planet_type));
+    const completedTypeSet = new Set(
+      completedTravels.map((t) => t.planet_type),
+    );
     const completedMap = new Map<string, string>();
     completedTravels.forEach((t) => {
       if (t.completed_at) {
@@ -77,7 +99,9 @@ export class TravelMapper extends BaseMapper {
     return {
       currentPlanet:
         activePlanetType ||
-        (completedStarCount > 0 ? Array.from(completedTypeSet).pop() : PlanetType.MEAL),
+        (completedStarCount > 0
+          ? Array.from(completedTypeSet).pop()
+          : PlanetType.MEAL),
       activePlanet: activePlanetType,
       explorationProgressPercent: progressPercent,
       currentFuel,
@@ -91,38 +115,46 @@ export class TravelMapper extends BaseMapper {
 
   /**
    * DB planet_travels 엔티티 ➔ TravelResultResponse 변환
+   * @param travel - DB planet travel item
+   * @returns Travel result response DTO
    */
-  public static toTravelResultResponse(travel: planet_travels): TravelResultResponse {
+  public static toTravelResultResponse(
+    travel: planet_travels,
+  ): TravelResultResponse {
     return {
       id: travel.id.toString(),
       userId: travel.user_id,
       planetTravelId: travel.id.toString(),
       planetType: travel.planet_type,
-      title: travel.title || '아쿠아 웰니스 탐사 완료 리포트 🌟',
-      summaryContent: travel.summary_content || '별여행 탐사가 완료되었습니다.',
-      recommendations: travel.recommendations || '',
+      title: travel.title || "아쿠아 웰니스 탐사 완료 리포트 🌟",
+      summaryContent: travel.summary_content || "별여행 탐사가 완료되었습니다.",
+      recommendations: travel.recommendations || "",
       createdAt: travel.started_at.toISOString(),
     };
   }
 
   /**
    * DB 객체 ➔ TravelResultDetailInfo DTO 변환
+   * @param result - DB travel result detail item
+   * @returns Travel result detail info DTO
    */
-  public static toTravelResultDetailInfo(result: DbTravelResultDetailItem): TravelResultDetailInfo {
+  public static toTravelResultDetailInfo(
+    result: DbTravelResultDetailItem,
+  ): TravelResultDetailInfo {
     const recommendationsArray =
-      typeof result.recommendations === 'string'
-        ? result.recommendations.split('\n').filter(Boolean)
+      typeof result.recommendations === "string"
+        ? result.recommendations.split("\n").filter(Boolean)
         : (result.recommendations as string[]) || [];
 
     return {
       reportId: String(result.id),
       travelResultId: String(result.id),
       userId: Number(result.userId || 0),
-      title: result.title || '',
-      summaryContent: result.summaryContent || '',
+      title: result.title || "",
+      summaryContent: result.summaryContent || "",
       recommendations: recommendationsArray,
       createdAt:
-        typeof result.createdAt === 'string'
+        typeof result.createdAt === "string"
           ? result.createdAt
           : result.createdAt?.toISOString() || new Date().toISOString(),
     };

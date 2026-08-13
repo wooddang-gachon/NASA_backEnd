@@ -1,7 +1,7 @@
-import { Service } from 'typedi';
-import { getPrisma } from '@/loaders/prisma';
-import { Prisma, users } from '@prisma/client';
-import { BaseRepository } from './BaseRepository';
+import { Service } from "typedi";
+import { getPrisma } from "@/loaders/prisma";
+import { Prisma, users } from "@prisma/client";
+import { BaseRepository } from "./BaseRepository";
 
 @Service()
 export default class UserRepository extends BaseRepository<
@@ -29,7 +29,7 @@ export default class UserRepository extends BaseRepository<
   public async findTammyStatusLogs(userId: number, take: number = 20) {
     return getPrisma().tammy_status_logs.findMany({
       where: { user_id: userId },
-      orderBy: { created_at: 'desc' },
+      orderBy: { created_at: "desc" },
       take,
     });
   }

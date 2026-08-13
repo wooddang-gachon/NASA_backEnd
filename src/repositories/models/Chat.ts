@@ -1,9 +1,9 @@
-import { Sender } from '../../interfaces/enums';
+import { Sender } from "../../interfaces/enums";
 
 export interface ChatMessage {
   id: number;
   userId: number;
-  sender: Sender | 'USER' | 'TAMMY';
+  sender: Sender | "USER" | "TAMMY";
   messageText: string;
   isEdited?: boolean;
   isDeleted?: boolean;
@@ -21,7 +21,7 @@ export interface ChatMessageEdit {
 export interface ChatMessageArchive {
   id: number;
   userId: number;
-  sender: Sender | 'USER' | 'TAMMY';
+  sender: Sender | "USER" | "TAMMY";
   messageText: string;
   originalCreatedAt: Date;
   archivedAt?: Date;
@@ -52,7 +52,7 @@ export interface CreateTammyMessageParams {
   replyText: string;
   motionTag?: string;
   intentLabel?: string;
-  labels?: any;
+  labels?: unknown;
 }
 
 export interface CreateLongTermMemoryParams {

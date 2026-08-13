@@ -1,7 +1,8 @@
-import { PlanetType, TravelStatus } from '../interfaces/enums';
+import { PlanetType, TravelStatus } from "../interfaces/enums";
 
 export interface PlanetTravelStartApiRequest {
-  planetType: PlanetType | 'MEAL' | 'WATER' | 'EMOTION' | 'LIFESTYLE' | 'RETROSPECT';
+  planetType:
+    PlanetType | "MEAL" | "WATER" | "EMOTION" | "LIFESTYLE" | "RETROSPECT";
   fuelSpent: number;
 }
 

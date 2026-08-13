@@ -1,7 +1,7 @@
-import { Service } from 'typedi';
-import { getPrisma } from '@/loaders/prisma';
-import { Prisma, users } from '@prisma/client';
-import { BaseRepository } from './BaseRepository';
+import { Service } from "typedi";
+import { getPrisma } from "@/loaders/prisma";
+import { Prisma, users } from "@prisma/client";
+import { BaseRepository } from "./BaseRepository";
 
 @Service()
 export default class AuthRepository extends BaseRepository<

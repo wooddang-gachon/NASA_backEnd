@@ -1,8 +1,8 @@
-import { Service } from 'typedi';
-import { getPrisma } from '../loaders/prisma';
-import Logger from '../loaders/logger';
-import { Prisma, foods } from '@prisma/client';
-import { BaseRepository } from './BaseRepository';
+import { Service } from "typedi";
+import { getPrisma } from "../loaders/prisma";
+import Logger from "../loaders/logger";
+import { Prisma, foods } from "@prisma/client";
+import { BaseRepository } from "./BaseRepository";
 
 @Service()
 export default class FoodRepository extends BaseRepository<
@@ -32,13 +32,23 @@ export default class FoodRepository extends BaseRepository<
     });
   }
 
-  public async findFoodMasterByNameOrKeyword(rawName: string, keywordCleaned: string) {
+  public async findFoodMasterByNameOrKeyword(
+    rawName: string,
+    keywordCleaned: string,
+  ) {
     return this.findFirst({
-      OR: [{ name: { contains: rawName } }, { name: { contains: keywordCleaned } }],
+      OR: [
+        { name: { contains: rawName } },
+        { name: { contains: keywordCleaned } },
+      ],
     });
   }
 
-  public async createFoodMapping(rawName: string, foodId: number, matchType: 'EXACT' | 'ALIAS') {
+  public async createFoodMapping(
+    rawName: string,
+    foodId: number,
+    matchType: "EXACT" | "ALIAS",
+  ) {
     const prisma = getPrisma();
     return prisma.food_mappings.create({
       data: {
@@ -61,6 +71,18 @@ export default class FoodRepository extends BaseRepository<
 
   /**
    * 트랜잭션을 사용하여 식단 기록, 사용자 경험치 증가 및 펫 상태 업데이트를 원자적으로 수행합니다.
+   * @param userId - User ID
+   * @param mealData - Meal data to create
+   * @param processedItems - Processed meal items array
+   * @param imageInfo - Meal image information
+   * @param imageInfo.imageId - Image ID
+   * @param imageInfo.imageUrl - Image URL
+   * @param gainedFuel - Gained fuel amount
+   * @param gainedExp - Gained experience amount
+   * @param toMealItemCreateInput - Mapper function for meal item create input
+   * @param toMealImageCreateInput - Mapper function for meal image create input
+   * @param toStatusLogCreateInput - Mapper function for status log create input
+   * @returns Transaction result containing created meal, updated user, and gained fuel
    */
   public async createMealLogWithTransaction(
     userId: number,
@@ -81,7 +103,7 @@ export default class FoodRepository extends BaseRepository<
       foodName: string,
       intakeGram: number,
       foodId?: number | null,
-      boundingBox?: any,
+      boundingBox?: unknown,
       confidence?: number,
       imageId?: bigint | null,
     ) => Prisma.meal_itemsUncheckedCreateInput,
@@ -103,13 +125,15 @@ export default class FoodRepository extends BaseRepository<
       // 1. meals 생성
       const meal = await tx.meals.create({ data: mealData });
 
-      let defaultImageRecord: any = null;
+      let defaultImageRecord: { id: bigint } | null = null;
 
       // 2-1. imageId (PK)로 기존 meal_images 찾기 및 업데이트
       if (imageInfo.imageId) {
         try {
           const imgId = BigInt(imageInfo.imageId);
-          defaultImageRecord = await tx.meal_images.findUnique({ where: { id: imgId } });
+          defaultImageRecord = await tx.meal_images.findUnique({
+            where: { id: imgId },
+          });
 
           if (defaultImageRecord) {
             await tx.meal_images.update({
@@ -120,7 +144,7 @@ export default class FoodRepository extends BaseRepository<
               `[FoodRepository] Linked existing meal_images via imageId (ID: ${imgId}) to mealId: ${meal.id}`,
             );
           }
-        } catch (err) {
+        } catch {
           Logger.warn(
             `[FoodRepository] Failed to find meal_images with imageId: ${imageInfo.imageId}`,
           );
@@ -146,13 +170,16 @@ export default class FoodRepository extends BaseRepository<
           defaultImageRecord = await tx.meal_images.create({
             data: toMealImageCreateInput(meal.id, imageInfo.imageUrl),
           });
-          Logger.info(`[FoodRepository] Created new meal_images record for mealId: ${meal.id}`);
+          Logger.info(
+            `[FoodRepository] Created new meal_images record for mealId: ${meal.id}`,
+          );
         }
       }
 
       // 3. meal_items N건 생성
       const mealItemsData = processedItems.map((item) => {
-        const targetImageId = item.imageId || (defaultImageRecord ? defaultImageRecord.id : null);
+        const targetImageId =
+          item.imageId || (defaultImageRecord ? defaultImageRecord.id : null);
         return toMealItemCreateInput(
           meal.id,
           item.foodName,
@@ -182,7 +209,7 @@ export default class FoodRepository extends BaseRepository<
       await tx.tammy_status_logs.create({
         data: toStatusLogCreateInput(
           userId,
-          'MEAL_LOG',
+          "MEAL_LOG",
           gainedExp,
           tammyStatus.level,
           tammyStatus.current_exp,

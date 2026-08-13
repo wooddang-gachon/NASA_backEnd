@@ -1,37 +1,45 @@
-import sharp from 'sharp';
-import path from 'path';
-import fs from 'fs';
-import Logger from '../loaders/logger';
+import sharp from "sharp";
+import path from "path";
+import fs from "fs";
+import Logger from "../loaders/logger";
 
 export interface CompressionOptions {
   maxWidth?: number;
   maxHeight?: number;
   quality?: number; // 1 ~ 100 (기본값: 60)
-  format?: 'jpeg' | 'webp' | 'png';
+  format?: "jpeg" | "webp" | "png";
 }
 
 /**
  * 이미지 바이너리 Buffer를 저화질/경량화 리사이즈 압축
+ * @param inputBuffer 원본 이미지 버퍼
+ * @param options 압축 옵션
+ * @returns 압축된 이미지 버퍼
  */
 export async function compressImageBuffer(
   inputBuffer: Buffer,
   options: CompressionOptions = {},
 ): Promise<Buffer> {
-  const { maxWidth = 512, maxHeight = 512, quality = 60, format = 'jpeg' } = options;
+  const {
+    maxWidth = 512,
+    maxHeight = 512,
+    quality = 60,
+    format = "jpeg",
+  } = options;
 
   try {
     let pipeline = sharp(inputBuffer).resize({
       width: maxWidth,
       height: maxHeight,
-      fit: 'inside',
+      fit: "inside",
       withoutEnlargement: true,
     });
 
-    if (format === 'jpeg') {
+    if (format === "jpeg") {
       pipeline = pipeline.jpeg({ quality });
-    } else if (format === 'webp') {
+    } else if (format === "webp") {
       pipeline = pipeline.webp({ quality });
-    } else if (format === 'png') {
+    } else if (format === "png") {
       pipeline = pipeline.png({ quality: Math.min(quality, 80) });
     }
 
@@ -44,6 +52,10 @@ export async function compressImageBuffer(
 
 /**
  * 로컬 이미지 파일을 읽어 저화질/경량화 압축 파일로 생성
+ * @param inputPath 원본 이미지 파일 경로
+ * @param outputPath 압축된 이미지를 저장할 경로
+ * @param options 압축 옵션
+ * @returns 생성된 압축 이미지 파일의 경로
  */
 export async function compressImageFile(
   inputPath: string,
@@ -54,7 +66,12 @@ export async function compressImageFile(
     throw new Error(`압축할 이미지 파일을 찾을 수 없습니다: ${inputPath}`);
   }
 
-  const { maxWidth = 512, maxHeight = 512, quality = 60, format = 'jpeg' } = options;
+  const {
+    maxWidth = 512,
+    maxHeight = 512,
+    quality = 60,
+    format = "jpeg",
+  } = options;
 
   if (!outputPath) {
     const parsed = path.parse(inputPath);
@@ -65,23 +82,27 @@ export async function compressImageFile(
     let pipeline = sharp(inputPath).resize({
       width: maxWidth,
       height: maxHeight,
-      fit: 'inside',
+      fit: "inside",
       withoutEnlargement: true,
     });
 
-    if (format === 'jpeg') {
+    if (format === "jpeg") {
       pipeline = pipeline.jpeg({ quality });
-    } else if (format === 'webp') {
+    } else if (format === "webp") {
       pipeline = pipeline.webp({ quality });
-    } else if (format === 'png') {
+    } else if (format === "png") {
       pipeline = pipeline.png({ quality: Math.min(quality, 80) });
     }
 
     await pipeline.toFile(outputPath);
-    Logger.info(`[ImageCompressor] Image successfully compressed: ${inputPath} -> ${outputPath}`);
+    Logger.info(
+      `[ImageCompressor] Image successfully compressed: ${inputPath} -> ${outputPath}`,
+    );
     return outputPath;
   } catch (error) {
-    Logger.error(`[ImageCompressor] Failed to compress image file ${inputPath}: ${error}`);
+    Logger.error(
+      `[ImageCompressor] Failed to compress image file ${inputPath}: ${error}`,
+    );
     throw error;
   }
 }

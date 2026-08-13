@@ -1,23 +1,25 @@
-import { MealType } from '../interfaces/enums';
-import { MatchType } from '@prisma/client';
+import { MealType } from "../interfaces/enums";
+import { MatchType } from "@prisma/client";
 import {
   MealLogRegisterResponse,
   FoodSearchResponse,
   FoodDto,
-  FoodMappingDto,
   FoodSmartMatchResultDto,
-} from '../dto';
+} from "../dto";
 import {
   DbFoodMappingItem,
   DbFoodItem,
   CreateMealInputParams,
   CreateMealItemInputParams,
-} from '../repositories/models';
-import { BaseMapper } from './BaseMapper';
+} from "../repositories/models";
+import { BaseMapper } from "./BaseMapper";
 
 export class FoodMapper extends BaseMapper {
   /**
    * DB food_mappings 엔티티 ➔ FoodSmartMatchResultDto 변환
+   * @param dbMapping - Food mapping DB item
+   * @param rawName - Raw name of the food
+   * @returns Smart match result DTO
    */
   public static toFoodSmartMatchResultFromMapping(
     dbMapping: DbFoodMappingItem,
@@ -32,12 +34,16 @@ export class FoodMapper extends BaseMapper {
       carbohydrateG: Number(food.carbohydrate_g),
       proteinG: Number(food.protein_g),
       fatG: Number(food.fat_g),
-      matchType: dbMapping.match_type as any,
+      matchType: dbMapping.match_type as MatchType,
     };
   }
 
   /**
    * foods 마스터 DB 엔티티 ➔ FoodSmartMatchResultDto 변환
+   * @param masterFood - Master food DB item
+   * @param rawName - Raw name of the food
+   * @param matchType - Match type string
+   * @returns Smart match result DTO
    */
   public static toFoodSmartMatchResultFromMaster(
     masterFood: DbFoodItem,
@@ -58,25 +64,36 @@ export class FoodMapper extends BaseMapper {
 
   /**
    * AI Fallback 감지 데이터 ➔ FoodSmartMatchResultDto 변환
+   * @param rawName - Raw name of the food
+   * @param detected - Detected fallback data
+   * @returns Smart match result DTO
    */
   public static toFoodSmartMatchResultFromFallback(
     rawName: string,
-    detected: any,
+    detected: Record<string, unknown> | null,
   ): FoodSmartMatchResultDto {
     return {
       rawName,
       foodId: 0,
       standardServingG: detected?.estimatedGram || 100,
       caloriesKcal: detected?.calories || 250,
-      carbohydrateG: detected?.carbs || 30,
-      proteinG: detected?.protein || 20,
-      fatG: detected?.fat || 5,
-      matchType: 'USER_CONFIRMED',
+      carbohydrateG: (detected?.carbs as number) || 30,
+      proteinG: (detected?.protein as number) || 20,
+      fatG: (detected?.fat as number) || 5,
+      matchType: "USER_CONFIRMED",
     };
   }
 
   /**
    * 식단(Meal) DB 생성 인풋 객체 생성 (Param 객체 및 위치 기반 인자 모두 지원)
+   * @param paramsOrUserId - User ID or CreateMealInputParams object
+   * @param mealType - Meal type
+   * @param calories - Total calories
+   * @param carbs - Total carbohydrates
+   * @param protein - Total protein
+   * @param fat - Total fat
+   * @param comment - Comment
+   * @returns Created meal input object
    */
   public static toMealCreateInput(
     paramsOrUserId: CreateMealInputParams | number,
@@ -87,7 +104,7 @@ export class FoodMapper extends BaseMapper {
     fat?: number,
     comment?: string,
   ) {
-    if (typeof paramsOrUserId === 'object') {
+    if (typeof paramsOrUserId === "object") {
       return {
         user_id: paramsOrUserId.userId,
         meal_type: paramsOrUserId.mealType,
@@ -111,17 +128,25 @@ export class FoodMapper extends BaseMapper {
 
   /**
    * 식단 상세 세부 음식(MealItem) DB 생성 인풋 객체 생성 (Param 객체 및 위치 기반 인자 모두 지원)
+   * @param paramsOrMealId - Meal ID or CreateMealItemInputParams object
+   * @param foodName - Custom food name
+   * @param intakeGram - Intake in grams
+   * @param foodId - Food ID
+   * @param boundingBox - Bounding box array or object
+   * @param confidence - Confidence score
+   * @param mealImageId - Meal image ID
+   * @returns Created meal item input object
    */
   public static toMealItemCreateInput(
     paramsOrMealId: CreateMealItemInputParams | bigint,
     foodName?: string,
     intakeGram?: number,
     foodId?: number | null,
-    boundingBox?: any,
+    boundingBox?: unknown,
     confidence?: number | null,
     mealImageId?: bigint | string | null,
   ) {
-    if (typeof paramsOrMealId === 'object') {
+    if (typeof paramsOrMealId === "object") {
       return {
         meal_id: paramsOrMealId.mealId,
         food_id: paramsOrMealId.foodId || null,
@@ -129,10 +154,13 @@ export class FoodMapper extends BaseMapper {
         intake_gram: paramsOrMealId.intakeGram,
         bounding_box: paramsOrMealId.boundingBox || null,
         confidence:
-          paramsOrMealId.confidence !== undefined && paramsOrMealId.confidence !== null
+          paramsOrMealId.confidence !== undefined &&
+          paramsOrMealId.confidence !== null
             ? paramsOrMealId.confidence
             : null,
-        meal_image_id: paramsOrMealId.mealImageId ? BigInt(paramsOrMealId.mealImageId) : null,
+        meal_image_id: paramsOrMealId.mealImageId
+          ? BigInt(paramsOrMealId.mealImageId)
+          : null,
       };
     }
     return {
@@ -141,13 +169,17 @@ export class FoodMapper extends BaseMapper {
       custom_food_name: foodName!,
       intake_gram: intakeGram!,
       bounding_box: boundingBox || null,
-      confidence: confidence !== undefined && confidence !== null ? confidence : null,
+      confidence:
+        confidence !== undefined && confidence !== null ? confidence : null,
       meal_image_id: mealImageId ? BigInt(mealImageId) : null,
     };
   }
 
   /**
    * 식단 사진 이미지(MealImage) DB 생성 인풋 객체 생성
+   * @param mealId - Meal ID
+   * @param imageUrl - Image URL
+   * @returns Created meal image input object
    */
   public static toMealImageCreateInput(mealId: bigint, imageUrl: string) {
     return {
@@ -159,6 +191,11 @@ export class FoodMapper extends BaseMapper {
 
   /**
    * 식단 등록 서비스 응답 DTO 반환
+   * @param mealId - Meal ID
+   * @param gainedFuel - Gained fuel amount
+   * @param totalCalories - Total calories
+   * @param currentFuel - Current fuel amount
+   * @returns Meal log register response DTO
    */
   public static toMealLogRegisterResponse(
     mealId: bigint | string,
@@ -179,8 +216,12 @@ export class FoodMapper extends BaseMapper {
 
   /**
    * DB 음식 검색 목록 ➔ FoodSearchResponse DTO 변환
+   * @param dbFoods - Array of DB food items
+   * @returns Food search response DTO
    */
-  public static toFoodSearchResponse(dbFoods: DbFoodItem[]): FoodSearchResponse {
+  public static toFoodSearchResponse(
+    dbFoods: DbFoodItem[],
+  ): FoodSearchResponse {
     const foods: FoodDto[] = BaseMapper.mapList(dbFoods, (f) => ({
       id: f.id,
       name: f.name,

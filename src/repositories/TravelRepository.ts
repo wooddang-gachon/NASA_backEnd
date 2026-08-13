@@ -1,7 +1,8 @@
-import { Service } from 'typedi';
-import { getPrisma } from '@/loaders/prisma';
-import { Prisma, planet_travels } from '@prisma/client';
-import { BaseRepository } from './BaseRepository';
+/* eslint-disable camelcase */
+import { Service } from "typedi";
+import { getPrisma } from "@/loaders/prisma";
+import { Prisma, planet_travels } from "@prisma/client";
+import { BaseRepository } from "./BaseRepository";
 
 @Service()
 export default class TravelRepository extends BaseRepository<
@@ -33,7 +34,7 @@ export default class TravelRepository extends BaseRepository<
   public async updateUserFuel(
     userId: number,
     amount: number,
-    operation: 'increment' | 'decrement',
+    operation: "increment" | "decrement",
   ) {
     const prisma = getPrisma();
     return prisma.users.update({
@@ -44,7 +45,9 @@ export default class TravelRepository extends BaseRepository<
     });
   }
 
-  public async createPlanetTravel(data: Prisma.planet_travelsUncheckedCreateInput) {
+  public async createPlanetTravel(
+    data: Prisma.planet_travelsUncheckedCreateInput,
+  ) {
     return this.create(data as unknown as Prisma.planet_travelsCreateInput);
   }
 
@@ -62,11 +65,15 @@ export default class TravelRepository extends BaseRepository<
         user_id: userId,
         registered_at: { gte: startDate },
       },
-      orderBy: { registered_at: 'asc' },
+      orderBy: { registered_at: "asc" },
     });
   }
 
-  public async findQuickLogsByUserCategoryAndDate(userId: number, category: any, startDate: Date) {
+  public async findQuickLogsByUserCategoryAndDate(
+    userId: number,
+    category: string,
+    startDate: Date,
+  ) {
     const prisma = getPrisma();
     return prisma.quick_logs.findMany({
       where: {
@@ -80,7 +87,7 @@ export default class TravelRepository extends BaseRepository<
   public async findActivePlanetTravelByUser(userId: number) {
     return this.findFirst({
       user_id: userId,
-      status: 'IN_PROGRESS',
+      status: "IN_PROGRESS",
     });
   }
 
@@ -88,23 +95,32 @@ export default class TravelRepository extends BaseRepository<
     return this.findMany(
       {
         user_id: userId,
-        status: 'COMPLETED',
+        status: "COMPLETED",
       },
       undefined,
       undefined,
-      { completed_at: 'desc' },
+      { completed_at: "desc" },
     );
   }
 
   public async getPlanetActionCounts(userId: number) {
     const prisma = getPrisma();
-    const [mealCount, waterCount, chatCount, exerciseCount, journalCount] = await Promise.all([
-      prisma.meals.count({ where: { user_id: userId } }),
-      prisma.quick_logs.count({ where: { user_id: userId, category: 'WATER' } }),
-      prisma.chat_messages.count({ where: { user_id: userId, sender: 'USER' } }),
-      prisma.quick_logs.count({ where: { user_id: userId, category: 'EXERCISE' } }),
-      prisma.quick_logs.count({ where: { user_id: userId, category: 'JOURNAL' } }),
-    ]);
+    const [mealCount, waterCount, chatCount, exerciseCount, journalCount] =
+      await Promise.all([
+        prisma.meals.count({ where: { user_id: userId } }),
+        prisma.quick_logs.count({
+          where: { user_id: userId, category: "WATER" },
+        }),
+        prisma.chat_messages.count({
+          where: { user_id: userId, sender: "USER" },
+        }),
+        prisma.quick_logs.count({
+          where: { user_id: userId, category: "EXERCISE" },
+        }),
+        prisma.quick_logs.count({
+          where: { user_id: userId, category: "JOURNAL" },
+        }),
+      ]);
 
     return {
       MEAL: mealCount * 10,

@@ -1,5 +1,5 @@
-import { MealType } from '../../interfaces/enums';
-import { MatchType } from '@prisma/client';
+import { MealType } from "../../interfaces/enums";
+import { MatchType } from "@prisma/client";
 
 export interface Food {
   id: number;
@@ -44,22 +44,22 @@ export interface DbFoodMappingItem {
   food: {
     id: number;
     name: string;
-    standard_serving_g: any;
+    standard_serving_g: unknown;
     calories_kcal: number;
-    carbohydrate_g: any;
-    protein_g: any;
-    fat_g: any;
+    carbohydrate_g: unknown;
+    protein_g: unknown;
+    fat_g: unknown;
   };
 }
 
 export interface DbFoodItem {
   id: number;
   name: string;
-  standard_serving_g: any;
+  standard_serving_g: unknown;
   calories_kcal: number;
-  carbohydrate_g: any;
-  protein_g: any;
-  fat_g: any;
+  carbohydrate_g: unknown;
+  protein_g: unknown;
+  fat_g: unknown;
   category?: string | null;
 }
 
@@ -78,7 +78,7 @@ export interface CreateMealItemInputParams {
   foodName: string;
   intakeGram: number;
   foodId?: number | null;
-  boundingBox?: any;
+  boundingBox?: unknown;
   confidence?: number | null;
   mealImageId?: bigint | string | null;
 }

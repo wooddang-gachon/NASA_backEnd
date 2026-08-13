@@ -1,9 +1,9 @@
-import { Service } from 'typedi';
-import * as ort from 'onnxruntime-node';
-import sharp from 'sharp';
-import path from 'path';
-import fs from 'fs';
-import Logger from '../loaders/logger';
+import { Service } from "typedi";
+import * as ort from "onnxruntime-node";
+import sharp from "sharp";
+import path from "path";
+import fs from "fs";
+import Logger from "../loaders/logger";
 
 export interface LocalDetectionResult {
   className: string;
@@ -15,10 +15,11 @@ export interface LocalDetectionResult {
 @Service()
 export default class LocalVisionService {
   private session: ort.InferenceSession | null = null;
-  private modelPath = path.join(process.cwd(), 'models', 'yolo', 'best.onnx');
+  private modelPath = path.join(process.cwd(), "models", "yolo", "best.onnx");
 
   /**
    * ONNX 런타임 세션 초기화 (싱글톤 방식 캐싱)
+   * @returns InferenceSession 객체
    */
   private async getSession(): Promise<ort.InferenceSession> {
     if (!this.session) {
@@ -27,7 +28,9 @@ export default class LocalVisionService {
           `ONNX model not found at ${this.modelPath}. Please run 'yolo export model=best.pt format=onnx' first.`,
         );
       }
-      Logger.info(`[LocalVisionService] Loading ONNX model from: ${this.modelPath}`);
+      Logger.info(
+        `[LocalVisionService] Loading ONNX model from: ${this.modelPath}`,
+      );
       this.session = await ort.InferenceSession.create(this.modelPath);
     }
     return this.session;
@@ -35,6 +38,8 @@ export default class LocalVisionService {
 
   /**
    * 이미지 전처리 (640x640 Float32 NCHW Tensor)
+   * @param buffer 전처리할 이미지의 바이너리 버퍼
+   * @returns 변환된 텐서 및 원본 크기/스케일 정보를 포함한 객체
    */
   private async preprocessImage(buffer: Buffer) {
     const meta = await sharp(buffer).metadata();
@@ -45,7 +50,7 @@ export default class LocalVisionService {
     const TARGET_SIZE = 640;
 
     const rawRgb = await sharp(buffer)
-      .resize(TARGET_SIZE, TARGET_SIZE, { fit: 'fill' })
+      .resize(TARGET_SIZE, TARGET_SIZE, { fit: "fill" })
       .removeAlpha()
       .raw()
       .toBuffer();
@@ -60,7 +65,12 @@ export default class LocalVisionService {
       float32Data[channelSize * 2 + i] = (rawRgb[i * 3 + 2] ?? 0) / 255.0; // B
     }
 
-    const tensor = new ort.Tensor('float32', float32Data, [1, 3, TARGET_SIZE, TARGET_SIZE]);
+    const tensor = new ort.Tensor("float32", float32Data, [
+      1,
+      3,
+      TARGET_SIZE,
+      TARGET_SIZE,
+    ]);
     return {
       tensor,
       origWidth,
@@ -72,6 +82,9 @@ export default class LocalVisionService {
 
   /**
    * IoU (Intersection over Union) 계산
+   * @param box1 첫 번째 바운딩 박스
+   * @param box2 두 번째 바운딩 박스
+   * @returns IoU 점수
    */
   private calculateIoU(box1: number[], box2: number[]) {
     const x1 = Math.max(box1[0]!, box2[0]!);
@@ -88,6 +101,13 @@ export default class LocalVisionService {
 
   /**
    * Non-Maximum Suppression 및 좌표 복원
+   * @param tensorData 추론 결과 텐서 데이터
+   * @param dims 텐서 차원
+   * @param scaleX x 스케일 비율
+   * @param scaleY y 스케일 비율
+   * @param confThresh 신뢰도 임계값
+   * @param iouThresh NMS IoU 임계값
+   * @returns 식별된 객체 정보 배열
    */
   private postprocess(
     tensorData: Float32Array,
@@ -138,12 +158,12 @@ export default class LocalVisionService {
 
     // 클래스 매핑
     const YOLO_CLASSES: Record<number, string> = {
-      0: '고등어구이',
-      1: '김밥',
-      2: '김치볶음밥',
-      3: '불고기',
-      4: '삼겹살',
-      5: '양념치킨',
+      0: "고등어구이",
+      1: "김밥",
+      2: "김치볶음밥",
+      3: "불고기",
+      4: "삼겹살",
+      5: "양념치킨",
     };
 
     // NMS 적용
@@ -159,7 +179,8 @@ export default class LocalVisionService {
 
       finalResults.push({
         classId: current.classId,
-        className: YOLO_CLASSES[current.classId] || `알수없는음식_${current.classId}`,
+        className:
+          YOLO_CLASSES[current.classId] || `알수없는음식_${current.classId}`,
         confidence: current.score,
         bbox: {
           x: Math.round(x1),
@@ -182,6 +203,9 @@ export default class LocalVisionService {
 
   /**
    * 로컬 YOLO ONNX 모델 기반 음식 객체 탐지
+   * @param imageBuffer 탐지할 이미지 버퍼
+   * @param confThreshold 적용할 신뢰도 임계값
+   * @returns 탐지 결과 배열
    */
   public async detectFoodObjects(
     imageBuffer: Buffer,
@@ -190,7 +214,8 @@ export default class LocalVisionService {
     try {
       const session = await this.getSession();
 
-      const { tensor, scaleX, scaleY } = await this.preprocessImage(imageBuffer);
+      const { tensor, scaleX, scaleY } =
+        await this.preprocessImage(imageBuffer);
 
       // 추론 수행
       const outputs = await session.run({ images: tensor });

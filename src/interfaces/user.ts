@@ -1,5 +1,5 @@
-import { User } from '../repositories/models/User';
-import { Gender } from './enums';
+import { User } from "../repositories/models/User";
+import { Gender } from "./enums";
 
 export interface UserProfileUpdateRequest {
   nickname?: string;

@@ -9,7 +9,7 @@ export interface PushTokenRegisterRequest {
    * 기기 운영체제 타입 (IOS | ANDROID | WEB)
    * @example "IOS"
    */
-  deviceType?: 'IOS' | 'ANDROID' | 'WEB';
+  deviceType?: "IOS" | "ANDROID" | "WEB";
 }
 
 export interface PushTokenRegisterResponse {

@@ -1,4 +1,4 @@
-import { Sender } from './enums';
+import { Sender } from "./enums";
 
 export interface EmotionStatus {
   state: string;
@@ -34,7 +34,7 @@ export interface ChatResponse {
 }
 
 export interface ChatTurn {
-  role: 'user' | 'tammy';
+  role: "user" | "tammy";
   text: string;
   createdAt?: string;
 }

@@ -1,12 +1,20 @@
-import { QuickLogCreateRequest, QuickLogApiResponse } from '../dto';
-import { DbQuickLogItem } from '../repositories/models';
-import { BaseMapper } from './BaseMapper';
+import { QuickLogCreateRequest, QuickLogApiResponse } from "../dto";
+import { DbQuickLogItem } from "../repositories/models";
+import { BaseMapper } from "./BaseMapper";
 
 export class QuickLogMapper extends BaseMapper {
   /**
    * 1-Tap 웰니스 퀵기록 DB 생성 인풋 객체 생성
+   * @param userId - User ID
+   * @param data - Quick log create request data
+   * @param earnedFuel - Earned fuel amount
+   * @returns Created quick log input object
    */
-  public static toCreateInput(userId: number, data: QuickLogCreateRequest, earnedFuel: number) {
+  public static toCreateInput(
+    userId: number,
+    data: QuickLogCreateRequest,
+    earnedFuel: number,
+  ) {
     return {
       user_id: userId,
       category: data.category,
@@ -20,14 +28,22 @@ export class QuickLogMapper extends BaseMapper {
 
   /**
    * 1-Tap 웰니스 퀵기록 서비스 응답 DTO 반환
+   * @param log - DB quick log item
+   * @param totalFuel - Total fuel amount
+   * @returns Quick log API response DTO
    */
-  public static toApiResponse(log: DbQuickLogItem, totalFuel: number): QuickLogApiResponse {
+  public static toApiResponse(
+    log: DbQuickLogItem,
+    totalFuel: number,
+  ): QuickLogApiResponse {
     return {
       logId: log.id.toString(),
       category: log.category,
       earnedFuel: log.earned_fuel,
       totalFuel,
-      createdAt: log.created_at ? new Date(log.created_at).toISOString() : new Date().toISOString(),
+      createdAt: log.created_at
+        ? new Date(log.created_at).toISOString()
+        : new Date().toISOString(),
     };
   }
 }

@@ -1,15 +1,19 @@
-import { PrismaClient } from '@prisma/client';
-import { EntityId } from '@/interfaces';
+import { EntityId } from "@/interfaces";
 
 // PrismaClient의 delegate 구조와 호환되는 타입 정의
 export type Delegate<T> = {
-  findUnique(args: { where: any }): Promise<T | null>;
-  findFirst(args: { where?: any }): Promise<T | null>;
-  findMany(args?: { where?: any; skip?: number; take?: number; orderBy?: any }): Promise<T[]>;
-  create(args: { data: any }): Promise<T>;
-  update(args: { where: any; data: any }): Promise<T>;
-  delete(args: { where: any }): Promise<T>;
-  count(args?: { where?: any }): Promise<number>;
+  findUnique(args: { where: unknown }): Promise<T | null>;
+  findFirst(args: { where?: unknown }): Promise<T | null>;
+  findMany(args?: {
+    where?: unknown;
+    skip?: number;
+    take?: number;
+    orderBy?: unknown;
+  }): Promise<T[]>;
+  create(args: { data: unknown }): Promise<T>;
+  update(args: { where: unknown; data: unknown }): Promise<T>;
+  delete(args: { where: unknown }): Promise<T>;
+  count(args?: { where?: unknown }): Promise<number>;
 };
 
 export abstract class BaseRepository<T, CreateInput, UpdateInput> {
@@ -19,11 +23,16 @@ export abstract class BaseRepository<T, CreateInput, UpdateInput> {
     return this.delegate.findUnique({ where: { id } });
   }
 
-  async findFirst(where: any): Promise<T | null> {
+  async findFirst(where: unknown): Promise<T | null> {
     return this.delegate.findFirst({ where });
   }
 
-  async findMany(where?: any, skip?: number, take?: number, orderBy?: any): Promise<T[]> {
+  async findMany(
+    where?: unknown,
+    skip?: number,
+    take?: number,
+    orderBy?: unknown,
+  ): Promise<T[]> {
     return this.delegate.findMany({ where, skip, take, orderBy });
   }
 
@@ -42,7 +51,7 @@ export abstract class BaseRepository<T, CreateInput, UpdateInput> {
     return this.delegate.delete({ where: { id } });
   }
 
-  async count(where?: any): Promise<number> {
+  async count(where?: unknown): Promise<number> {
     return this.delegate.count({ where });
   }
 }

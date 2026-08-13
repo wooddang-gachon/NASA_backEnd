@@ -1,4 +1,4 @@
-import { MealType } from './enums';
+import { MealType } from "./enums";
 
 export interface FoodAnalyzeRequest {
   imageUrl: string;

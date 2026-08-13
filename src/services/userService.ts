@@ -1,18 +1,20 @@
-import { Service } from 'typedi';
-import { getPrisma } from '../loaders/prisma';
-import Logger from '../loaders/logger';
-import { UserNotFoundError } from '../errors';
-import { UserProfileResponseData, TammyHistoryResponse } from '../dto';
-import UserRepository from '../repositories/UserRepository';
-import { Inject } from 'typedi';
-import { UserMapper } from '../mappers';
+import { Service } from "typedi";
+import { getPrisma } from "../loaders/prisma";
+import Logger from "../loaders/logger";
+import { UserNotFoundError } from "../errors";
+import { UserProfileResponseData, TammyHistoryResponse } from "../dto";
+import UserRepository from "../repositories/UserRepository";
+import { Inject } from "typedi";
+import { UserMapper } from "../mappers";
 
 @Service()
 export default class UserService {
   @Inject((type) => UserRepository)
   private userRepository!: UserRepository;
 
-  public async getUserProfile(userId: number): Promise<UserProfileResponseData> {
+  public async getUserProfile(
+    userId: number,
+  ): Promise<UserProfileResponseData> {
     Logger.info(`[UserService] 프로필 조회: userId=${userId}`);
 
     const user = await this.userRepository.findUserWithTammyStatus(userId);

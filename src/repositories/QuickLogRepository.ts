@@ -1,7 +1,7 @@
-import { Service } from 'typedi';
-import { getPrisma } from '@/loaders/prisma';
-import { Prisma, quick_logs } from '@prisma/client';
-import { BaseRepository } from './BaseRepository';
+import { Service } from "typedi";
+import { getPrisma } from "@/loaders/prisma";
+import { Prisma, quick_logs } from "@prisma/client";
+import { BaseRepository } from "./BaseRepository";
 
 @Service()
 export default class QuickLogRepository extends BaseRepository<

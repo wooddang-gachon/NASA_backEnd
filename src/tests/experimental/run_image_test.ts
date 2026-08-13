@@ -1,14 +1,20 @@
-import fs from 'fs';
-import path from 'path';
-import sharp from 'sharp';
-import { detectObjectBoundingBoxes, extractImageEdges } from '../../utils/food/objectDetector';
+import fs from "fs";
+import path from "path";
+import sharp from "sharp";
+import {
+  detectObjectBoundingBoxes,
+  extractImageEdges,
+} from "../../utils/food/objectDetector";
 
+/**
+ *
+ */
 async function processSampleImage() {
-  const imageDir = path.join(process.cwd(), 'image');
-  const inputPath = path.join(imageDir, 'test.png');
+  const imageDir = path.join(process.cwd(), "image");
+  const inputPath = path.join(imageDir, "test.png");
 
   if (!fs.existsSync(inputPath)) {
-    console.error('test.png 파일을 찾을 수 없습니다:', inputPath);
+    console.error("test.png 파일을 찾을 수 없습니다:", inputPath);
     return;
   }
 
@@ -21,7 +27,7 @@ async function processSampleImage() {
 
   // 1. 외곽선(Edge) 추출 및 저장 (test_edge.png)
   const edgeBuffer = await extractImageEdges(inputBuffer);
-  const edgeOutputPath = path.join(imageDir, 'test_edge.png');
+  const edgeOutputPath = path.join(imageDir, "test_edge.png");
   fs.writeFileSync(edgeOutputPath, edgeBuffer);
   console.log(`[Saved Edge Image]: ${edgeOutputPath}`);
 
@@ -46,7 +52,7 @@ async function processSampleImage() {
         (b) =>
           `<rect x="${b.x}" y="${b.y}" width="${b.width}" height="${b.height}" fill="none" stroke="red" stroke-width="2" />`,
       )
-      .join('\n');
+      .join("\n");
 
     const svgOverlay = Buffer.from(
       `<svg width="${metadata.width}" height="${metadata.height}">${rectSvgs}</svg>`,
@@ -56,7 +62,7 @@ async function processSampleImage() {
       .composite([{ input: svgOverlay, top: 0, left: 0 }])
       .toBuffer();
 
-    const bboxOutputPath = path.join(imageDir, 'test_bbox.png');
+    const bboxOutputPath = path.join(imageDir, "test_bbox.png");
     fs.writeFileSync(bboxOutputPath, bboxBuffer);
     console.log(`[Saved Bounding Box Overlay Image]: ${bboxOutputPath}`);
   }
@@ -64,5 +70,5 @@ async function processSampleImage() {
 }
 
 processSampleImage().catch((err) => {
-  console.error('Error processing sample image:', err);
+  console.error("Error processing sample image:", err);
 });

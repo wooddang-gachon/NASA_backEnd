@@ -1,11 +1,11 @@
-import { Service } from 'typedi';
-import { FUEL_REWARDS } from '@/constants/gamification';
-import { getPrisma } from '../loaders/prisma';
-import Logger from '../loaders/logger';
-import { QuickLogCreateRequest } from '../dto';
-import { QuickLogMapper } from '../mappers';
-import QuickLogRepository from '../repositories/QuickLogRepository';
-import { Inject } from 'typedi';
+import { Service } from "typedi";
+import { FUEL_REWARDS } from "@/constants/gamification";
+import { getPrisma } from "../loaders/prisma";
+import Logger from "../loaders/logger";
+import { QuickLogCreateRequest } from "../dto";
+import { QuickLogMapper } from "../mappers";
+import QuickLogRepository from "../repositories/QuickLogRepository";
+import { Inject } from "typedi";
 
 @Service()
 export default class QuickLogService {
@@ -22,7 +22,10 @@ export default class QuickLogService {
       QuickLogMapper.toCreateInput(userId, data, earnedFuel),
     );
 
-    const updatedUser = await this.quickLogRepository.updateUserFuel(userId, earnedFuel);
+    const updatedUser = await this.quickLogRepository.updateUserFuel(
+      userId,
+      earnedFuel,
+    );
 
     return {
       success: true,
