@@ -1,0 +1,98 @@
+name: CD
+
+# main 에 머지될 때만 실제 배포합니다. dev 푸시는 ci.yml 만 돌아갑니다.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 배포는 중간에 끊기면 서버가 어정쩡한 상태로 남으므로 취소하지 않고 줄을 세웁니다.
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and Deploy to GCE
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    permissions:
+      contents: read
+      id-token: write # Workload Identity Federation 용 OIDC 토큰 발급
+
+    env:
+      GCP_PROJECT: tammy-ai-server
+      GCE_INSTANCE: nasa-backend
+      GCE_ZONE: asia-northeast3-a
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      # 배포 전 마지막 관문. CI 워크플로와 별개로 여기서 한 번 더 확인해
+      # 검증되지 않은 커밋이 서버로 나가는 일이 없도록 합니다.
+      - name: Unit tests
+        env:
+          NODE_ENV: test
+          DATABASE_URL: "mysql://ci:ci@127.0.0.1:3306/ci_dummy"
+          MOCK_DATABASE_URL: "mysql://ci:ci@127.0.0.1:3306/ci_dummy"
+          JWT_SECRET: "ci-dummy-secret-not-used-for-signing-real-tokens"
+        run: npx jest --runInBand --testPathPatterns 'src/tests/unit'
+
+      # VM 이 e2-small(2GB) 이라 tsc 는 여기서만 돌리고, 서버로는 결과물만 보냅니다.
+      - name: Build
+        run: npm run build
+
+      - name: Package release
+        run: |
+          tar czf nasa-release.tar.gz \
+            dist \
+            package.json \
+            package-lock.json \
+            prisma \
+            models \
+            data
+          ls -lh nasa-release.tar.gz
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Upload release to VM
+        run: |
+          gcloud compute scp nasa-release.tar.gz \
+            "${GCE_INSTANCE}:/tmp/nasa-release.tar.gz" \
+            --project="${GCP_PROJECT}" \
+            --zone="${GCE_ZONE}" \
+            --tunnel-through-iap \
+            --quiet
+
+      # 인자 없이 호출합니다. VM 의 sudoers 규칙이 무인자 실행만 허용하므로
+      # 워크플로 쪽에서 임의 명령을 밀어 넣을 여지가 없습니다.
+      - name: Deploy on VM
+        run: |
+          gcloud compute ssh "${GCE_INSTANCE}" \
+            --project="${GCP_PROJECT}" \
+            --zone="${GCE_ZONE}" \
+            --tunnel-through-iap \
+            --quiet \
+            --command="sudo /usr/local/bin/nasa-deploy.sh"
+
+      # DB 마이그레이션은 의도적으로 포함하지 않았습니다.
+      # 스키마 변경 시 서버에서 직접 실행하세요:
+      #   cd /opt/nasa-backend && sudo -u nasa npx prisma migrate deploy
