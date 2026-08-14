@@ -1,5 +1,3 @@
-import { Sender } from "../interfaces/enums";
-
 export interface ChatMessageApiRequest {
   messageText: string;
 }

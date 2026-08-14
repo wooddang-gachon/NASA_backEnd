@@ -105,8 +105,7 @@ describe("FoodService", () => {
 
       const result = await foodService.logMeal(1, {
         mealType: "LUNCH",
-        foodName: "Apple",
-        intakeGram: 100,
+        foods: [{ foodName: "Apple", gram: 100 }],
       } as never);
 
       expect(mockFoodRepository.findUserById).toHaveBeenCalledWith(1);

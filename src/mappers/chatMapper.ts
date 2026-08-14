@@ -55,7 +55,9 @@ export class ChatMapper extends BaseMapper {
         message_text: paramsOrUserId.replyText,
         motion_tag: paramsOrUserId.motionTag || "COMFORT_WARM",
         intent_label: paramsOrUserId.intentLabel || null,
-        labels: paramsOrUserId.labels || null,
+        labels: paramsOrUserId.labels
+          ? (paramsOrUserId.labels as import("@prisma/client").Prisma.InputJsonValue)
+          : undefined,
       };
     }
     return {
@@ -64,7 +66,9 @@ export class ChatMapper extends BaseMapper {
       message_text: replyText!,
       motion_tag: motionTag || "COMFORT_WARM",
       intent_label: intentLabel || null,
-      labels: labels || null,
+      labels: labels
+        ? (labels as import("@prisma/client").Prisma.InputJsonValue)
+        : undefined,
     };
   }
 

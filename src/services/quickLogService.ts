@@ -1,6 +1,5 @@
 import { Service } from "typedi";
 import { FUEL_REWARDS } from "@/constants/gamification";
-import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
 import { QuickLogCreateRequest } from "../dto";
 import { QuickLogMapper } from "../mappers";
@@ -9,7 +8,7 @@ import { Inject } from "typedi";
 
 @Service()
 export default class QuickLogService {
-  @Inject((type) => QuickLogRepository)
+  @Inject((_type) => QuickLogRepository)
   private quickLogRepository!: QuickLogRepository;
 
   public async createQuickLog(userId: number, data: QuickLogCreateRequest) {

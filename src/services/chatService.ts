@@ -1,7 +1,6 @@
 import { Service, Inject } from "typedi";
 import { FUEL_REWARDS } from "@/constants/gamification";
 import AiService from "./aiService";
-import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
 import ChatRepository from "../repositories/ChatRepository";
 import { UserNotFoundError } from "../errors";
@@ -11,10 +10,10 @@ import { ChatMessageApiResponse } from "../dto";
 
 @Service()
 export default class ChatService {
-  @Inject((type) => AiService)
+  @Inject((_type) => AiService)
   private aiService!: AiService;
 
-  @Inject((type) => ChatRepository)
+  @Inject((_type) => ChatRepository)
   private chatRepository!: ChatRepository;
 
   public async processChat(
@@ -67,8 +66,10 @@ export default class ChatService {
           (aiResult.extractedMemory?.category ? "MEMORY_EXTRACT" : "CHAT"),
         aiResult.labels ||
           (aiResult.extractedMemory
-            ? { memory: aiResult.extractedMemory }
-            : null),
+            ? ({
+                memory: aiResult.extractedMemory,
+              } as import("@prisma/client").Prisma.InputJsonValue)
+            : undefined),
       ),
     );
 

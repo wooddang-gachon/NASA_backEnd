@@ -19,9 +19,14 @@
     }
   ],
   "rules": {
+    "new-cap": "off",
     "@typescript-eslint/no-explicit-any": "warn",
     "prettier/prettier": "error",
-    "new-cap": "off",
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "require-jsdoc": "off",
+    "valid-jsdoc": "off",
+    "camelcase": "off",
+    "jsdoc/check-tag-names": "off",
     "jsdoc/require-jsdoc": "off",
     "jsdoc/require-param": "off",
     "jsdoc/require-returns": "off",

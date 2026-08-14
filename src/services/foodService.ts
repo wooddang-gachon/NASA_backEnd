@@ -158,7 +158,7 @@ export default class FoodService {
       // 검색으로 확인하지 못한 음식은 수치가 0, confidence가 0으로 온다.
       if (item && item.confidence > 0) {
         detected = {
-          estimatedGram: item.servingSizeG,
+          estimatedGram: item.servingSizeG || 100,
           calories: item.caloriesKcal,
           carbs: item.carbohydrateG,
           protein: item.proteinG,
@@ -212,6 +212,11 @@ export default class FoodService {
               foodName: r.className,
               boundingBox: r.bbox,
               confidence: r.confidence,
+              estimatedGram: 0,
+              calories: 0,
+              carbs: 0,
+              protein: 0,
+              fat: 0,
             })),
           };
         } else {
@@ -235,12 +240,12 @@ export default class FoodService {
 
     // 2차: 미식별/불분명 시 Vision LLM Fallback 추가 분석 요청
     if (!aiVisionResult) {
-      aiVisionResult = await this.aiService.analyzeFoodVision(
+      aiVisionResult = (await this.aiService.analyzeFoodVision(
         imageUrl,
         mealType,
         undefined,
         yoloContext,
-      );
+      )) as unknown as Partial<FoodVisionScanResponse>;
       if (aiVisionResult) aiVisionResult.scanEngine = "VisionLLM";
     }
 
@@ -251,7 +256,7 @@ export default class FoodService {
       const enrichedFoods = [];
       let idx = 0;
       for (const item of aiVisionResult.detectedFoods) {
-        const rawFoodName = item.foodName || item.name || "음식";
+        const rawFoodName = item.foodName || "음식";
         const mapping = await this.getOrMapFood(rawFoodName);
         enrichedFoods.push({
           boxId: item.boxId !== undefined ? item.boxId : idx++,
@@ -274,10 +279,14 @@ export default class FoodService {
       return {
         ...aiVisionResult,
         detectedFoods: enrichedFoods,
-      };
+      } as FoodVisionScanResponse;
     }
 
-    return aiVisionResult;
+    return (aiVisionResult || {
+      isIdentified: false,
+      scanEngine: "Unknown",
+      detectedFoods: [],
+    }) as FoodVisionScanResponse;
   }
 
   public async logMeal(
@@ -419,7 +428,9 @@ export default class FoodService {
     // 2. 로컬 YOLO를 건너뛰고, 메인 AI 서버(Vision LLM)로 바로 요청!
     let aiVisionResult: Partial<FoodVisionScanResponse> | null = null;
     try {
-      aiVisionResult = await this.aiService.analyzeFoodVision(imageUrl);
+      aiVisionResult = (await this.aiService.analyzeFoodVision(
+        imageUrl,
+      )) as unknown as Partial<FoodVisionScanResponse>;
       if (aiVisionResult) aiVisionResult.scanEngine = "VisionLLM_Direct";
     } catch (error) {
       Logger.error(`[FoodService] 메인 AI 서버 Vision 연동 실패: ${error}`);
@@ -436,7 +447,7 @@ export default class FoodService {
       aiVisionResult.detectedFoods.length > 0
     ) {
       for (const item of aiVisionResult.detectedFoods) {
-        const rawFoodName = item.foodName || item.name || "음식";
+        const rawFoodName = item.foodName || "음식";
         const mapping = await this.getOrMapFood(rawFoodName);
 
         enrichedFoods.push({
@@ -457,8 +468,8 @@ export default class FoodService {
     }
 
     return {
-      ...(aiVisionResult || {}),
+      ...(aiVisionResult || { isIdentified: false, scanEngine: "Unknown" }),
       detectedFoods: enrichedFoods,
-    };
+    } as FoodVisionScanResponse;
   }
 }

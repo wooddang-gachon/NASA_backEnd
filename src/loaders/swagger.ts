@@ -1,10 +1,10 @@
-import type { Application } from "express";
+import type { IRouter } from "express";
 import swaggerUi from "swagger-ui-express";
 import fs from "fs";
 import path from "path";
 import Logger from "@/loaders/logger";
 
-export default ({ app }: { app: Application }) => {
+export default ({ app }: { app: IRouter }) => {
   try {
     let swaggerPath = path.join(process.cwd(), "docs/swagger.json");
 

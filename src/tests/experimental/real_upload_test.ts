@@ -1,4 +1,4 @@
-import { getTestApp } from "../app";
+import { getTestApp } from "../setup/app";
 import request from "supertest";
 import path from "path";
 import fs from "fs";

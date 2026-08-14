@@ -98,7 +98,7 @@ describe("QuickLogService", () => {
       } as never);
       (QuickLogMapper.toApiResponse as jest.Mock).mockReturnValue({
         id: 101,
-        current_fuel: 0,
+        currentFuel: 0,
       });
 
       const result = await service.createQuickLog(userId, data);
@@ -108,7 +108,7 @@ describe("QuickLogService", () => {
         5,
       );
       expect(QuickLogMapper.toApiResponse).toHaveBeenCalledWith({ id: 101 }, 0);
-      expect((result.data as { current_fuel: number }).current_fuel).toBe(0);
+      expect((result.data as any).currentFuel).toBe(0);
     });
   });
 });

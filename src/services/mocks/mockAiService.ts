@@ -1,6 +1,6 @@
 import { Service } from "typedi";
 import AiService from "../aiService";
-import { YoloContext } from "@/interfaces";
+import { YoloContext, AiChatInternalResponse, NormalizedVisionResult, ChatTurn } from "@/interfaces";
 
 @Service()
 export default class MockAiService extends AiService {
@@ -9,8 +9,8 @@ export default class MockAiService extends AiService {
     userMessage: string,
     userNickname?: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _history?: unknown[],
-  ): Promise<unknown> {
+    _history?: ChatTurn[],
+  ): Promise<AiChatInternalResponse> {
     return {
       replyText: `안녕하세요 ${
         userNickname || "탐험가"
@@ -36,18 +36,16 @@ export default class MockAiService extends AiService {
     _imageBase64Input?: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _yoloContext?: YoloContext,
-  ): Promise<unknown> {
+  ): Promise<NormalizedVisionResult> {
     return {
+      isIdentified: true,
+      comment: "AI 서버 연동이 지연되어 기본 식단 정보를 제공합니다.",
       scanEngine: "Mock",
-      message: "AI 서버 연동이 지연되어 기본 식단 정보를 제공합니다.",
       detectedFoods: [
         {
+          boxId: 0,
           foodName: "연어 샐러드",
-          estimatedGram: 200,
-          calories: 250,
-          carbs: 10,
-          protein: 30,
-          fat: 5,
+          confidence: 0.95,
         },
       ],
     };

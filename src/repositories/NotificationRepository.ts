@@ -27,14 +27,14 @@ export default class NotificationRepository extends BaseRepository<
         },
       },
       update: {
-        device_type: deviceType,
+        device_type: deviceType as import("@prisma/client").$Enums.DeviceType,
         is_active: true,
         updated_at: new Date(),
       },
       create: {
         user_id: userId,
         device_token: deviceToken,
-        device_type: deviceType,
+        device_type: deviceType as import("@prisma/client").$Enums.DeviceType,
         is_active: true,
       },
     });

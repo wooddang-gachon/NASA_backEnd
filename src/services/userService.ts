@@ -1,5 +1,4 @@
 import { Service } from "typedi";
-import { getPrisma } from "../loaders/prisma";
 import Logger from "../loaders/logger";
 import { UserNotFoundError } from "../errors";
 import { UserProfileResponseData, TammyHistoryResponse } from "../dto";
@@ -9,7 +8,7 @@ import { UserMapper } from "../mappers";
 
 @Service()
 export default class UserService {
-  @Inject((type) => UserRepository)
+  @Inject((_type) => UserRepository)
   private userRepository!: UserRepository;
 
   public async getUserProfile(

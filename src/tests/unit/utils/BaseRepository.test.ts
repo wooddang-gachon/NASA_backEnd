@@ -28,14 +28,14 @@ describe("BaseRepository Unit Tests", () => {
 
   it("should call findFirst on the injected delegate", async () => {
     // given
-    mockPrisma.findFirst.mockResolvedValue({ id: 1, name: "Test" });
+    (mockPrisma as any).findFirst.mockResolvedValue({ id: 1, name: "Test" });
     const query = { id: 1 };
 
     // when
     const result = await repository.findFirst(query);
 
     // then
-    expect(mockPrisma.findFirst).toHaveBeenCalledWith({ where: query });
+    expect((mockPrisma as any).findFirst).toHaveBeenCalledWith({ where: query });
     expect(result).toEqual({ id: 1, name: "Test" });
   });
 });

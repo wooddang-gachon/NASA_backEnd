@@ -37,10 +37,12 @@ describe("TravelController", () => {
       const request = {} as never;
       const body = { planetType: PlanetType.MEAL, fuelSpent: 10 } as never;
 
-      const response = await controller.startPlanetTravel(request, body);
+      await controller.startPlanetTravel(request, body);
 
       expect(mockTravelService.startPlanetTravel).toHaveBeenCalledWith(1, body);
-      expect((controller as any).success).toHaveBeenCalledWith(
+      expect(
+        (controller as unknown as { success: jest.Mock }).success,
+      ).toHaveBeenCalledWith(
         mockResult,
         "별여행 탐사가 성공적으로 시작되었습니다.",
       );
@@ -76,7 +78,7 @@ describe("TravelController", () => {
         recommendations: "Recs",
         createdAt: new Date().toISOString(),
       };
-      mockTravelService.getTravelResultById.mockResolvedValue(mockResult);
+      mockTravelService.getTravelResultById.mockResolvedValue(mockResult as never);
 
       const request = {} as never;
       await controller.getTravelResult("1", request);

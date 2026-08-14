@@ -78,7 +78,7 @@ export default class TravelRepository extends BaseRepository<
     return prisma.quick_logs.findMany({
       where: {
         user_id: userId,
-        category,
+        category: category as import("@prisma/client").$Enums.LogCategory,
         created_at: { gte: startDate },
       },
     });

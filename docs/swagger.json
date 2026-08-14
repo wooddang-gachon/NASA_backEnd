@@ -1082,31 +1082,6 @@
 			"MealType": {
 				"$ref": "#/components/schemas/_36_Enums.MealType"
 			},
-			"ApiResponse_any_": {
-				"properties": {
-					"success": {
-						"type": "boolean"
-					},
-					"message": {
-						"type": "string"
-					},
-					"data": {
-						"nullable": true
-					},
-					"code": {
-						"type": "number",
-						"format": "double"
-					}
-				},
-				"required": [
-					"success",
-					"message",
-					"data",
-					"code"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
 			"FoodLogConfirmResponse": {
 				"properties": {
 					"mealId": {
@@ -1228,6 +1203,87 @@
 					"mealType",
 					"imageId",
 					"foods"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ChatEmotionResponse": {
+				"properties": {
+					"primaryEmotion": {
+						"type": "string"
+					},
+					"intensity": {
+						"type": "number",
+						"format": "double"
+					},
+					"state": {
+						"type": "string"
+					},
+					"motionType": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"motionType"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ChatMessageApiResponse": {
+				"properties": {
+					"reply": {
+						"type": "string"
+					},
+					"motionTag": {
+						"type": "string"
+					},
+					"gainedFuel": {
+						"type": "number",
+						"format": "double"
+					},
+					"currentFuel": {
+						"type": "number",
+						"format": "double"
+					},
+					"emotion": {
+						"$ref": "#/components/schemas/ChatEmotionResponse"
+					}
+				},
+				"required": [
+					"reply",
+					"motionTag",
+					"gainedFuel",
+					"currentFuel"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApiResponse_ChatMessageApiResponse_": {
+				"properties": {
+					"success": {
+						"type": "boolean"
+					},
+					"message": {
+						"type": "string"
+					},
+					"data": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/ChatMessageApiResponse"
+							}
+						],
+						"nullable": true
+					},
+					"code": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"success",
+					"message",
+					"data",
+					"code"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -1948,7 +2004,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/ApiResponse_any_"
+									"$ref": "#/components/schemas/ApiResponse_FoodVisionScanResponse_"
 								}
 							}
 						}
@@ -2032,7 +2088,7 @@
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/ApiResponse_any_"
+									"$ref": "#/components/schemas/ApiResponse_ChatMessageApiResponse_"
 								}
 							}
 						}

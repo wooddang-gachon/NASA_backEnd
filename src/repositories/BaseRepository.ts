@@ -1,19 +1,20 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { EntityId } from "@/interfaces";
 
 // PrismaClient의 delegate 구조와 호환되는 타입 정의
 export type Delegate<T> = {
-  findUnique(args: { where: unknown }): Promise<T | null>;
-  findFirst(args: { where?: unknown }): Promise<T | null>;
+  findUnique(args: { where: any }): Promise<T | null>;
+  findFirst(args: { where?: any }): Promise<T | null>;
   findMany(args?: {
-    where?: unknown;
+    where?: any;
     skip?: number;
     take?: number;
-    orderBy?: unknown;
+    orderBy?: any;
   }): Promise<T[]>;
-  create(args: { data: unknown }): Promise<T>;
-  update(args: { where: unknown; data: unknown }): Promise<T>;
-  delete(args: { where: unknown }): Promise<T>;
-  count(args?: { where?: unknown }): Promise<number>;
+  create(args: { data: any }): Promise<T>;
+  update(args: { where: any; data: any }): Promise<T>;
+  delete(args: { where: any }): Promise<T>;
+  count(args?: { where?: any }): Promise<number>;
 };
 
 export abstract class BaseRepository<T, CreateInput, UpdateInput> {

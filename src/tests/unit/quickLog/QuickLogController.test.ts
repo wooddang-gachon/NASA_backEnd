@@ -44,26 +44,21 @@ describe("QuickLogController", () => {
 
   describe("createQuickLog", () => {
     it("should return 400 error when category is WATER and amount is undefined", async () => {
-      const mockReq = {} as AuthenticatedRequest;
-      const result = await controller.createQuickLog(mockReq, {
-        category: "WATER",
-        content: "test",
-      } as never);
+      const request = {} as never;
+      const body = { category: "WATER" } as never;
 
-      expect(controller.setStatus).toHaveBeenCalledWith(400);
-      expect(mockQuickLogService.createQuickLog).not.toHaveBeenCalled();
+      await expect(controller.createQuickLog(request, body)).rejects.toThrow(
+        "수분 섭취량은 0 이상이어야 합니다.",
+      );
     });
 
     it("should return 400 error when category is WATER and amount is less than 0", async () => {
-      const mockReq = {} as AuthenticatedRequest;
-      const result = await controller.createQuickLog(mockReq, {
-        category: "WATER",
-        amount: -1,
-        content: "test",
-      } as any);
+      const request = {} as never;
+      const body = { category: "WATER", amount: -1 } as never;
 
-      expect(controller.setStatus).toHaveBeenCalledWith(400);
-      expect(mockQuickLogService.createQuickLog).not.toHaveBeenCalled();
+      await expect(controller.createQuickLog(request, body)).rejects.toThrow(
+        "수분 섭취량은 0 이상이어야 합니다.",
+      );
     });
 
     it("should successfully create quick log", async () => {
@@ -85,7 +80,7 @@ describe("QuickLogController", () => {
       const result = await controller.createQuickLog(mockReq, {
         category: "MOOD",
         content: "Good",
-      } as any);
+      } as never);
 
       expect(mockQuickLogService.createQuickLog).toHaveBeenCalledWith(1, {
         category: "MOOD",

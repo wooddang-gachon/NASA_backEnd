@@ -1,5 +1,4 @@
 import { ChatTurn, EmotionStatus } from "./chat";
-import { PlanetType } from "./enums";
 
 // ==========================================
 // 1. BE ↔ AI Chat Protocol

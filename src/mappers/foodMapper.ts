@@ -75,8 +75,8 @@ export class FoodMapper extends BaseMapper {
     return {
       rawName,
       foodId: 0,
-      standardServingG: detected?.estimatedGram || 100,
-      caloriesKcal: detected?.calories || 250,
+      standardServingG: (detected?.estimatedGram as number) || 100,
+      caloriesKcal: (detected?.calories as number) || 250,
       carbohydrateG: (detected?.carbs as number) || 30,
       proteinG: (detected?.protein as number) || 20,
       fatG: (detected?.fat as number) || 5,
@@ -152,7 +152,9 @@ export class FoodMapper extends BaseMapper {
         food_id: paramsOrMealId.foodId || null,
         custom_food_name: paramsOrMealId.foodName,
         intake_gram: paramsOrMealId.intakeGram,
-        bounding_box: paramsOrMealId.boundingBox || null,
+        bounding_box: paramsOrMealId.boundingBox
+          ? (paramsOrMealId.boundingBox as import("@prisma/client").Prisma.InputJsonValue)
+          : undefined,
         confidence:
           paramsOrMealId.confidence !== undefined &&
           paramsOrMealId.confidence !== null
@@ -168,7 +170,9 @@ export class FoodMapper extends BaseMapper {
       food_id: foodId || null,
       custom_food_name: foodName!,
       intake_gram: intakeGram!,
-      bounding_box: boundingBox || null,
+      bounding_box: boundingBox
+        ? (boundingBox as import("@prisma/client").Prisma.InputJsonValue)
+        : undefined,
       confidence:
         confidence !== undefined && confidence !== null ? confidence : null,
       meal_image_id: mealImageId ? BigInt(mealImageId) : null,

@@ -71,7 +71,7 @@ describe("NotificationService", () => {
     it("should register push token with provided deviceType", async () => {
       mockNotificationRepository.upsertPushToken.mockResolvedValue({} as never);
 
-      const result = await service.registerPushToken(1, {
+      await service.registerPushToken(1, {
         deviceToken: "token-123",
         deviceType: "ANDROID",
       } as never);

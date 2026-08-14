@@ -10,7 +10,7 @@ import Logger from "../../loaders/logger";
  * @param next
  */
 export function globalErrorHandler(
-  err: any,
+  err: unknown,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -35,14 +35,18 @@ export function globalErrorHandler(
     return;
   }
 
+  const error = err as Error & { status?: number; fields?: unknown };
+
   // 2. TSOA Request Body / Query Validation Error
-  if (err.name === "ValidateError" || err.status === 400) {
-    Logger.warn(`[ValidationError] ${req.method} ${req.path} - ${err.message}`);
+  if (error.name === "ValidateError" || error.status === 400) {
+    Logger.warn(
+      `[ValidationError] ${req.method} ${req.path} - ${error.message}`,
+    );
     res.status(400).json({
       code: "VALIDATION_ERROR",
       message: "요청 데이터 유효성 검증에 실패하였습니다.",
       status: 400,
-      details: err.fields || err.message,
+      details: error.fields || error.message,
     });
     return;
   }
@@ -50,7 +54,9 @@ export function globalErrorHandler(
   // 3. 처리되지 않은 500 Internal Server Error (스택 트레이스는 로거로 기록 후 은닉)
   console.error("🔥 [Unhandled Error Detail]:", err);
   Logger.error(
-    `[UnhandledError] ${req.method} ${req.path} - ${err.stack || err.message}`,
+    `[UnhandledError] ${req.method} ${req.path} - ${
+      error.stack || error.message || "Unknown error"
+    }`,
   );
   res.status(500).json({
     code: "INTERNAL_SERVER_ERROR",

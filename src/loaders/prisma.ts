@@ -50,6 +50,7 @@ export const initPrisma = (): PrismaClient => {
       database,
       connectionLimit: config.nodeEnv === "test" ? 3 : 10,
       allowPublicKeyRetrieval: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
     // 3. PrismaClient 초기화
@@ -66,6 +67,7 @@ export const initPrisma = (): PrismaClient => {
 
     // 개발 환경일 때, 100ms 이상 걸리는 Slow Query만 출력하도록 변경하여 로그 도배 방지
     if (!isProduction) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (prisma as any).$on("query", (e: any) => {
         if (e.duration >= 100) {
           Logger.warn(
@@ -93,7 +95,7 @@ export const getPrisma = (): PrismaClient => {
 export const clearPrisma = async (): Promise<void> => {
   if (prisma) {
     await prisma.$disconnect();
-    prisma = undefined as any;
+    prisma = undefined as unknown as PrismaClient;
   }
 };
 

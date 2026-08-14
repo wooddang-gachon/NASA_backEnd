@@ -64,8 +64,8 @@ describe("FoodController", () => {
       const mockRequest = {} as AuthenticatedRequest;
       const mockBody = {
         mealType: MealType.LUNCH,
-        foodName: "Apple",
-        intakeGram: 150,
+        imageId: "123",
+        foods: [{ foodName: "Apple", gram: 150 }],
       };
 
       const mockServiceResponse = {
@@ -77,18 +77,15 @@ describe("FoodController", () => {
 
       mockFoodService.logMeal.mockResolvedValue(mockServiceResponse as never);
 
-      const result = await foodController.confirmFoodLog(mockRequest, mockBody);
+      const result = await foodController.confirmFoodLog(mockRequest, mockBody as never);
 
       expect(
         (foodController as unknown as Record<string, unknown>).getUserId,
       ).toHaveBeenCalledWith(mockRequest);
       expect(mockFoodService.logMeal).toHaveBeenCalledWith(1, {
         mealType: MealType.LUNCH,
-        imageId: undefined,
-        imageUrl: undefined,
-        foods: undefined,
-        foodName: "Apple",
-        intakeGram: 150,
+        imageId: "123",
+        foods: [{ foodName: "Apple", gram: 150 }],
         comment: undefined,
       });
 

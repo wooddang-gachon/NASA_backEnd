@@ -345,7 +345,7 @@ export default class AuthService {
     } catch (err: unknown) {
       if (err instanceof UnauthorizedError) throw err;
       Logger.error(
-        `[AuthService] 외부 소셜 인증 서버 통신 실패 (${provider}): ${err.message}`,
+        `[AuthService] 외부 소셜 인증 서버 통신 실패 (${provider}): ${(err as Error).message}`,
         {
           err,
         },

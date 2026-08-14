@@ -50,7 +50,7 @@ export class AiAdapter {
           method: "POST",
           headers: this.getHeaders(),
           body: JSON.stringify(payload),
-          signal: controller.signal as any,
+          signal: controller.signal as unknown as RequestInit["signal"],
         });
 
         clearTimeout(timeoutId);
@@ -205,7 +205,9 @@ export class AiAdapter {
     payload: unknown,
   ): Promise<AiReportInternalResponse> {
     const endpoint = this.resolveReportEndpoint(planetType);
-    const data = await this.postJson<Partial<AiReportInternalResponse> & Record<string, unknown>>(endpoint, payload, "Report");
+    const data = await this.postJson<
+      Partial<AiReportInternalResponse> & Record<string, unknown>
+    >(endpoint, payload, "Report");
 
     // 어댑터 내부에서 백엔드 도메인 포맷(AiReportInternalResponse)으로 명확히 매핑하여 반환
     return {

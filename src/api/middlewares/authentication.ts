@@ -1,4 +1,3 @@
-import type express from "express";
 import jwt from "jsonwebtoken";
 import config from "../../config";
 import { UnauthorizedError } from "../../errors";
@@ -9,12 +8,12 @@ import { AuthenticatedRequest, UserPayload } from "../../interfaces/express";
  * JWT authentication middleware for TSOA controllers
  * @param request
  * @param securityName
- * @param scopes
+ * @param _scopes
  */
 export function expressAuthentication(
   request: AuthenticatedRequest,
   securityName: string,
-  scopes?: string[],
+  _scopes?: string[],
 ): Promise<UserPayload> {
   if (securityName === "jwt") {
     const authHeader = request.headers.authorization;
@@ -38,10 +37,13 @@ export function expressAuthentication(
 
       try {
         const decoded = jwt.verify(token, config.jwtSecret) as UserPayload;
-        const user: UserPayload = { userId: decoded.userId, email: decoded.email };
+        const user: UserPayload = {
+          userId: decoded.userId,
+          email: decoded.email,
+        };
         request.currentUser = user;
         return Promise.resolve(user);
-      } catch (err) {
+      } catch {
         return Promise.reject(
           new UnauthorizedError("만료되었거나 유효하지 않은 인증 토큰입니다."),
         );
@@ -51,7 +53,10 @@ export function expressAuthentication(
     // 개발 및 테스트 보조 식별자 처리 (쿼리 파라미터 userId) - 프로덕션 환경에서는 차단
     const userIdQuery = request.query.userId as string | undefined;
     if (userIdQuery && process.env.NODE_ENV !== "production") {
-      const user: UserPayload = { userId: Number(userIdQuery), nickname: "우주탐험가" };
+      const user: UserPayload = {
+        userId: Number(userIdQuery),
+        nickname: "우주탐험가",
+      };
       request.currentUser = user;
       return Promise.resolve(user);
     }

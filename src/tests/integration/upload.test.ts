@@ -34,6 +34,6 @@ describe("로컬 이미지 업로드 API 통합 테스트 (UPL Module)", () => {
     expect(res.body.success).toBe(true);
     expect(res.body.data).toHaveProperty("scanEngine");
     expect(res.body.data).toHaveProperty("detectedFoods");
-    expect(res.body.data).toHaveProperty("imageUrl");
+    expect(res.body.data).toHaveProperty("imageId");
   });
 });

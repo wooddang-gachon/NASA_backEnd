@@ -61,7 +61,16 @@ export class TravelMapper extends BaseMapper {
       travelResultId: travelResultId || travel.id.toString(),
       remainingFuel,
       status: travel.status,
-      travelResult: travelResultData as unknown as TravelResultDetailInfo,
+      travelResult: {
+        id: travelResultData.id,
+        userId: travelResultData.userId,
+        title: travelResultData.title,
+        summaryContent: travelResultData.summaryContent,
+        recommendations:
+          typeof travelResultData.recommendations === "string"
+            ? travelResultData.recommendations.split("\n").filter(Boolean)
+            : (travelResultData.recommendations as unknown as string[]) || [],
+      },
     };
   }
 

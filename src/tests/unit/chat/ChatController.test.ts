@@ -32,11 +32,11 @@ describe("ChatController", () => {
 
   describe("sendMessage", () => {
     it("should send message successfully", async () => {
-      const mockResult: Record<string, unknown> = { replyText: "Hello" };
+      const mockResult = { replyText: "Hello" } as never;
       mockChatService.processChat.mockResolvedValue(mockResult);
 
-      const request = {} as unknown as Record<string, unknown>;
-      const body = { messageText: "Hi" } as unknown as Record<string, unknown>;
+      const request = {} as never;
+      const body = { messageText: "Hi" } as never;
 
       await controller.sendMessage(request, body);
 
@@ -51,7 +51,7 @@ describe("ChatController", () => {
     it("should delete message successfully", async () => {
       mockChatService.deleteMessage.mockResolvedValue();
 
-      const request = {} as unknown as Record<string, unknown>;
+      const request = {} as never;
       await controller.deleteMessage(request, "1");
 
       expect(mockChatService.deleteMessage).toHaveBeenCalledWith("1");
@@ -65,7 +65,7 @@ describe("ChatController", () => {
     it("should undo delete message successfully", async () => {
       mockChatService.undoDeleteMessage.mockResolvedValue();
 
-      const request = {} as unknown as Record<string, unknown>;
+      const request = {} as never;
       await controller.undoDeleteMessage(request, "1");
 
       expect(mockChatService.undoDeleteMessage).toHaveBeenCalledWith("1");

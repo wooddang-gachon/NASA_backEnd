@@ -724,24 +724,6 @@ components:
         - SNACK
     MealType:
       $ref: "#/components/schemas/_36_Enums.MealType"
-    ApiResponse_any_:
-      properties:
-        success:
-          type: boolean
-        message:
-          type: string
-        data:
-          nullable: true
-        code:
-          type: number
-          format: double
-      required:
-        - success
-        - message
-        - data
-        - code
-      type: object
-      additionalProperties: false
     FoodLogConfirmResponse:
       properties:
         mealId:
@@ -820,6 +802,62 @@ components:
         - mealType
         - imageId
         - foods
+      type: object
+      additionalProperties: false
+    ChatEmotionResponse:
+      properties:
+        primaryEmotion:
+          type: string
+        intensity:
+          type: number
+          format: double
+        state:
+          type: string
+        motionType:
+          type: string
+      required:
+        - motionType
+      type: object
+      additionalProperties: false
+    ChatMessageApiResponse:
+      properties:
+        reply:
+          type: string
+        motionTag:
+          type: string
+        gainedFuel:
+          type: number
+          format: double
+        currentFuel:
+          type: number
+          format: double
+        emotion:
+          $ref: "#/components/schemas/ChatEmotionResponse"
+      required:
+        - reply
+        - motionTag
+        - gainedFuel
+        - currentFuel
+      type: object
+      additionalProperties: false
+    ApiResponse_ChatMessageApiResponse_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          allOf:
+            - $ref: "#/components/schemas/ChatMessageApiResponse"
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
       type: object
       additionalProperties: false
     ChatMessageApiRequest:
@@ -1303,7 +1341,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiResponse_any_"
+                $ref: "#/components/schemas/ApiResponse_FoodVisionScanResponse_"
       description: "[추가] 외부 AI 서버를 통한 음식 사진 객체 검출 API"
       summary: 외부 AI 서버 기반 식단 검출 및 매칭
       tags:
@@ -1354,7 +1392,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiResponse_any_"
+                $ref: "#/components/schemas/ApiResponse_ChatMessageApiResponse_"
       description: AI 버추얼 펫 타미(TAMMY)와 실시간 심리 공감 대화를 나누고, 모션 태그 응답 수령 및 장기 기억 캡슐을 생성합니다.
       summary: AI 타미 심리 공감 메시지 전송
       tags:
