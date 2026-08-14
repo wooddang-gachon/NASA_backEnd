@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, dev]
+  push:
+    branches: [main, dev]
+
+# 같은 브랜치에 연속 push 시 이전 실행을 취소해 러너 낭비를 막습니다.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck / Lint / Unit Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      # 단위 테스트는 실제 DB에 접속하지 않지만, Service 생성자가 커넥션 URL과
+      # JWT_SECRET을 읽는 시점에 값이 없으면 throw 하므로 더미 값을 넣어 둡니다.
+      # 실제 접속이 필요한 integration 테스트는 이 워크플로에서 제외합니다.
+      NODE_ENV: test
+      DATABASE_URL: "mysql://ci:ci@127.0.0.1:3306/ci_dummy"
+      MOCK_DATABASE_URL: "mysql://ci:ci@127.0.0.1:3306/ci_dummy"
+      JWT_SECRET: "ci-dummy-secret-not-used-for-signing-real-tokens"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      # prebuild 훅이 tsoa 라우트(build/routes.ts)를 생성합니다.
+      # 이 파일이 없으면 src/loaders/express.ts 가 모듈을 찾지 못해 컴파일이 실패합니다.
+      - name: Build (tsoa routes + tsc)
+        run: npm run build
+
+      # lint 스크립트는 dev 브랜치에만 존재합니다. main 에서는 조용히 건너뜁니다.
+      - name: Lint
+        run: npm run lint --if-present
+
+      - name: Unit tests
+        run: npx jest --runInBand --testPathPatterns 'src/tests/unit'
