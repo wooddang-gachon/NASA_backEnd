@@ -32,6 +32,10 @@ rsync -a --delete \
 
 chown -R "$APP_USER:$APP_USER" "$APP_DIR"
 
+# .env 는 GCP Secret Manager 를 출처로 매 배포마다 다시 만듭니다.
+# 서버에서 손으로 채워 넣어야 하는 값이 없습니다.
+/usr/local/bin/nasa-render-env.sh
+
 echo "==> 프로덕션 의존성 설치"
 # tsc 는 CI 에서 이미 끝났습니다. 2GB VM 이라 여기서 컴파일은 하지 않습니다.
 cd "$APP_DIR"

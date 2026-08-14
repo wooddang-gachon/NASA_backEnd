@@ -5,8 +5,6 @@ set -euo pipefail
 
 APP_DIR=/opt/nasa-backend
 APP_USER=nasa
-AI_INTERNAL_IP=10.178.0.2
-AI_PORT=8000
 
 echo "==> [1/8] 스왑 2GB 설정 (e2-small 2GB RAM 보완)"
 if ! swapon --show | grep -q '/swapfile'; then
@@ -59,45 +57,14 @@ echo "==> [6/8] MariaDB 데이터베이스 및 계정 생성"
 systemctl enable --now mariadb >/dev/null 2>&1
 ENV_FILE="$APP_DIR/.env"
 if [[ -f "$ENV_FILE" ]]; then
-  echo "    .env 이미 존재 -> 비밀번호 재생성하지 않고 유지"
-else
-  # URL 구분자와 충돌하지 않도록 16진수 문자열로만 생성 (@ : / 등 미포함)
-  DB_PASS="$(openssl rand -hex 24)"
-  JWT_SECRET="$(openssl rand -hex 32)"
-  SWAGGER_PASS="$(openssl rand -hex 12)"
-
-  mysql <<SQL
+systemctl enable --now mariadb >/dev/null 2>&1
+# 비밀번호와 .env 는 여기서 만들지 않습니다.
+# GCP Secret Manager 를 유일한 출처로 삼아 배포 때마다 nasa-render-env.sh 가
+# DB 계정 비밀번호를 맞추고 .env 를 생성합니다.
+mysql <<'SQL'
 CREATE DATABASE IF NOT EXISTS nasa_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS 'nasa'@'localhost' IDENTIFIED BY '${DB_PASS}';
-ALTER USER 'nasa'@'localhost' IDENTIFIED BY '${DB_PASS}';
-GRANT ALL PRIVILEGES ON nasa_db.* TO 'nasa'@'localhost';
-FLUSH PRIVILEGES;
 SQL
-
-  cat > "$ENV_FILE" <<ENVEOF
-NODE_ENV=production
-PORT=3000
-LOG_LEVEL=info
-
-# 로컬 MariaDB (같은 VM). 비밀번호는 프로비저닝 시 자동 생성됨.
-DATABASE_URL="mysql://nasa:${DB_PASS}@127.0.0.1:3306/nasa_db"
-MOCK_DATABASE_URL=""
-
-JWT_SECRET="${JWT_SECRET}"
-
-SWAGGER_USER="admin"
-SWAGGER_PASSWORD="${SWAGGER_PASS}"
-
-# AI 서버(tammy-service)를 VPC 내부 IP로 호출합니다. 외부망을 타지 않습니다.
-AI_SERVER_URL="http://${AI_INTERNAL_IP}:${AI_PORT}"
-
-# TODO: AI 서버와 공유하는 내부 API 키를 직접 채워 넣어야 합니다.
-AI_INTERNAL_API_KEY=""
-ENVEOF
-  chown "$APP_USER:$APP_USER" "$ENV_FILE"
-  chmod 600 "$ENV_FILE"
-  echo "    DB/계정 생성 및 .env 작성 완료 (권한 600)"
-fi
+echo "    데이터베이스 준비 완료 (계정/비밀번호는 배포 시 Secret Manager 기준으로 설정)"
 
 echo "==> [7/8] Nginx 리버스 프록시 설정"
 cat > /etc/nginx/sites-available/nasa-backend <<'NGINXEOF'
@@ -142,6 +109,6 @@ echo
 echo "===================== 프로비저닝 완료 ====================="
 echo " 앱 경로   : $APP_DIR"
 echo " 실행 계정 : $APP_USER"
-echo " 환경파일  : $ENV_FILE (chmod 600)"
-echo " 남은 작업 : .env 의 AI_INTERNAL_API_KEY 채우기"
+echo " 환경파일  : 배포 시 nasa-render-env.sh 가 Secret Manager 기준으로 생성"
+echo " 남은 작업 : 없음 (VM 에 nasa-backend-vm 서비스 계정이 붙어 있어야 함)"
 echo "==========================================================="

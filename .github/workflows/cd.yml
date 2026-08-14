@@ -60,6 +60,7 @@ jobs:
             dist \
             package.json \
             package-lock.json \
+            prisma.config.ts \
             prisma \
             models \
             data
