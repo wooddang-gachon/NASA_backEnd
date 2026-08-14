@@ -50,8 +50,5 @@
     }
   },
   "include": ["src/**/*", "tests/**/*", "scripts/**/*"],
-  // 테스트는 배포 산출물(dist)에 포함될 이유가 없고, 포함되면 supertest 같은
-  // devDependency 가 런타임에 필요한 것처럼 딸려 들어갑니다.
-  // 테스트 타입 검사는 ts-jest 가 `npm test` 시점에 그대로 수행합니다.
-  "exclude": ["node_modules", "dist", "src/tests/**/*"]
+  "exclude": ["node_modules", "dist"]
 }
