@@ -78,7 +78,9 @@ describe("TravelController", () => {
         recommendations: "Recs",
         createdAt: new Date().toISOString(),
       };
-      mockTravelService.getTravelResultById.mockResolvedValue(mockResult as never);
+      mockTravelService.getTravelResultById.mockResolvedValue(
+        mockResult as never,
+      );
 
       const request = {} as never;
       await controller.getTravelResult("1", request);

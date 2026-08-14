@@ -108,7 +108,7 @@ describe("QuickLogService", () => {
         5,
       );
       expect(QuickLogMapper.toApiResponse).toHaveBeenCalledWith({ id: 101 }, 0);
-      expect((result.data as any).currentFuel).toBe(0);
+      expect((result.data as { currentFuel?: number }).currentFuel).toBe(0);
     });
   });
 });

@@ -1,6 +1,11 @@
 import { Service } from "typedi";
 import AiService from "../aiService";
-import { YoloContext, AiChatInternalResponse, NormalizedVisionResult, ChatTurn } from "@/interfaces";
+import {
+  YoloContext,
+  AiChatInternalResponse,
+  NormalizedVisionResult,
+  ChatTurn,
+} from "@/interfaces";
 
 @Service()
 export default class MockAiService extends AiService {

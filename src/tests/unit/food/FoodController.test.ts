@@ -77,7 +77,10 @@ describe("FoodController", () => {
 
       mockFoodService.logMeal.mockResolvedValue(mockServiceResponse as never);
 
-      const result = await foodController.confirmFoodLog(mockRequest, mockBody as never);
+      const result = await foodController.confirmFoodLog(
+        mockRequest,
+        mockBody as never,
+      );
 
       expect(
         (foodController as unknown as Record<string, unknown>).getUserId,
