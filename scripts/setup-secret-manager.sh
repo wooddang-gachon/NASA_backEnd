@@ -18,6 +18,8 @@ ZONE=asia-northeast3-a
 INSTANCE=nasa-backend
 VM_SA_NAME=nasa-backend-vm
 VM_SA="${VM_SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+# GitHub Actions 가 배포할 때 쓰는 계정 (setup-cd-permissions.sh 에서 생성)
+CD_SA="github-actions-deploy@${PROJECT_ID}.iam.gserviceaccount.com"
 
 # gcloud 기본 프로젝트가 다르면 setIamPolicy 가 실패합니다.
 export CLOUDSDK_CORE_PROJECT="${PROJECT_ID}"
@@ -33,11 +35,11 @@ SHARED_SECRETS=(
   tammy-internal-api-key
 )
 
-echo "==> [1/4] Secret Manager API 활성화"
+echo "==> [1/5] Secret Manager API 활성화"
 gcloud services enable secretmanager.googleapis.com >/dev/null
 echo "    완료"
 
-echo "==> [2/4] VM 런타임 서비스 계정"
+echo "==> [2/5] VM 런타임 서비스 계정"
 if ! gcloud iam service-accounts describe "${VM_SA}" >/dev/null 2>&1; then
   gcloud iam service-accounts create "${VM_SA_NAME}" \
     --display-name="NASA backend VM runtime" \
@@ -47,7 +49,7 @@ else
   echo "    이미 존재"
 fi
 
-echo "==> [3/4] 시크릿 생성 및 권한 부여"
+echo "==> [3/5] 시크릿 생성 및 권한 부여"
 gen() {
   case "$1" in
     *db-password)      openssl rand -hex 24 ;;
@@ -72,7 +74,7 @@ for S in "${OWN_SECRETS[@]}" "${SHARED_SECRETS[@]}"; do
 done
 echo "    시크릿별 읽기 권한 부여 완료 (프로젝트 전체 권한 아님)"
 
-echo "==> [4/4] VM 에 서비스 계정 연결"
+echo "==> [4/5] VM 에 서비스 계정 연결"
 CURRENT_SA="$(gcloud compute instances describe "${INSTANCE}" --zone="${ZONE}" \
   --format='value(serviceAccounts[0].email)' 2>/dev/null || true)"
 if [[ "${CURRENT_SA}" == "${VM_SA}" ]]; then
@@ -87,6 +89,17 @@ else
   gcloud compute instances start "${INSTANCE}" --zone="${ZONE}" --quiet >/dev/null
   echo "    연결 및 재기동 완료"
 fi
+
+echo "==> [5/5] CD 계정에 actAs 권한 부여"
+# 인스턴스에 서비스 계정이 붙어 있으면, SSH/SCP 하는 주체가 그 서비스 계정에 대해
+# iam.serviceAccounts.actAs 를 가져야 합니다. 이게 없으면 배포가
+# "User does not have iam.serviceAccounts.actAs permission on the instance's
+#  service account" 로 실패합니다.
+# VM SA 하나에만 부여하므로 프로젝트 전체 권한이 아닙니다.
+gcloud iam service-accounts add-iam-policy-binding "${VM_SA}" \
+  --member="serviceAccount:${CD_SA}" \
+  --role=roles/iam.serviceAccountUser --quiet >/dev/null
+echo "    ${CD_SA} -> actAs on ${VM_SA}"
 
 echo
 echo "==================================================================="
