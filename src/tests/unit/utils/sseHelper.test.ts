@@ -27,21 +27,33 @@ describe("sseHelper", () => {
   it("should initialize SSE connection and write CONNECTED status", () => {
     handleJobSSE("job1", req as Request, res as Response);
     expect(res.writeHead).toHaveBeenCalledWith(200, expect.any(Object));
-    expect(res.write).toHaveBeenCalledWith(expect.stringContaining("CONNECTED"));
+    expect(res.write).toHaveBeenCalledWith(
+      expect.stringContaining("CONNECTED"),
+    );
     expect(req.on).toHaveBeenCalledWith("close", expect.any(Function));
   });
 
   it("should send current job status if it exists and is not finished", () => {
-    (reportQueue.getJob as jest.Mock).mockReturnValue({ id: "job1", status: "PROCESSING" });
+    (reportQueue.getJob as jest.Mock).mockReturnValue({
+      id: "job1",
+      status: "PROCESSING",
+    });
     handleJobSSE("job1", req as Request, res as Response);
-    expect(res.write).toHaveBeenCalledWith(expect.stringContaining("PROCESSING"));
+    expect(res.write).toHaveBeenCalledWith(
+      expect.stringContaining("PROCESSING"),
+    );
     expect(res.end).not.toHaveBeenCalled();
   });
 
   it("should send job status and end response if job is COMPLETED", () => {
-    (reportQueue.getJob as jest.Mock).mockReturnValue({ id: "job1", status: "COMPLETED" });
+    (reportQueue.getJob as jest.Mock).mockReturnValue({
+      id: "job1",
+      status: "COMPLETED",
+    });
     handleJobSSE("job1", req as Request, res as Response);
-    expect(res.write).toHaveBeenCalledWith(expect.stringContaining("COMPLETED"));
+    expect(res.write).toHaveBeenCalledWith(
+      expect.stringContaining("COMPLETED"),
+    );
     expect(res.end).toHaveBeenCalled();
   });
 });

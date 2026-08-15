@@ -1,4 +1,7 @@
-import { compressImageBuffer, compressImageFile } from "../../../utils/imageCompressor";
+import {
+  compressImageBuffer,
+  compressImageFile,
+} from "../../../utils/imageCompressor";
 import sharp from "sharp";
 import fs from "fs";
 import path from "path";
@@ -28,7 +31,10 @@ describe("imageCompressor", () => {
   describe("compressImageBuffer", () => {
     it("should compress jpeg buffer", async () => {
       const buf = Buffer.from("test");
-      const res = await compressImageBuffer(buf, { format: "jpeg", quality: 50 });
+      const res = await compressImageBuffer(buf, {
+        format: "jpeg",
+        quality: 50,
+      });
       expect(mockPipeline.jpeg).toHaveBeenCalledWith({ quality: 50 });
       expect(res).toBeInstanceOf(Buffer);
     });
@@ -47,21 +53,27 @@ describe("imageCompressor", () => {
 
     it("should throw error on failure", async () => {
       mockPipeline.toBuffer.mockRejectedValue(new Error("fail"));
-      await expect(compressImageBuffer(Buffer.from("t"))).rejects.toThrow("fail");
+      await expect(compressImageBuffer(Buffer.from("t"))).rejects.toThrow(
+        "fail",
+      );
     });
   });
 
   describe("compressImageFile", () => {
     it("should compress file and return output path", async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(true);
-      const res = await compressImageFile("test.jpg", undefined, { format: "png" });
+      const res = await compressImageFile("test.jpg", undefined, {
+        format: "png",
+      });
       expect(mockPipeline.toFile).toHaveBeenCalled();
       expect(res).toContain("test_compressed.png");
     });
 
     it("should throw if input file does not exist", async () => {
       (fs.existsSync as jest.Mock).mockReturnValue(false);
-      await expect(compressImageFile("invalid.jpg")).rejects.toThrow("찾을 수 없습니다");
+      await expect(compressImageFile("invalid.jpg")).rejects.toThrow(
+        "찾을 수 없습니다",
+      );
     });
 
     it("should throw error on sharp failure", async () => {

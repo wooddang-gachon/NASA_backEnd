@@ -10,8 +10,6 @@ import type {
   SendPushNotificationRequest,
 } from "@/dto";
 
-
-
 @Service()
 export default class NotificationService {
   @Inject(() => NotificationRepository)

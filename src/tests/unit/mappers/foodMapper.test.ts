@@ -14,7 +14,10 @@ describe("foodMapper", () => {
       },
       match_type: "EXACT",
     };
-    const res = FoodMapper.toFoodSmartMatchResultFromMapping(dbMapping as any, "Pizza");
+    const res = FoodMapper.toFoodSmartMatchResultFromMapping(
+      dbMapping as any,
+      "Pizza",
+    );
     expect(res.rawName).toBe("Pizza");
     expect(res.matchType).toBe("EXACT");
   });
@@ -28,7 +31,11 @@ describe("foodMapper", () => {
       protein_g: 10,
       fat_g: 5,
     };
-    const res = FoodMapper.toFoodSmartMatchResultFromMaster(master as any, "Burger", "SIMILAR");
+    const res = FoodMapper.toFoodSmartMatchResultFromMaster(
+      master as any,
+      "Burger",
+      "SIMILAR",
+    );
     expect(res.matchType).toBe("SIMILAR");
   });
 
@@ -36,27 +43,61 @@ describe("foodMapper", () => {
     const res = FoodMapper.toFoodSmartMatchResultFromFallback("Unknown", null);
     expect(res.standardServingG).toBe(100);
 
-    const res2 = FoodMapper.toFoodSmartMatchResultFromFallback("Known", { estimatedGram: 50 });
+    const res2 = FoodMapper.toFoodSmartMatchResultFromFallback("Known", {
+      estimatedGram: 50,
+    });
     expect(res2.standardServingG).toBe(50);
   });
 
   it("toMealCreateInput", () => {
     // object mode
-    const res1 = FoodMapper.toMealCreateInput({ userId: 1, mealType: MealType.BREAKFAST, calories: 100, carbs: 10, protein: 10, fat: 10, comment: "Test" });
+    const res1 = FoodMapper.toMealCreateInput({
+      userId: 1,
+      mealType: MealType.BREAKFAST,
+      calories: 100,
+      carbs: 10,
+      protein: 10,
+      fat: 10,
+      comment: "Test",
+    });
     expect(res1.user_id).toBe(1);
 
     // parameter mode
-    const res2 = FoodMapper.toMealCreateInput(2, MealType.LUNCH, 200, 20, 20, 20, "L");
+    const res2 = FoodMapper.toMealCreateInput(
+      2,
+      MealType.LUNCH,
+      200,
+      20,
+      20,
+      20,
+      "L",
+    );
     expect(res2.user_id).toBe(2);
   });
 
   it("toMealItemCreateInput", () => {
     // object mode
-    const res1 = FoodMapper.toMealItemCreateInput({ mealId: BigInt(1), foodName: "Rice", intakeGram: 100, foodId: 5, boundingBox: {}, confidence: 0.9, mealImageId: "10" });
+    const res1 = FoodMapper.toMealItemCreateInput({
+      mealId: BigInt(1),
+      foodName: "Rice",
+      intakeGram: 100,
+      foodId: 5,
+      boundingBox: {},
+      confidence: 0.9,
+      mealImageId: "10",
+    });
     expect(res1.meal_id).toBe(BigInt(1));
 
     // parameter mode
-    const res2 = FoodMapper.toMealItemCreateInput(BigInt(2), "Bread", 50, 6, null, null, null);
+    const res2 = FoodMapper.toMealItemCreateInput(
+      BigInt(2),
+      "Bread",
+      50,
+      6,
+      null,
+      null,
+      null,
+    );
     expect(res2.meal_id).toBe(BigInt(2));
   });
 
@@ -71,17 +112,34 @@ describe("foodMapper", () => {
   });
 
   it("toFoodSearchResponse", () => {
-    const res = FoodMapper.toFoodSearchResponse([{
-      id: 1, name: "Rice", standard_serving_g: 100, calories_kcal: 100, carbohydrate_g: 20, protein_g: 2, fat_g: 0, category: "Grain"
-    } as any]);
+    const res = FoodMapper.toFoodSearchResponse([
+      {
+        id: 1,
+        name: "Rice",
+        standard_serving_g: 100,
+        calories_kcal: 100,
+        carbohydrate_g: 20,
+        protein_g: 2,
+        fat_g: 0,
+        category: "Grain",
+      } as any,
+    ]);
     expect(res.foods[0]!.name).toBe("Rice");
   });
 
   it("covers missing branches", () => {
     // toMealCreateInput with object missing comment/confidence etc
-    FoodMapper.toMealCreateInput({ userId: 1, mealType: MealType.BREAKFAST, comment: "Hello" } as any);
-    
+    FoodMapper.toMealCreateInput({
+      userId: 1,
+      mealType: MealType.BREAKFAST,
+      comment: "Hello",
+    } as any);
+
     // toMealItemCreateInput with object
-    FoodMapper.toMealItemCreateInput({ mealId: BigInt(1), confidence: 0.99, mealImageId: 10 } as any);
+    FoodMapper.toMealItemCreateInput({
+      mealId: BigInt(1),
+      confidence: 0.99,
+      mealImageId: 10,
+    } as any);
   });
 });

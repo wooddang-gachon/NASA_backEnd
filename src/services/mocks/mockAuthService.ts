@@ -27,7 +27,7 @@ export default class MockAuthService extends AuthService {
 
     if (!user) {
       user = await (this as any).authRepository.createUser(
-        mappers.UserMapper.toSocialUserCreateInput(email, provider, nickname)
+        mappers.UserMapper.toSocialUserCreateInput(email, provider, nickname),
       );
     } else {
       await (this as any).authRepository.updateUser(user.id, {

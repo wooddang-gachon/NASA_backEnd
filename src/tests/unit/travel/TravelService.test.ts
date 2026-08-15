@@ -83,15 +83,17 @@ describe("TravelService", () => {
         nickname: "test",
       } as never);
       mockTravelRepository.findActivePlanetTravelByUser.mockResolvedValue(null);
-      mockTravelRepository.createPlanetTravelAndFuelTransaction.mockResolvedValue({
-        travel: {
-          id: BigInt(1),
-          user_id: 1,
-          planet_type: PlanetType.MEAL,
-          started_at: new Date(),
-        } as never,
-        updatedUser: { current_fuel: 90 } as never,
-      });
+      mockTravelRepository.createPlanetTravelAndFuelTransaction.mockResolvedValue(
+        {
+          travel: {
+            id: BigInt(1),
+            user_id: 1,
+            planet_type: PlanetType.MEAL,
+            started_at: new Date(),
+          } as never,
+          updatedUser: { current_fuel: 90 } as never,
+        },
+      );
 
       mockAiService.generatePlanetReport.mockResolvedValue({
         title: "Test",
@@ -105,11 +107,9 @@ describe("TravelService", () => {
       } as never);
 
       expect(result).toBeDefined();
-      expect(mockTravelRepository.createPlanetTravelAndFuelTransaction).toHaveBeenCalledWith(
-        1,
-        expect.anything(),
-        10,
-      );
+      expect(
+        mockTravelRepository.createPlanetTravelAndFuelTransaction,
+      ).toHaveBeenCalledWith(1, expect.anything(), 10);
       expect(mockAiService.generatePlanetReport).toHaveBeenCalled();
     });
   });
@@ -183,13 +183,26 @@ describe("TravelService", () => {
   describe("generateOndemandReport", () => {
     it("should throw if user not found", async () => {
       mockTravelRepository.findUserById.mockResolvedValue(null);
-      await expect(travelService.generateOndemandReport(1)).rejects.toThrow(UserNotFoundError);
+      await expect(travelService.generateOndemandReport(1)).rejects.toThrow(
+        UserNotFoundError,
+      );
     });
 
     it("should generate report and return mapped result", async () => {
-      mockTravelRepository.findUserById.mockResolvedValue({ id: 1, nickname: "test" } as never);
-      mockAiService.generatePlanetReport.mockResolvedValue({ title: "Test", markdown: "Md", nextActionChecks: ["1"] } as never);
-      mockTravelRepository.createPlanetTravel.mockResolvedValue({ id: BigInt(1), started_at: new Date(), completed_at: new Date() } as never);
+      mockTravelRepository.findUserById.mockResolvedValue({
+        id: 1,
+        nickname: "test",
+      } as never);
+      mockAiService.generatePlanetReport.mockResolvedValue({
+        title: "Test",
+        markdown: "Md",
+        nextActionChecks: ["1"],
+      } as never);
+      mockTravelRepository.createPlanetTravel.mockResolvedValue({
+        id: BigInt(1),
+        started_at: new Date(),
+        completed_at: new Date(),
+      } as never);
 
       const res = await travelService.generateOndemandReport(1);
       expect(res).toBeDefined();

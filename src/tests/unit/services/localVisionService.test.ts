@@ -29,7 +29,9 @@ describe("LocalVisionService", () => {
       resize: jest.fn().mockReturnThis(),
       removeAlpha: jest.fn().mockReturnThis(),
       raw: jest.fn().mockReturnThis(),
-      toBuffer: jest.fn().mockResolvedValue(Buffer.from(new Uint8Array(640 * 640 * 3))),
+      toBuffer: jest
+        .fn()
+        .mockResolvedValue(Buffer.from(new Uint8Array(640 * 640 * 3))),
     };
     (sharp as unknown as jest.Mock).mockReturnValue(mockSharpObj);
   });
@@ -46,17 +48,23 @@ describe("LocalVisionService", () => {
 
   it("should throw if ONNX model is not found", async () => {
     (fs.existsSync as jest.Mock).mockReturnValue(false);
-    await expect(service.detectFoodObjects(Buffer.from("test"))).rejects.toThrow("ONNX model not found");
+    await expect(
+      service.detectFoodObjects(Buffer.from("test")),
+    ).rejects.toThrow("ONNX model not found");
   });
 
   it("should throw if inference process fails", async () => {
     mockSession.run.mockRejectedValue(new Error("infer error"));
-    await expect(service.detectFoodObjects(Buffer.from("test"))).rejects.toThrow("infer error");
+    await expect(
+      service.detectFoodObjects(Buffer.from("test")),
+    ).rejects.toThrow("infer error");
   });
 
   it("should throw if sharp processing fails", async () => {
     const mockSharpObj = sharp() as unknown as any;
     mockSharpObj.metadata.mockRejectedValue(new Error("sharp error"));
-    await expect(service.detectFoodObjects(Buffer.from("test"))).rejects.toThrow("sharp error");
+    await expect(
+      service.detectFoodObjects(Buffer.from("test")),
+    ).rejects.toThrow("sharp error");
   });
 });

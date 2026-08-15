@@ -52,10 +52,12 @@ describe("QuickLogService", () => {
       const apiResponse = { id: 100, category: "MOOD", current_fuel: 105 };
 
       (QuickLogMapper.toCreateInput as jest.Mock).mockReturnValue(mappedInput);
-      mockQuickLogRepository.createQuickLogAndFuelTransaction.mockResolvedValue({
-        log: createdLog,
-        updatedUser: updatedUser,
-      } as never);
+      mockQuickLogRepository.createQuickLogAndFuelTransaction.mockResolvedValue(
+        {
+          log: createdLog,
+          updatedUser: updatedUser,
+        } as never,
+      );
       (QuickLogMapper.toApiResponse as jest.Mock).mockReturnValue(apiResponse);
 
       const result = await service.createQuickLog(userId, data);
@@ -83,10 +85,12 @@ describe("QuickLogService", () => {
       const userId = 1;
       const data = { category: "DIARY" } as never;
 
-      mockQuickLogRepository.createQuickLogAndFuelTransaction.mockResolvedValue({
-        log: { id: 101 },
-        updatedUser: { id: userId }, // Return user without current_fuel
-      } as never);
+      mockQuickLogRepository.createQuickLogAndFuelTransaction.mockResolvedValue(
+        {
+          log: { id: 101 },
+          updatedUser: { id: userId }, // Return user without current_fuel
+        } as never,
+      );
       (QuickLogMapper.toApiResponse as jest.Mock).mockReturnValue({
         id: 101,
         currentFuel: 0,

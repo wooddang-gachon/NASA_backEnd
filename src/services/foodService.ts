@@ -53,10 +53,8 @@ export default class FoodService {
       `[FoodService] Uploading and analyzing food vision file: ${file.originalname}`,
     );
 
-    const { absolutePath: filePath, urlPath: imageUrl } = this.storageAdapter.saveFile(
-      file.buffer,
-      file.originalname,
-    );
+    const { absolutePath: filePath, urlPath: imageUrl } =
+      this.storageAdapter.saveFile(file.buffer, file.originalname);
 
     // 1. 이미지가 업로드되는 즉시 meal_images DB 테이블에 바로 연동/저장 (meal_id는 아직 null)
     const savedImage = await this.foodRepository.createMealImage(

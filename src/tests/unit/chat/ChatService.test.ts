@@ -55,7 +55,9 @@ describe("ChatService", () => {
       const result = await chatService.processChat(1, "Hi");
 
       expect(result).toBeDefined();
-      expect(mockChatRepository.saveAiResponseAndFuelTransaction).toHaveBeenCalled();
+      expect(
+        mockChatRepository.saveAiResponseAndFuelTransaction,
+      ).toHaveBeenCalled();
     });
 
     it("should handle error in finding recent chat messages", async () => {

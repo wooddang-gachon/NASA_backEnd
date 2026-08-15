@@ -20,7 +20,7 @@ export abstract class BaseRepository<
   T,
   CreateInput,
   UpdateInput,
-  WhereInput = Record<string, unknown>
+  WhereInput = Record<string, unknown>,
 > {
   protected constructor(protected readonly delegate: Delegate<T, WhereInput>) {}
 

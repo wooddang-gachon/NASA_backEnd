@@ -25,7 +25,11 @@ describe("imageAnnotator", () => {
   it("should draw bounding boxes and save", async () => {
     (fs.existsSync as jest.Mock).mockReturnValue(true);
     const items = [
-      { foodName: "Pizza", confidence: 0.95, boundingBox: { x: 10, y: 10, width: 100, height: 100 } },
+      {
+        foodName: "Pizza",
+        confidence: 0.95,
+        boundingBox: { x: 10, y: 10, width: 100, height: 100 },
+      },
       { className: "Burger", bbox: { x: 20, y: 20, width: 50, height: 50 } },
       { confidence: 0.8 }, // missing box, should be skipped
     ];
@@ -50,7 +54,7 @@ describe("imageAnnotator", () => {
     (fs.existsSync as jest.Mock).mockReturnValue(true);
     mockSharpObj.metadata.mockRejectedValue(new Error("sharp error"));
     const res = await drawBoundingBoxesAndSave("test.jpg", [
-      { boundingBox: { x: 0, y: 0, width: 10, height: 10 } }
+      { boundingBox: { x: 0, y: 0, width: 10, height: 10 } },
     ]);
     expect(res).toBeNull();
   });

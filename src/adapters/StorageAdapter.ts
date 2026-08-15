@@ -20,21 +20,21 @@ export default class StorageAdapter {
    * 파일을 로컬 스토리지에 저장하고, 저장된 절대 경로와 URL 경로를 반환합니다.
    * @param buffer 저장할 파일 버퍼
    * @param originalname 원본 파일명 (확장자 추출용)
-   * @returns { absolutePath, urlPath } 저장된 파일의 시스템 경로와 웹 접근 URL
+   * @returns 저장된 파일의 시스템 경로와 웹 접근 URL
    */
   public saveFile(
     buffer: Buffer,
     originalname: string,
   ): { absolutePath: string; urlPath: string } {
     this.ensureDirectoryExists();
-    
+
     const ext = path.extname(originalname) || ".jpg";
     const filename = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
     const filePath = path.join(this.defaultUploadsDir, filename);
 
     fs.writeFileSync(filePath, buffer);
     Logger.info(`[StorageAdapter] Saved uploaded file to ${filePath}`);
-    
+
     return {
       absolutePath: filePath,
       urlPath: `/uploads/${filename}`,
@@ -49,7 +49,7 @@ export default class StorageAdapter {
   public readFile(urlPath: string): Buffer | null {
     const cleanPath = urlPath.startsWith("/") ? urlPath.substring(1) : urlPath;
     const imagePath = path.join(process.cwd(), cleanPath);
-    
+
     if (fs.existsSync(imagePath)) {
       return fs.readFileSync(imagePath);
     }

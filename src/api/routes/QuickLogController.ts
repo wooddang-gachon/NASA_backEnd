@@ -26,7 +26,6 @@ export class QuickLogController extends BaseController {
     @Request() request: AuthenticatedRequest,
     @Body() requestBody: QuickLogApiRequest,
   ): Promise<ApiResponse<QuickLogApiResponse>> {
-
     const result = await this.quickLogService.createQuickLog(
       this.getUserId(request),
       requestBody,
