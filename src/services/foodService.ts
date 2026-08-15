@@ -182,6 +182,11 @@ export default class FoodService {
     );
 
     let aiVisionResult: Partial<FoodVisionScanResponse> | null = null;
+    const yoloContext = {
+      attempted: true,
+      detected: false,
+      reason: "",
+    };
     // [FOD-001] 1차: 자체 경량 YOLO 모델(ONNX) 스캔
     const imageBuffer = this.storageAdapter.readFile(imageUrl);
     if (imageBuffer) {

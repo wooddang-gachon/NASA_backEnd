@@ -1029,6 +1029,9 @@
 							"$ref": "#/components/schemas/DetectedFoodItem"
 						},
 						"type": "array"
+					},
+					"comment": {
+						"type": "string"
 					}
 				},
 				"required": [
@@ -2323,41 +2326,6 @@
 			}
 		},
 		"/auth/withdraw": {
-			"post": {
-				"operationId": "WithdrawPost",
-				"responses": {
-					"200": {
-						"description": "Ok",
-						"content": {
-							"application/json": {
-								"schema": {
-									"$ref": "#/components/schemas/ApiResponse_UserWithdrawResponse_"
-								}
-							}
-						}
-					}
-				},
-				"description": "[3.6] 회원 탈퇴 API",
-				"tags": [
-					"1. Auth - 회원 인증 및 소셜 로그인"
-				],
-				"security": [
-					{
-						"jwt": []
-					}
-				],
-				"parameters": [],
-				"requestBody": {
-					"required": false,
-					"content": {
-						"application/json": {
-							"schema": {
-								"$ref": "#/components/schemas/UserWithdrawRequest"
-							}
-						}
-					}
-				}
-			},
 			"delete": {
 				"operationId": "Withdraw",
 				"responses": {
@@ -2372,6 +2340,7 @@
 						}
 					}
 				},
+				"description": "[3.6] 회원 탈퇴 API",
 				"tags": [
 					"1. Auth - 회원 인증 및 소셜 로그인"
 				],

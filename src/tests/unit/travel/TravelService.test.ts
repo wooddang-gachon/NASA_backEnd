@@ -179,4 +179,36 @@ describe("TravelService", () => {
       expect(result.calorieTrends).toHaveLength(1);
     });
   });
+
+  describe("generateOndemandReport", () => {
+    it("should throw if user not found", async () => {
+      mockTravelRepository.findUserById.mockResolvedValue(null);
+      await expect(travelService.generateOndemandReport(1)).rejects.toThrow(UserNotFoundError);
+    });
+
+    it("should generate report and return mapped result", async () => {
+      mockTravelRepository.findUserById.mockResolvedValue({ id: 1, nickname: "test" } as never);
+      mockAiService.generatePlanetReport.mockResolvedValue({ title: "Test", markdown: "Md", nextActionChecks: ["1"] } as never);
+      mockTravelRepository.createPlanetTravel.mockResolvedValue({ id: BigInt(1), started_at: new Date(), completed_at: new Date() } as never);
+
+      const res = await travelService.generateOndemandReport(1);
+      expect(res).toBeDefined();
+      expect(mockTravelRepository.createPlanetTravel).toHaveBeenCalled();
+    });
+  });
+
+  describe("generateAsyncReport", () => {
+    it("should enqueue a job", async () => {
+      const res = await travelService.generateAsyncReport(1);
+      expect(res.status).toBe("PENDING");
+      expect(res.jobId).toBeDefined();
+    });
+  });
+
+  describe("getJobStatus", () => {
+    it("should return COMPLETED if job not found", async () => {
+      const res = await travelService.getJobStatus("non_existent_job");
+      expect(res.status).toBe("COMPLETED");
+    });
+  });
 });

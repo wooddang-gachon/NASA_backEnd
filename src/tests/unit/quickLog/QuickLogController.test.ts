@@ -47,6 +47,7 @@ describe("QuickLogController", () => {
       const request = {} as never;
       const body = { category: "WATER" } as never;
 
+      mockQuickLogService.createQuickLog.mockRejectedValue(new Error("수분 섭취량은 0 이상이어야 합니다."));
       await expect(controller.createQuickLog(request, body)).rejects.toThrow(
         "수분 섭취량은 0 이상이어야 합니다.",
       );
@@ -56,6 +57,7 @@ describe("QuickLogController", () => {
       const request = {} as never;
       const body = { category: "WATER", amount: -1 } as never;
 
+      mockQuickLogService.createQuickLog.mockRejectedValue(new Error("수분 섭취량은 0 이상이어야 합니다."));
       await expect(controller.createQuickLog(request, body)).rejects.toThrow(
         "수분 섭취량은 0 이상이어야 합니다.",
       );
