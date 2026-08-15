@@ -17,8 +17,7 @@ import {
 import { tokenizeFoodName } from "../utils/food/foodTokenizer";
 import { drawBoundingBoxesAndSave } from "../utils/imageAnnotator";
 
-import path from "path";
-import fs from "fs";
+import StorageAdapter from "../adapters/StorageAdapter";
 
 export interface UploadedImageFile {
   originalname: string;
@@ -38,6 +37,9 @@ export default class FoodService {
   @Inject(() => FoodRepository)
   private foodRepository!: FoodRepository;
 
+  @Inject(() => StorageAdapter)
+  private storageAdapter!: StorageAdapter;
+
   public async uploadAndAnalyzeFoodVision(
     file?: UploadedImageFile,
     mealType?: string,
@@ -51,19 +53,10 @@ export default class FoodService {
       `[FoodService] Uploading and analyzing food vision file: ${file.originalname}`,
     );
 
-    const uploadsDir = path.join(process.cwd(), "uploads");
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    const ext = path.extname(file.originalname) || ".jpg";
-    const filename = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
-    const filePath = path.join(uploadsDir, filename);
-
-    fs.writeFileSync(filePath, file.buffer);
-    Logger.info(`[FoodService] Saved uploaded file to ${filePath}`);
-
-    const imageUrl = `/uploads/${filename}`;
+    const { absolutePath: filePath, urlPath: imageUrl } = this.storageAdapter.saveFile(
+      file.buffer,
+      file.originalname,
+    );
 
     // 1. 이미지가 업로드되는 즉시 meal_images DB 테이블에 바로 연동/저장 (meal_id는 아직 null)
     const savedImage = await this.foodRepository.createMealImage(
@@ -189,21 +182,10 @@ export default class FoodService {
     );
 
     let aiVisionResult: Partial<FoodVisionScanResponse> | null = null;
-    const cleanPath = imageUrl.startsWith("/")
-      ? imageUrl.substring(1)
-      : imageUrl;
-    const imagePath = path.join(process.cwd(), cleanPath);
-
-    const yoloContext = {
-      attempted: true,
-      detected: false,
-      reason: "",
-    };
-
     // [FOD-001] 1차: 자체 경량 YOLO 모델(ONNX) 스캔
-    if (fs.existsSync(imagePath)) {
+    const imageBuffer = this.storageAdapter.readFile(imageUrl);
+    if (imageBuffer) {
       try {
-        const imageBuffer = fs.readFileSync(imagePath);
         const localResults =
           await this.localVisionService.detectFoodObjects(imageBuffer);
 
@@ -241,7 +223,7 @@ export default class FoodService {
     } else {
       yoloContext.reason = "FILE_NOT_FOUND";
       Logger.warn(
-        `[FoodService] Image file not found for YOLO scan: ${imagePath}. Vision LLM Fallback 실행.`,
+        `[FoodService] Image file not found for YOLO scan: ${imageUrl}. Vision LLM Fallback 실행.`,
       );
     }
 
@@ -421,16 +403,10 @@ export default class FoodService {
     }
 
     // 1. 이미지 임시 저장 (AiAdapter가 파일을 읽을 수 있도록)
-    const uploadsDir = path.join(process.cwd(), "uploads");
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-    const ext = path.extname(file.originalname) || ".jpg";
-    const filename = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}${ext}`;
-    const filePath = path.join(uploadsDir, filename);
-
-    fs.writeFileSync(filePath, file.buffer);
-    const imageUrl = `/uploads/${filename}`;
+    const { urlPath: imageUrl } = this.storageAdapter.saveFile(
+      file.buffer,
+      file.originalname,
+    );
 
     // 2. 로컬 YOLO를 건너뛰고, 메인 AI 서버(Vision LLM)로 바로 요청!
     let aiVisionResult: Partial<FoodVisionScanResponse> | null = null;
