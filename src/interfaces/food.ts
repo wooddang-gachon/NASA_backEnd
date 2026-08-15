@@ -1,4 +1,31 @@
 import { MealType } from "./enums";
+import { DetectedFoodItem } from "../dto";
+
+export interface UploadedImageFile {
+  originalname: string;
+  buffer: Buffer;
+  mimetype?: string;
+  size?: number;
+}
+
+export interface FoodVisionContext {
+  file?: UploadedImageFile;
+  mealType?: string;
+  imageUrl: string;
+  imageFilePath: string;
+  imageId?: string;
+  detectedFoods: Partial<DetectedFoodItem>[];
+  scanEngine: string;
+  isIdentified: boolean;
+  errors: Error[];
+}
+
+export interface LocalDetectionResult {
+  className: string;
+  classId: number;
+  confidence: number;
+  bbox: { x: number; y: number; width: number; height: number };
+}
 
 export interface FoodAnalyzeRequest {
   imageUrl: string;

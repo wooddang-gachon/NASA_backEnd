@@ -1,20 +1,26 @@
 import { Container } from "typedi";
 import { FoodController } from "../../../api/routes/FoodController";
 import FoodService from "../../../services/foodService";
+import FoodVisionService from "../../../services/foodVisionService";
 import { MealType } from "../../../interfaces/enums";
-import { AuthenticatedRequest } from "../../../interfaces/express";
+import type { AuthenticatedRequest } from "../../../interfaces/express";
 
 jest.mock("../../../services/foodService");
+jest.mock("../../../services/foodVisionService");
 
 describe("FoodController", () => {
   let foodController: FoodController;
   let mockFoodService: jest.Mocked<FoodService>;
+  let mockFoodVisionService: jest.Mocked<FoodVisionService>;
 
   beforeEach(() => {
     mockFoodService = new FoodService() as jest.Mocked<FoodService>;
+    mockFoodVisionService =
+      new FoodVisionService() as jest.Mocked<FoodVisionService>;
 
-    // Inject mocked FoodService to Container
+    // Inject mocked services to Container
     Container.set(FoodService, mockFoodService);
+    Container.set(FoodVisionService, mockFoodVisionService);
 
     foodController = new FoodController();
 
@@ -39,7 +45,7 @@ describe("FoodController", () => {
         buffer: Buffer.from("test"),
       } as Express.Multer.File;
       const mockResult = { scanEngine: "YOLO", detectedFoods: [] };
-      mockFoodService.uploadAndAnalyzeFoodVision.mockResolvedValue(
+      mockFoodVisionService.uploadAndAnalyzeFoodVision.mockResolvedValue(
         mockResult as never,
       );
 
@@ -48,10 +54,9 @@ describe("FoodController", () => {
         MealType.BREAKFAST,
       );
 
-      expect(mockFoodService.uploadAndAnalyzeFoodVision).toHaveBeenCalledWith(
-        mockFile,
-        MealType.BREAKFAST,
-      );
+      expect(
+        mockFoodVisionService.uploadAndAnalyzeFoodVision,
+      ).toHaveBeenCalledWith(mockFile, MealType.BREAKFAST);
       expect(
         (foodController as unknown as Record<string, unknown>).success,
       ).toHaveBeenCalledWith(mockResult);

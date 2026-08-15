@@ -5,21 +5,15 @@ import Logger from "../loaders/logger";
 import FoodRepository from "../repositories/FoodRepository";
 import { UserNotFoundError } from "../errors";
 import { FoodMapper, UserMapper } from "../mappers";
-import {
+import type {
   MealLogRegisterResponse,
   FoodSearchResponse,
   FoodSmartMatchResultDto,
   FoodLogConfirmRequest,
-} from "../dto";
+} from "@/dto";
+import { BadRequestError } from "../errors";
 
 import { tokenizeFoodName } from "../utils/food/foodTokenizer";
-
-export interface UploadedImageFile {
-  originalname: string;
-  buffer: Buffer;
-  mimetype?: string;
-  size?: number;
-}
 
 @Service()
 export default class FoodService {
@@ -122,7 +116,6 @@ export default class FoodService {
     return FoodMapper.toFoodSmartMatchResultFromFallback(rawName, detected);
   }
 
-
   public async logMeal(
     userId: number,
     data: FoodLogConfirmRequest,
@@ -145,7 +138,9 @@ export default class FoodService {
         gram: f.gram || 100,
       }));
     } else {
-      throw new BadRequestError("음식 항목(foods)은 최소 1개 이상 전송해야 합니다.");
+      throw new BadRequestError(
+        "음식 항목(foods)은 최소 1개 이상 전송해야 합니다.",
+      );
     }
 
     const processedItems: Array<{
@@ -239,5 +234,4 @@ export default class FoodService {
     );
     return FoodMapper.toFoodSearchResponse(dbFoods);
   }
-
 }

@@ -56,37 +56,6 @@ describe("FoodService", () => {
     Container.reset();
   });
 
-  describe("uploadAndAnalyzeFoodVision", () => {
-    it("should throw error if file is missing", async () => {
-      await expect(
-        foodService.uploadAndAnalyzeFoodVision(undefined),
-      ).rejects.toThrow("업로드할 이미지 파일(file)이 누락되었습니다.");
-    });
-
-    it("should process file and call analyzeFoodVision", async () => {
-      const file = {
-        originalname: "test.jpg",
-        buffer: Buffer.from("test"),
-      } as Express.Multer.File;
-
-      mockFoodRepository.createMealImage.mockResolvedValue({ id: 1 } as never);
-
-      jest.spyOn(foodService, "analyzeFoodVision").mockResolvedValue({
-        scanEngine: "YOLO",
-        detectedFoods: [],
-      } as never);
-
-      const result = await foodService.uploadAndAnalyzeFoodVision(
-        file,
-        "BREAKFAST",
-      );
-
-      expect(mockFoodRepository.createMealImage).toHaveBeenCalled();
-      expect(foodService.analyzeFoodVision).toHaveBeenCalled();
-      expect(result).toHaveProperty("imageId", "1");
-    });
-  });
-
   describe("logMeal", () => {
     it("should throw UserNotFoundError if user does not exist", async () => {
       mockFoodRepository.findUserById.mockResolvedValue(null);
@@ -208,70 +177,6 @@ describe("FoodService", () => {
       const res = await foodService.getOrMapFood("AlienFood");
       expect(res.matchType).toBe("USER_CONFIRMED");
       expect(res.caloriesKcal).toBe(100);
-    });
-  });
-
-  describe("analyzeFoodVision", () => {
-    it("should fallback to AI if confidence is low", async () => {
-      mockLocalVisionService.detectFoodObjects.mockResolvedValue([]);
-      mockAiService.analyzeFoodVision.mockResolvedValue({
-        detectedFoods: [
-          {
-            foodName: "Burger",
-            boundingBox: { x: 0, y: 0, width: 10, height: 10 },
-          },
-        ],
-      } as never);
-      jest
-        .spyOn(foodService, "getOrMapFood")
-        .mockResolvedValue({ foodId: 1, caloriesKcal: 100 } as never);
-
-      const res = await foodService.analyzeFoodVision(
-        "/tmp/a.jpg",
-        "BREAKFAST",
-      );
-
-      expect(mockAiService.analyzeFoodVision).toHaveBeenCalled();
-      expect(res.scanEngine).toBe("VisionLLM");
-    });
-
-    it("should use YOLO if confidence is high", async () => {
-      mockLocalVisionService.detectFoodObjects.mockResolvedValue([
-        {
-          className: "Pizza",
-          classId: 0,
-          confidence: 0.9,
-          bbox: { x: 0, y: 0, width: 10, height: 10 },
-        } as never,
-      ]);
-      jest
-        .spyOn(foodService, "getOrMapFood")
-        .mockResolvedValue({ foodId: 1, caloriesKcal: 100 } as never);
-
-      const res = await foodService.analyzeFoodVision(
-        "/tmp/a.jpg",
-        "BREAKFAST",
-      );
-
-      expect(mockLocalVisionService.detectFoodObjects).toHaveBeenCalled();
-      expect(res.scanEngine).toBe("YOLO");
-    });
-  });
-
-  describe("analyzeFoodVision Error Branches", () => {
-    it("should handle error from localVisionService and still fallback to AI", async () => {
-      mockLocalVisionService.detectFoodObjects.mockRejectedValue(
-        new Error("YOLO Crash"),
-      );
-      mockAiService.analyzeFoodVision.mockResolvedValue({
-        detectedFoods: [],
-      } as never);
-      const res = await foodService.analyzeFoodVision(
-        "/tmp/a.jpg",
-        "BREAKFAST",
-      );
-      expect(mockAiService.analyzeFoodVision).toHaveBeenCalled();
-      expect(res.scanEngine).toBe("VisionLLM");
     });
   });
 

@@ -4,13 +4,7 @@ import sharp from "sharp";
 import path from "path";
 import fs from "fs";
 import Logger from "../loaders/logger";
-
-export interface LocalDetectionResult {
-  className: string;
-  classId: number;
-  confidence: number;
-  bbox: { x: number; y: number; width: number; height: number };
-}
+import type { LocalDetectionResult } from "@/interfaces";
 
 @Service()
 export default class LocalVisionService {
