@@ -1,35 +1,39 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { EntityId } from "@/interfaces";
 
-// PrismaClient의 delegate 구조와 호환되는 타입 정의
-export type Delegate<T> = {
-  findUnique(args: { where: any }): Promise<T | null>;
-  findFirst(args: { where?: any }): Promise<T | null>;
+export type Delegate<T, WhereInput = Record<string, unknown>> = {
+  findUnique(args: { where: WhereInput }): Promise<T | null>;
+  findFirst(args: { where?: WhereInput }): Promise<T | null>;
   findMany(args?: {
-    where?: any;
+    where?: WhereInput;
     skip?: number;
     take?: number;
-    orderBy?: any;
+    orderBy?: unknown;
   }): Promise<T[]>;
-  create(args: { data: any }): Promise<T>;
-  update(args: { where: any; data: any }): Promise<T>;
-  delete(args: { where: any }): Promise<T>;
-  count(args?: { where?: any }): Promise<number>;
+  create(args: { data: unknown }): Promise<T>;
+  update(args: { where: WhereInput; data: unknown }): Promise<T>;
+  delete(args: { where: WhereInput }): Promise<T>;
+  count(args?: { where?: WhereInput }): Promise<number>;
 };
 
-export abstract class BaseRepository<T, CreateInput, UpdateInput> {
-  protected constructor(protected readonly delegate: Delegate<T>) {}
+export abstract class BaseRepository<
+  T,
+  CreateInput,
+  UpdateInput,
+  WhereInput = Record<string, unknown>
+> {
+  protected constructor(protected readonly delegate: Delegate<T, WhereInput>) {}
 
   async findById(id: EntityId): Promise<T | null> {
-    return this.delegate.findUnique({ where: { id } });
+    return this.delegate.findUnique({ where: { id } as unknown as WhereInput });
   }
 
-  async findFirst(where: unknown): Promise<T | null> {
+  async findFirst(where: WhereInput): Promise<T | null> {
     return this.delegate.findFirst({ where });
   }
 
   async findMany(
-    where?: unknown,
+    where?: WhereInput,
     skip?: number,
     take?: number,
     orderBy?: unknown,
@@ -43,16 +47,16 @@ export abstract class BaseRepository<T, CreateInput, UpdateInput> {
 
   async update(id: EntityId, data: UpdateInput): Promise<T> {
     return this.delegate.update({
-      where: { id },
+      where: { id } as unknown as WhereInput,
       data,
     });
   }
 
   async delete(id: EntityId): Promise<T> {
-    return this.delegate.delete({ where: { id } });
+    return this.delegate.delete({ where: { id } as unknown as WhereInput });
   }
 
-  async count(where?: unknown): Promise<number> {
+  async count(where?: WhereInput): Promise<number> {
     return this.delegate.count({ where });
   }
 }
