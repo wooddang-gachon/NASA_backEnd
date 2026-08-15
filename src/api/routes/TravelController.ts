@@ -1,7 +1,7 @@
 import { Route, Post, Get, Path, Body, Security, Request, Tags } from "tsoa";
 import { Service, Container } from "typedi";
 import TravelService from "../../services/travelService";
-import { reportQueue, Job } from "../../utils/asyncQueue";
+import { handleJobSSE } from "../../utils/sseHelper";
 import type express from "express";
 import type { AuthenticatedRequest } from "../../interfaces/express";
 import { ApiResponse } from "../../dto";
@@ -107,42 +107,7 @@ export class TravelController extends BaseController {
     const res = request.res;
     if (!res) throw new Error("Express Response 객체를 찾을 수 없습니다.");
 
-    res.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    });
-    res.write(
-      `data: ${JSON.stringify({ status: "CONNECTED", message: "SSE 연결 성공" })}\n\n`,
-    );
-
-    const onUpdate = (job: Job) => {
-      if (job.id === jobId) {
-        res.write(`data: ${JSON.stringify(job)}\n\n`);
-        if (job.status === "COMPLETED" || job.status === "FAILED") {
-          res.end();
-          reportQueue.off("job_updated", onUpdate);
-        }
-      }
-    };
-
-    reportQueue.on("job_updated", onUpdate);
-
-    // 즉시 현재 상태 전송
-    const currentJob = reportQueue.getJob(jobId);
-    if (currentJob) {
-      res.write(`data: ${JSON.stringify(currentJob)}\n\n`);
-      if (currentJob.status === "COMPLETED" || currentJob.status === "FAILED") {
-        res.end();
-        reportQueue.off("job_updated", onUpdate);
-        return;
-      }
-    }
-
-    // 클라이언트 연결 종료 시 리스너 해제
-    request.on("close", () => {
-      reportQueue.off("job_updated", onUpdate);
-    });
+    handleJobSSE(jobId, request, res);
 
     // SSE 연결 유지를 위해 Promise를 해결하지 않고 대기
     return new Promise(() => {});

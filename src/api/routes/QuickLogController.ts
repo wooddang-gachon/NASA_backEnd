@@ -8,7 +8,6 @@ import {
   ApiResponse,
 } from "../../dto";
 import { BaseController } from "./BaseController";
-import { BadRequestError } from "../../errors";
 @Service()
 @Tags("3. QuickLog - 1-Tap 웰니스 퀵기록")
 @Route("quick-log")
@@ -27,12 +26,7 @@ export class QuickLogController extends BaseController {
     @Request() request: AuthenticatedRequest,
     @Body() requestBody: QuickLogApiRequest,
   ): Promise<ApiResponse<QuickLogApiResponse>> {
-    if (
-      requestBody.category === "WATER" &&
-      (requestBody.amount === undefined || requestBody.amount < 0)
-    ) {
-      throw new BadRequestError("수분 섭취량은 0 이상이어야 합니다.");
-    }
+
     const result = await this.quickLogService.createQuickLog(
       this.getUserId(request),
       requestBody,
