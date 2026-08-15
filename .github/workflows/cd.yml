@@ -56,6 +56,9 @@ jobs:
 
       - name: Package release
         run: |
+          # docs/ 에는 빌드 단계(prebuild -> npm run swagger)가 방금 생성한
+          # swagger.json 이 들어 있습니다. 이게 없으면 서버에서 Swagger UI
+          # (/api/v1/docs) 가 뜨지 않습니다.
           tar czf nasa-release.tar.gz \
             dist \
             package.json \
@@ -63,7 +66,8 @@ jobs:
             prisma.config.ts \
             prisma \
             models \
-            data
+            data \
+            docs
           ls -lh nasa-release.tar.gz
 
       - name: Authenticate to Google Cloud
