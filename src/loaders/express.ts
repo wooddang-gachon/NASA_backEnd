@@ -2,6 +2,7 @@ import express from "express";
 import type { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import morgan from "morgan";
+import helmet from "helmet";
 import { RegisterRoutes } from "../build/routes";
 import config from "../config";
 import swaggerLoader from "./swagger";
@@ -45,6 +46,7 @@ export default ({ app }: { app: express.Application }) => {
     credentials: true,
   };
 
+  app.use(helmet());
   app.use(cors(corsOptions));
   app.use(express.json());
 

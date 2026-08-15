@@ -53,6 +53,7 @@ export interface FoodVisionScanResponse {
   isFallbackUsed: boolean;
   imageId: string;
   detectedFoods: DetectedFoodItem[];
+  comment?: string;
 }
 
 /**

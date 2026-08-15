@@ -12,7 +12,7 @@ async function startServer() {
 
   await loaders({ expressApp: app });
 
-  app
+  const server = app
     .listen(config.port, () => {
       Logger.info(`
       ################################################
@@ -24,6 +24,17 @@ async function startServer() {
       Logger.error(err);
       process.exit(1);
     });
+
+  const gracefulShutdown = () => {
+    Logger.info("SIGTERM/SIGINT signal received: closing HTTP server");
+    server.close(() => {
+      Logger.info("HTTP server closed");
+      process.exit(0);
+    });
+  };
+
+  process.on("SIGTERM", gracefulShutdown);
+  process.on("SIGINT", gracefulShutdown);
 }
 
 startServer();

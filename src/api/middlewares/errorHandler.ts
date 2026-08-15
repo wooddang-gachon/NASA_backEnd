@@ -52,7 +52,6 @@ export function globalErrorHandler(
   }
 
   // 3. 처리되지 않은 500 Internal Server Error (스택 트레이스는 로거로 기록 후 은닉)
-  console.error("🔥 [Unhandled Error Detail]:", err);
   Logger.error(
     `[UnhandledError] ${req.method} ${req.path} - ${
       error.stack || error.message || "Unknown error"
