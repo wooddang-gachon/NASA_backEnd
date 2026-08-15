@@ -1,7 +1,7 @@
 import { Service, Inject } from "typedi";
 import AiService from "./aiService";
 import LocalVisionService from "./localVisionService";
-import Logger from "../loaders/logger";
+import { LoggerFactory } from "../loaders/logger";
 import FoodRepository from "../repositories/FoodRepository";
 import FoodService from "./foodService";
 import { BadRequestError } from "../errors";
@@ -12,6 +12,7 @@ import type { UploadedImageFile, FoodVisionContext } from "@/interfaces";
 
 @Service()
 export default class FoodVisionService {
+  private readonly logger = LoggerFactory.getLogger(FoodVisionService.name);
   @Inject(() => AiService)
   private aiService!: AiService;
 
@@ -32,15 +33,17 @@ export default class FoodVisionService {
     mealType?: string,
   ): Promise<FoodVisionScanResponse> {
     if (!file) {
-      Logger.error("[FoodVisionService] Upload image file is missing.");
+      this.logger.error("Upload image file is missing.");
       throw new BadRequestError("업로드할 이미지 파일(file)이 누락되었습니다.");
     }
 
     const context = this.createInitialContext({ file, mealType });
 
-    Logger.info(
-      `[FoodVisionService] Uploading and analyzing food vision file: ${file.originalname}`,
-    );
+    this.logger.info("Uploading and analyzing food vision file", {
+      fileName: file.originalname,
+      fileSize: file.size,
+      mimeType: file.mimetype,
+    });
 
     // 파이프라인 순차 실행
     await this.stageImageUpload(context, true); // true = 즉시 DB 등록
@@ -63,9 +66,10 @@ export default class FoodVisionService {
   ): Promise<FoodVisionScanResponse> {
     const context = this.createInitialContext({ imageUrl, mealType });
 
-    Logger.info(
-      `[FoodVisionService] Analyzing food vision for image: ${imageUrl}, mealType: ${mealType || "N/A"}`,
-    );
+    this.logger.info("Analyzing food vision for image", {
+      imageUrl,
+      mealType,
+    });
 
     await this.stageLocalYoloScan(context);
     await this.stageVisionLlmFallback(context);
@@ -142,9 +146,9 @@ export default class FoodVisionService {
         true,
       );
       ctx.imageId = savedImage.id.toString();
-      Logger.info(
-        `[FoodVisionService] Immediate image registration created in DB: meal_images ID ${ctx.imageId}`,
-      );
+      this.logger.info("Immediate image registration created in DB", {
+        imageId: ctx.imageId,
+      });
     }
   }
 
@@ -152,8 +156,11 @@ export default class FoodVisionService {
     const imageBuffer = this.storageAdapter.readFile(ctx.imageUrl);
     if (!imageBuffer) {
       ctx.errors.push(new Error("FILE_NOT_FOUND"));
-      Logger.warn(
-        `[FoodVisionService] Image file not found for YOLO scan: ${ctx.imageUrl}. Vision LLM Fallback 실행.`,
+      this.logger.warn(
+        "Image file not found for YOLO scan. Executing Vision LLM Fallback.",
+        {
+          imageUrl: ctx.imageUrl,
+        },
       );
       return;
     }
@@ -162,9 +169,9 @@ export default class FoodVisionService {
       const localResults =
         await this.localVisionService.detectFoodObjects(imageBuffer);
       if (localResults && localResults.length > 0) {
-        Logger.info(
-          `[FoodVisionService] YOLO 1차 스캔 성공! ${localResults.length}개 객체 탐지.`,
-        );
+        this.logger.info("YOLO 1차 스캔 성공!", {
+          detectedCount: localResults.length,
+        });
         ctx.scanEngine = "YOLO";
         ctx.isIdentified = true;
         ctx.detectedFoods = localResults.map((r, idx) => ({
@@ -180,16 +187,14 @@ export default class FoodVisionService {
         }));
       } else {
         ctx.errors.push(new Error("NO_OBJECTS_DETECTED"));
-        Logger.info(
-          "[FoodVisionService] YOLO 1차 스캔 결과 없음. Vision LLM Fallback 실행.",
-        );
+        this.logger.info("YOLO 1차 스캔 결과 없음. Vision LLM Fallback 실행.");
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err);
       ctx.errors.push(new Error("SCAN_ERROR"));
-      Logger.warn(
-        `[FoodVisionService] YOLO 1차 스캔 에러 발생. Vision LLM Fallback 실행: ${errorMessage}`,
-      );
+      this.logger.warn("YOLO 1차 스캔 에러 발생. Vision LLM Fallback 실행.", {
+        errorMessage: err instanceof Error ? err.message : String(err),
+        stackTrace: err instanceof Error ? err.stack : undefined,
+      });
     }
   }
 
@@ -239,11 +244,10 @@ export default class FoodVisionService {
         ctx.detectedFoods = aiResult.detectedFoods;
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      Logger.error(
-        `[FoodVisionService] 메인 AI 서버 Vision 연동 실패: ${errorMessage}`,
-      );
+      this.logger.error("메인 AI 서버 Vision 연동 실패", {
+        errorMessage: error instanceof Error ? error.message : String(error),
+        stackTrace: error instanceof Error ? error.stack : undefined,
+      });
       throw new Error("AI 서버에서 이미지를 분석하는 데 실패했습니다.");
     }
   }
@@ -287,7 +291,9 @@ export default class FoodVisionService {
           ctx.detectedFoods as DetectedFoodItem[],
         );
       } catch (err) {
-        Logger.warn(`[FoodVisionService] 디버그 이미지 생성 실패: ${err}`);
+        this.logger.warn("디버그 이미지 생성 실패", {
+          errorMessage: err instanceof Error ? err.message : String(err),
+        });
       }
     }
   }

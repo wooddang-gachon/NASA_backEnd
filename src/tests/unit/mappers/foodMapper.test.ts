@@ -127,6 +127,17 @@ describe("foodMapper", () => {
     expect(res.foods[0]!.name).toBe("Rice");
   });
 
+  it("toFoodLogConfirmResponse", () => {
+    const res = FoodMapper.toFoodLogConfirmResponse({
+      mealId: "10",
+      earnedFuel: 20,
+      totalCalories: 500,
+    });
+    expect(res.mealId).toBe("10");
+    expect(res.earnedFuel).toBe(20);
+    expect(res.totalCalories).toBe(500);
+  });
+
   it("covers missing branches", () => {
     // toMealCreateInput with object missing comment/confidence etc
     FoodMapper.toMealCreateInput({

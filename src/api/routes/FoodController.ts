@@ -20,6 +20,7 @@ import {
   FoodVisionScanResponse,
   FoodLogConfirmResponse,
 } from "../../dto";
+import { FoodMapper } from "../../mappers";
 
 @Service()
 @Tags("4. FoodVision - 식단 스캔 & 영양성분 기록")
@@ -78,11 +79,6 @@ export class FoodController extends BaseController {
       foods: body.foods,
       comment: body.comment,
     });
-    const data: FoodLogConfirmResponse = {
-      mealId: res.mealId,
-      earnedFuel: res.earnedFuel,
-      totalCalories: res.totalCalories,
-    };
-    return this.success(data);
+    return this.success(FoodMapper.toFoodLogConfirmResponse(res));
   }
 }

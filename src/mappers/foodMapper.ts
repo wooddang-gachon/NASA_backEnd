@@ -5,6 +5,7 @@ import {
   FoodSearchResponse,
   FoodDto,
   FoodSmartMatchResultDto,
+  FoodLogConfirmResponse,
 } from "../dto";
 import {
   DbFoodMappingItem,
@@ -239,4 +240,21 @@ export class FoodMapper extends BaseMapper {
 
     return { foods };
   }
+
+  /**
+   * 식단 확정 응답 DTO 변환
+   * @param res - Meal log registration result
+   * @returns Food log confirm response DTO
+   */
+  public static toFoodLogConfirmResponse(
+    res: MealLogRegisterResponse,
+  ): FoodLogConfirmResponse {
+    return {
+      mealId: res.mealId,
+      earnedFuel: res.earnedFuel,
+      totalCalories: res.totalCalories,
+    };
+  }
 }
+
+export const toFoodLogConfirmResponse = FoodMapper.toFoodLogConfirmResponse;

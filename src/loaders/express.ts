@@ -11,8 +11,8 @@ import { globalErrorHandler } from "../api/middlewares/errorHandler";
 import fs from "fs";
 import path from "path";
 import rateLimit from "express-rate-limit";
-import { randomUUID } from "crypto";
-import { asyncLocalStorage } from "./logger";
+import { traceIdMiddleware } from "../api/middlewares/traceId.middleware";
+import Logger from "./logger";
 
 export default ({ app }: { app: express.Application }) => {
   const uploadsDir = path.join(process.cwd(), "uploads");
@@ -50,22 +50,23 @@ export default ({ app }: { app: express.Application }) => {
   app.use(cors(corsOptions));
   app.use(express.json());
 
-  // Correlation ID 미들웨어 (모든 요청에 대해 UUID 생성 및 AsyncLocalStorage 저장)
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    const correlationId =
-      (req.headers["x-correlation-id"] as string) || randomUUID();
-    res.setHeader("X-Correlation-Id", correlationId);
-    asyncLocalStorage.run(correlationId, () => {
-      next();
-    });
-  });
+  // Trace ID 미들웨어 (요청별 컨텍스트 맵 생성)
+  app.use(traceIdMiddleware);
 
   app.use("/uploads", express.static(uploadsDir));
 
   // TSOA Routes
   const apiRouter = express.Router();
 
-  apiRouter.use(morgan("dev"));
+  apiRouter.use(
+    morgan("dev", {
+      stream: {
+        write: (message: string) => {
+          Logger.info(message.trim(), { prefix: "HTTP" });
+        },
+      },
+    }),
+  );
 
   // 무차별 대입 공격 방지를 위한 Rate Limiter 설정
   const apiLimiter = rateLimit({
