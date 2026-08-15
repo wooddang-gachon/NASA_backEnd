@@ -31,17 +31,20 @@ export default class TravelRepository extends BaseRepository<
     });
   }
 
-  public async updateUserFuel(
+  public async createPlanetTravelAndFuelTransaction(
     userId: number,
-    amount: number,
-    operation: "increment" | "decrement",
+    travelData: Prisma.planet_travelsUncheckedCreateInput,
+    fuelSpent: number,
   ) {
-    const prisma = getPrisma();
-    return prisma.users.update({
-      where: { id: userId },
-      data: {
-        current_fuel: { [operation]: amount },
-      },
+    return getPrisma().$transaction(async (tx) => {
+      const updatedUser = await tx.users.update({
+        where: { id: userId },
+        data: { current_fuel: { decrement: fuelSpent } },
+      });
+      const travel = await tx.planet_travels.create({
+        data: travelData as unknown as Prisma.planet_travelsCreateInput,
+      });
+      return { travel, updatedUser };
     });
   }
 

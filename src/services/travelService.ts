@@ -9,6 +9,7 @@ import AiService from "./aiService";
 
 import Logger from "../loaders/logger";
 import TravelRepository from "../repositories/TravelRepository";
+import UserRepository from "../repositories/UserRepository";
 import { UserNotFoundError, BadRequestError } from "../errors";
 import { PlanetType } from "../interfaces/enums";
 import {
@@ -29,6 +30,9 @@ export default class TravelService {
 
   @Inject(() => TravelRepository)
   private travelRepository!: TravelRepository;
+
+  @Inject(() => UserRepository)
+  private userRepository!: UserRepository;
 
   /**
    * 별여행 출발 및 실시간 AI 탐사 결과 생성
@@ -64,13 +68,7 @@ export default class TravelService {
       );
     }
 
-    const updatedUser = await this.travelRepository.updateUserFuel(
-      userId,
-      data.fuelSpent,
-      "decrement",
-    );
-
-    // AI 탐사 결과 온디맨드 생성 시도
+    // AI 탐사 결과 온디맨드 생성 시도 (연료 차감 전 실행하여 실패 시 안전하게 처리)
     let reportTitle = "아쿠아 웰니스 탐사 완료 리포트 🌟";
     let reportSummary =
       "별여행 탐사가 안전하게 완료되었습니다! 오늘 하루도 건강한 수분과 영양을 챙겨보세요.";
@@ -105,15 +103,20 @@ export default class TravelService {
         : aiReportResult.nextActionChecks;
     }
 
-    // planet_travels 레코드 생성 (탐사 상태 및 AI 탐사 결과 리포트를 1개 테이블에 통합 저장)
-    const travel = await this.travelRepository.createPlanetTravel({
-      ...TravelMapper.toPlanetTravelCreateInput(userId, data),
-      status: "COMPLETED",
-      title: reportTitle,
-      summary_content: reportSummary,
-      recommendations: reportRecommendations,
-      completed_at: new Date(),
-    });
+    // planet_travels 레코드 생성 및 연료 차감을 단일 트랜잭션으로 통합 처리
+    const { travel, updatedUser } =
+      await this.travelRepository.createPlanetTravelAndFuelTransaction(
+        userId,
+        {
+          ...TravelMapper.toPlanetTravelCreateInput(userId, data),
+          status: "COMPLETED",
+          title: reportTitle,
+          summary_content: reportSummary,
+          recommendations: reportRecommendations,
+          completed_at: new Date(),
+        },
+        data.fuelSpent,
+      );
 
     const travelResultData = TravelMapper.toTravelResultResponse(travel);
 
@@ -209,10 +212,9 @@ export default class TravelService {
     if (!user) throw new UserNotFoundError(userId);
 
     const gainedFuel = FUEL_REWARDS.DEFAULT_ACTION;
-    const updatedUser = await this.travelRepository.updateUserFuel(
+    const updatedUser = await this.userRepository.updateUserFuel(
       userId,
       gainedFuel,
-      "increment",
     );
 
     return {

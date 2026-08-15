@@ -4,7 +4,7 @@ import AiService from "./aiService";
 import LocalVisionService from "./localVisionService";
 import Logger from "../loaders/logger";
 import FoodRepository from "../repositories/FoodRepository";
-import { UserNotFoundError } from "../errors";
+import { UserNotFoundError, BadRequestError } from "../errors";
 import { FoodMapper, UserMapper } from "../mappers";
 import {
   MealLogRegisterResponse,
@@ -20,6 +20,13 @@ import { drawBoundingBoxesAndSave } from "../utils/imageAnnotator";
 import path from "path";
 import fs from "fs";
 
+export interface UploadedImageFile {
+  originalname: string;
+  buffer: Buffer;
+  mimetype?: string;
+  size?: number;
+}
+
 @Service()
 export default class FoodService {
   @Inject(() => AiService)
@@ -32,12 +39,12 @@ export default class FoodService {
   private foodRepository!: FoodRepository;
 
   public async uploadAndAnalyzeFoodVision(
-    file?: Express.Multer.File,
+    file?: UploadedImageFile,
     mealType?: string,
   ): Promise<FoodVisionScanResponse> {
     if (!file) {
       Logger.error("[FoodService] Upload image file is missing.");
-      throw new Error("업로드할 이미지 파일(file)이 누락되었습니다.");
+      throw new BadRequestError("업로드할 이미지 파일(file)이 누락되었습니다.");
     }
 
     Logger.info(
@@ -407,10 +414,10 @@ export default class FoodService {
   }
 
   public async detectFoodViaExternalAi(
-    file: Express.Multer.File,
+    file?: UploadedImageFile,
   ): Promise<FoodVisionScanResponse> {
     if (!file) {
-      throw new Error("업로드할 이미지 파일이 없습니다.");
+      throw new BadRequestError("업로드할 이미지 파일이 없습니다.");
     }
 
     // 1. 이미지 임시 저장 (AiAdapter가 파일을 읽을 수 있도록)

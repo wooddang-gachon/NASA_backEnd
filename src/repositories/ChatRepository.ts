@@ -29,10 +29,20 @@ export default class ChatRepository extends BaseRepository<
     });
   }
 
-  public async updateUserFuel(userId: number, amount: number) {
-    return getPrisma().users.update({
-      where: { id: userId },
-      data: { current_fuel: { increment: amount } },
+  public async saveAiResponseAndFuelTransaction(
+    userId: number,
+    tammyMessageData: Prisma.chat_messagesUncheckedCreateInput,
+    fuelAmount: number
+  ) {
+    return getPrisma().$transaction(async (tx) => {
+      const tammyMsg = await tx.chat_messages.create({
+        data: tammyMessageData as unknown as Prisma.chat_messagesCreateInput,
+      });
+      const updatedUser = await tx.users.update({
+        where: { id: userId },
+        data: { current_fuel: { increment: fuelAmount } },
+      });
+      return { tammyMsg, updatedUser };
     });
   }
 

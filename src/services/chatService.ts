@@ -57,27 +57,25 @@ export default class ChatService {
       history,
     );
 
-    const tammyMsg = await this.chatRepository.createChatMessage(
-      ChatMapper.toTammyMessageInput(
-        userId,
-        aiResult.replyText,
-        aiResult.motionTag || aiResult.emotion?.motionType,
-        aiResult.intentLabel ||
-          (aiResult.extractedMemory?.category ? "MEMORY_EXTRACT" : "CHAT"),
-        aiResult.labels ||
-          (aiResult.extractedMemory
-            ? ({
-                memory: aiResult.extractedMemory,
-              } as import("@prisma/client").Prisma.InputJsonValue)
-            : undefined),
-      ),
-    );
-
     const gainedFuel = FUEL_REWARDS.CHAT;
-    const updatedUser = await this.chatRepository.updateUserFuel(
-      userId,
-      gainedFuel,
-    );
+    const { tammyMsg, updatedUser } =
+      await this.chatRepository.saveAiResponseAndFuelTransaction(
+        userId,
+        ChatMapper.toTammyMessageInput(
+          userId,
+          aiResult.replyText,
+          aiResult.motionTag || aiResult.emotion?.motionType,
+          aiResult.intentLabel ||
+            (aiResult.extractedMemory?.category ? "MEMORY_EXTRACT" : "CHAT"),
+          aiResult.labels ||
+            (aiResult.extractedMemory
+              ? ({
+                  memory: aiResult.extractedMemory,
+                } as import("@prisma/client").Prisma.InputJsonValue)
+              : undefined),
+        ),
+        gainedFuel,
+      );
 
     return ChatMapper.toResponse(
       aiResult,

@@ -17,12 +17,20 @@ export default class QuickLogRepository extends BaseRepository<
     return this.create(data as unknown as Prisma.quick_logsCreateInput);
   }
 
-  public async updateUserFuel(userId: number, amount: number) {
-    return getPrisma().users.update({
-      where: { id: userId },
-      data: {
-        current_fuel: { increment: amount },
-      },
+  public async createQuickLogAndFuelTransaction(
+    userId: number,
+    data: Prisma.quick_logsUncheckedCreateInput,
+    fuelAmount: number,
+  ) {
+    return getPrisma().$transaction(async (tx) => {
+      const log = await tx.quick_logs.create({
+        data: data as unknown as Prisma.quick_logsCreateInput,
+      });
+      const updatedUser = await tx.users.update({
+        where: { id: userId },
+        data: { current_fuel: { increment: fuelAmount } },
+      });
+      return { log, updatedUser };
     });
   }
 }

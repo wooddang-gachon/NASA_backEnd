@@ -17,14 +17,12 @@ export default class QuickLogService {
     );
     const earnedFuel = FUEL_REWARDS.QUICK_LOG;
 
-    const log = await this.quickLogRepository.createQuickLog(
-      QuickLogMapper.toCreateInput(userId, data, earnedFuel),
-    );
-
-    const updatedUser = await this.quickLogRepository.updateUserFuel(
-      userId,
-      earnedFuel,
-    );
+    const { log, updatedUser } =
+      await this.quickLogRepository.createQuickLogAndFuelTransaction(
+        userId,
+        QuickLogMapper.toCreateInput(userId, data, earnedFuel),
+        earnedFuel,
+      );
 
     return {
       success: true,

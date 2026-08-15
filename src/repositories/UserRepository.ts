@@ -33,4 +33,11 @@ export default class UserRepository extends BaseRepository<
       take,
     });
   }
+
+  public async updateUserFuel(userId: number, amount: number) {
+    return getPrisma().users.update({
+      where: { id: userId },
+      data: { current_fuel: { increment: amount } },
+    });
+  }
 }
