@@ -75,19 +75,6 @@ export class AuthController extends BaseController {
    * @param request
    * @param requestBody
    */
-  @Post("withdraw")
-  @Security("jwt")
-  public async withdrawPost(
-    @Request() request: AuthenticatedRequest,
-    @Body() requestBody?: UserWithdrawRequest,
-  ): Promise<ApiResponse<UserWithdrawResponse>> {
-    const result = await this.authService.withdraw(
-      this.getUserId(request),
-      requestBody,
-    );
-    return this.success(result, "회원 탈퇴가 완료되었습니다.");
-  }
-
   @Delete("withdraw")
   @Security("jwt")
   public async withdraw(
