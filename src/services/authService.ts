@@ -2,15 +2,10 @@ import { Service } from "typedi";
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import config from "@/config";
-import Logger from "@/loaders/logger";
 import AuthRepository from "@/repositories/AuthRepository";
+import { SocialAuthContext } from "@/adapters/SocialAuthAdapter";
 import { Inject } from "typedi";
-import {
-  ConflictError,
-  UnauthorizedError,
-  UserNotFoundError,
-  BadGatewayError,
-} from "@/errors";
+import { ConflictError, UnauthorizedError, UserNotFoundError } from "@/errors";
 import { UserMapper } from "@/mappers";
 import type {
   UserSignUpRequest,
@@ -29,6 +24,8 @@ import type {
 export default class AuthService {
   @Inject(() => AuthRepository)
   private authRepository!: AuthRepository;
+
+  private socialAuthContext = new SocialAuthContext();
 
   private jwtSecret = config.jwtSecret || "nasa_wellness_tammy_secret_key_2026";
 
@@ -229,7 +226,10 @@ export default class AuthService {
   public async socialLogin(
     data: SocialLoginRequest,
   ): Promise<UserLoginResponse> {
-    const socialUser = await this.verifySocialToken(data.provider, data.token);
+    const socialUser = await this.socialAuthContext.authenticate(
+      data.provider,
+      data.token,
+    );
 
     const email = socialUser.email;
     const nickname =
@@ -257,102 +257,5 @@ export default class AuthService {
     const tokens = await this.generateAndSaveTokens(user);
 
     return UserMapper.toLoginResponse(user, tokens);
-  }
-
-  /**
-   * 카카오/구글/애플 소셜 OAuth 토큰 검증 헬퍼
-   * @param provider 소셜 로그인 제공자 식별자
-   * @param token 소셜 제공자로부터 발급받은 액세스/ID 토큰
-   * @returns 검증된 이메일 및 닉네임
-   */
-  protected async verifySocialToken(
-    provider: "GOOGLE" | "KAKAO" | "APPLE",
-    token: string,
-  ): Promise<{ email: string; nickname?: string }> {
-    try {
-      if (provider === "GOOGLE") {
-        // Google OAuth 2.0 UserInfo API 검증
-        const res = await fetch(
-          "https://www.googleapis.com/oauth2/v3/userinfo",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
-
-        if (!res.ok) {
-          // fallback: id_token 검증 시도
-          const tokenInfoRes = await fetch(
-            `https://oauth2.googleapis.com/tokeninfo?id_token=${token}`,
-          );
-          if (!tokenInfoRes.ok) {
-            throw new UnauthorizedError(
-              "유효하지 않은 Google 인증 토큰입니다.",
-            );
-          }
-          const info = (await tokenInfoRes.json()) as {
-            email?: string;
-            sub: string;
-            name?: string;
-            given_name?: string;
-          };
-          return {
-            email: info.email || `google_${info.sub}@gmail.com`,
-            nickname: info.name || info.given_name || "구글유저",
-          };
-        }
-
-        const data = (await res.json()) as {
-          email?: string;
-          name?: string;
-          given_name?: string;
-        };
-        return {
-          email: data.email || `google_${Date.now()}@gmail.com`,
-          nickname: data.name || data.given_name || "구글유저",
-        };
-      } else if (provider === "KAKAO") {
-        // Kakao OAuth API 검증
-        const res = await fetch("https://kapi.kakao.com/v2/user/me", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-type": "application/x-www-form-urlencoded;charset=utf-8",
-          },
-        });
-
-        if (!res.ok) {
-          throw new UnauthorizedError("유효하지 않은 Kakao 인증 토큰입니다.");
-        }
-
-        const data = (await res.json()) as {
-          id: number;
-          kakao_account?: { email?: string; profile?: { nickname?: string } };
-        };
-        const kakaoAccount = data.kakao_account || {};
-        const profile = kakaoAccount.profile || {};
-
-        return {
-          email: kakaoAccount.email || `kakao_${data.id}@kakao.com`,
-          nickname: profile.nickname || "카카오유저",
-        };
-      } else if (provider === "APPLE") {
-        return {
-          email: `apple_user_${Date.now()}@apple.com`,
-          nickname: "애플유저",
-        };
-      }
-
-      throw new UnauthorizedError("지원하지 않는 소셜 인증 제공자입니다.");
-    } catch (err: unknown) {
-      if (err instanceof UnauthorizedError) throw err;
-      Logger.error(
-        `[AuthService] 외부 소셜 인증 서버 통신 실패 (${provider}): ${(err as Error).message}`,
-        {
-          err,
-        },
-      );
-      throw new BadGatewayError(
-        `외부 소셜 인증 서비스 연동 중 오류가 발생했습니다.`,
-      );
-    }
   }
 }

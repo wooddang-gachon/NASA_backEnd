@@ -32,7 +32,7 @@ export default class ChatRepository extends BaseRepository<
   public async saveAiResponseAndFuelTransaction(
     userId: number,
     tammyMessageData: Prisma.chat_messagesUncheckedCreateInput,
-    fuelAmount: number
+    fuelAmount: number,
   ) {
     return getPrisma().$transaction(async (tx) => {
       const tammyMsg = await tx.chat_messages.create({

@@ -2,25 +2,30 @@ import "reflect-metadata";
 import TravelService from "../../../services/travelService";
 import AiService from "../../../services/aiService";
 import TravelRepository from "../../../repositories/TravelRepository";
+import UserRepository from "../../../repositories/UserRepository";
 import { Container } from "typedi";
 import { UserNotFoundError, BadRequestError } from "../../../errors";
 import { PlanetType } from "../../../interfaces/enums";
 
 jest.mock("../../../services/aiService");
 jest.mock("../../../repositories/TravelRepository");
+jest.mock("../../../repositories/UserRepository");
 
 describe("TravelService", () => {
   let travelService: TravelService;
   let mockAiService: jest.Mocked<AiService>;
   let mockTravelRepository: jest.Mocked<TravelRepository>;
+  let mockUserRepository: jest.Mocked<UserRepository>;
 
   beforeEach(() => {
     mockAiService = new AiService() as jest.Mocked<AiService>;
     mockTravelRepository =
       new TravelRepository() as jest.Mocked<TravelRepository>;
+    mockUserRepository = new UserRepository() as jest.Mocked<UserRepository>;
 
     Container.set(AiService, mockAiService);
     Container.set(TravelRepository, mockTravelRepository);
+    Container.set(UserRepository, mockUserRepository);
 
     travelService = Container.get(TravelService);
   });
@@ -78,21 +83,20 @@ describe("TravelService", () => {
         nickname: "test",
       } as never);
       mockTravelRepository.findActivePlanetTravelByUser.mockResolvedValue(null);
-      mockTravelRepository.updateUserFuel.mockResolvedValue({
-        current_fuel: 90,
-      } as never);
+      mockTravelRepository.createPlanetTravelAndFuelTransaction.mockResolvedValue({
+        travel: {
+          id: BigInt(1),
+          user_id: 1,
+          planet_type: PlanetType.MEAL,
+          started_at: new Date(),
+        } as never,
+        updatedUser: { current_fuel: 90 } as never,
+      });
 
       mockAiService.generatePlanetReport.mockResolvedValue({
         title: "Test",
         markdown: "Summary",
         nextActionChecks: ["Action 1"],
-      } as never);
-
-      mockTravelRepository.createPlanetTravel.mockResolvedValue({
-        id: BigInt(1),
-        user_id: 1,
-        planet_type: PlanetType.MEAL,
-        started_at: new Date(),
       } as never);
 
       const result = await travelService.startPlanetTravel(1, {
@@ -101,13 +105,12 @@ describe("TravelService", () => {
       } as never);
 
       expect(result).toBeDefined();
-      expect(mockTravelRepository.updateUserFuel).toHaveBeenCalledWith(
+      expect(mockTravelRepository.createPlanetTravelAndFuelTransaction).toHaveBeenCalledWith(
         1,
+        expect.anything(),
         10,
-        "decrement",
       );
       expect(mockAiService.generatePlanetReport).toHaveBeenCalled();
-      expect(mockTravelRepository.createPlanetTravel).toHaveBeenCalled();
     });
   });
 
@@ -138,7 +141,7 @@ describe("TravelService", () => {
   describe("addFuel", () => {
     it("should add fuel successfully", async () => {
       mockTravelRepository.findUserById.mockResolvedValue({} as never);
-      mockTravelRepository.updateUserFuel.mockResolvedValue({
+      mockUserRepository.updateUserFuel.mockResolvedValue({
         current_fuel: 10,
       } as never);
 

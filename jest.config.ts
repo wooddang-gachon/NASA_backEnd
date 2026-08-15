@@ -12,5 +12,13 @@ export default {
     "<rootDir>/src/tests/**/*.test.ts",
     "<rootDir>/src/tests/**/*.spec.ts"
   ],
-  testTimeout: 30000
+  testTimeout: 30000,
+  coverageThreshold: {
+    global: {
+      branches: 60,
+      functions: 60,
+      lines: 60,
+      statements: 60
+    }
+  }
 };

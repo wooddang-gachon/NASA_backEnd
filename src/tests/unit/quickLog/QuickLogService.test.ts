@@ -30,7 +30,7 @@ describe("QuickLogService", () => {
   beforeEach(() => {
     mockQuickLogRepository = {
       createQuickLog: jest.fn(),
-      updateUserFuel: jest.fn(),
+      createQuickLogAndFuelTransaction: jest.fn(),
     } as never;
 
     Container.set(QuickLogRepository, mockQuickLogRepository);
@@ -52,12 +52,10 @@ describe("QuickLogService", () => {
       const apiResponse = { id: 100, category: "MOOD", current_fuel: 105 };
 
       (QuickLogMapper.toCreateInput as jest.Mock).mockReturnValue(mappedInput);
-      mockQuickLogRepository.createQuickLog.mockResolvedValue(
-        createdLog as never,
-      );
-      mockQuickLogRepository.updateUserFuel.mockResolvedValue(
-        updatedUser as never,
-      );
+      mockQuickLogRepository.createQuickLogAndFuelTransaction.mockResolvedValue({
+        log: createdLog,
+        updatedUser: updatedUser,
+      } as never);
       (QuickLogMapper.toApiResponse as jest.Mock).mockReturnValue(apiResponse);
 
       const result = await service.createQuickLog(userId, data);
@@ -67,13 +65,9 @@ describe("QuickLogService", () => {
         data,
         5,
       );
-      expect(mockQuickLogRepository.createQuickLog).toHaveBeenCalledWith(
-        mappedInput,
-      );
-      expect(mockQuickLogRepository.updateUserFuel).toHaveBeenCalledWith(
-        userId,
-        5,
-      );
+      expect(
+        mockQuickLogRepository.createQuickLogAndFuelTransaction,
+      ).toHaveBeenCalledWith(userId, mappedInput, 5);
       expect(QuickLogMapper.toApiResponse).toHaveBeenCalledWith(
         createdLog,
         105,
@@ -89,12 +83,9 @@ describe("QuickLogService", () => {
       const userId = 1;
       const data = { category: "DIARY" } as never;
 
-      mockQuickLogRepository.createQuickLog.mockResolvedValue({
-        id: 101,
-      } as never);
-      // Return user without current_fuel
-      mockQuickLogRepository.updateUserFuel.mockResolvedValue({
-        id: userId,
+      mockQuickLogRepository.createQuickLogAndFuelTransaction.mockResolvedValue({
+        log: { id: 101 },
+        updatedUser: { id: userId }, // Return user without current_fuel
       } as never);
       (QuickLogMapper.toApiResponse as jest.Mock).mockReturnValue({
         id: 101,
@@ -103,10 +94,9 @@ describe("QuickLogService", () => {
 
       const result = await service.createQuickLog(userId, data);
 
-      expect(mockQuickLogRepository.updateUserFuel).toHaveBeenCalledWith(
-        userId,
-        5,
-      );
+      expect(
+        mockQuickLogRepository.createQuickLogAndFuelTransaction,
+      ).toHaveBeenCalledWith(userId, expect.anything(), 5);
       expect(QuickLogMapper.toApiResponse).toHaveBeenCalledWith({ id: 101 }, 0);
       expect((result.data as { currentFuel?: number }).currentFuel).toBe(0);
     });

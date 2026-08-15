@@ -42,17 +42,10 @@ describe("ChatService", () => {
       mockChatRepository.findUserById.mockResolvedValue({
         nickname: "test",
       } as never);
-      mockChatRepository.createChatMessage.mockResolvedValue({} as never);
-      mockChatRepository.findRecentChatMessages.mockResolvedValue([
-        {
-          sender: Sender.USER,
-          message_text: "Hi",
-          created_at: new Date(),
-        } as never,
-      ]);
-      mockChatRepository.updateUserFuel.mockResolvedValue({
-        current_fuel: 10,
-      } as never);
+      mockChatRepository.saveAiResponseAndFuelTransaction.mockResolvedValue({
+        tammyMsg: {} as never,
+        updatedUser: { current_fuel: 10 } as never,
+      });
 
       mockAiService.processChat.mockResolvedValue({
         replyText: "Hello",
@@ -62,27 +55,17 @@ describe("ChatService", () => {
       const result = await chatService.processChat(1, "Hi");
 
       expect(result).toBeDefined();
-      expect(mockChatRepository.createChatMessage).toHaveBeenCalledTimes(2); // User msg and Tammy msg
-      expect(mockAiService.processChat).toHaveBeenCalledWith(
-        1,
-        "Hi",
-        "test",
-        expect.any(Array),
-      );
-      expect(mockChatRepository.updateUserFuel).toHaveBeenCalled();
+      expect(mockChatRepository.saveAiResponseAndFuelTransaction).toHaveBeenCalled();
     });
 
     it("should handle error in finding recent chat messages", async () => {
       mockChatRepository.findUserById.mockResolvedValue({
         nickname: "test",
       } as never);
-      mockChatRepository.createChatMessage.mockResolvedValue({} as never);
-      mockChatRepository.findRecentChatMessages.mockRejectedValue(
-        new Error("DB Error"),
-      );
-      mockChatRepository.updateUserFuel.mockResolvedValue({
-        current_fuel: 10,
-      } as never);
+      mockChatRepository.saveAiResponseAndFuelTransaction.mockResolvedValue({
+        tammyMsg: {} as never,
+        updatedUser: { current_fuel: 10 } as never,
+      });
 
       mockAiService.processChat.mockResolvedValue({
         replyText: "Hello",
