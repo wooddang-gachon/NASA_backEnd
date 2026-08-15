@@ -10,6 +10,7 @@ import {
 } from "tsoa";
 import { Service, Container } from "typedi";
 import FoodService from "../../services/foodService";
+import FoodVisionService from "../../services/foodVisionService";
 import { MealType } from "../../interfaces/enums";
 import type { AuthenticatedRequest } from "../../interfaces/express";
 import { ApiResponse } from "../../dto";
@@ -25,6 +26,7 @@ import {
 @Route("")
 export class FoodController extends BaseController {
   private foodService = Container.get(FoodService);
+  private foodVisionService = Container.get(FoodVisionService);
 
   /**
    * 촬영하거나 선택한 식단 사진 이미지 파일(multipart/form-data)을 업로드하고 AI 비전 모델로 5대 영양 성분을 스캔 분석합니다.
@@ -38,7 +40,7 @@ export class FoodController extends BaseController {
     @UploadedFile("file") file: Express.Multer.File,
     @FormField("mealType") mealType?: MealType,
   ): Promise<ApiResponse<FoodVisionScanResponse>> {
-    const data = await this.foodService.uploadAndAnalyzeFoodVision(
+    const data = await this.foodVisionService.uploadAndAnalyzeFoodVision(
       file,
       mealType,
     );
@@ -55,7 +57,7 @@ export class FoodController extends BaseController {
   public async detectFoodFromAiServer(
     @UploadedFile("file") file: Express.Multer.File,
   ): Promise<ApiResponse<FoodVisionScanResponse>> {
-    const data = await this.foodService.detectFoodViaExternalAi(file);
+    const data = await this.foodVisionService.detectFoodViaExternalAi(file);
     return this.success(data);
   }
 

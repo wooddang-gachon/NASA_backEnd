@@ -1,23 +1,18 @@
 import { Service, Inject } from "typedi";
 import { FUEL_REWARDS, EXP_REWARDS } from "@/constants/gamification";
 import AiService from "./aiService";
-import LocalVisionService from "./localVisionService";
 import Logger from "../loaders/logger";
 import FoodRepository from "../repositories/FoodRepository";
-import { UserNotFoundError, BadRequestError } from "../errors";
+import { UserNotFoundError } from "../errors";
 import { FoodMapper, UserMapper } from "../mappers";
 import {
   MealLogRegisterResponse,
   FoodSearchResponse,
   FoodSmartMatchResultDto,
-  FoodVisionScanResponse,
   FoodLogConfirmRequest,
 } from "../dto";
 
 import { tokenizeFoodName } from "../utils/food/foodTokenizer";
-import { drawBoundingBoxesAndSave } from "../utils/imageAnnotator";
-
-import StorageAdapter from "../adapters/StorageAdapter";
 
 export interface UploadedImageFile {
   originalname: string;
@@ -31,52 +26,8 @@ export default class FoodService {
   @Inject(() => AiService)
   private aiService!: AiService;
 
-  @Inject(() => LocalVisionService)
-  private localVisionService!: LocalVisionService;
-
   @Inject(() => FoodRepository)
   private foodRepository!: FoodRepository;
-
-  @Inject(() => StorageAdapter)
-  private storageAdapter!: StorageAdapter;
-
-  public async uploadAndAnalyzeFoodVision(
-    file?: UploadedImageFile,
-    mealType?: string,
-  ): Promise<FoodVisionScanResponse> {
-    if (!file) {
-      Logger.error("[FoodService] Upload image file is missing.");
-      throw new BadRequestError("업로드할 이미지 파일(file)이 누락되었습니다.");
-    }
-
-    Logger.info(
-      `[FoodService] Uploading and analyzing food vision file: ${file.originalname}`,
-    );
-
-    const { absolutePath: filePath, urlPath: imageUrl } =
-      this.storageAdapter.saveFile(file.buffer, file.originalname);
-
-    // 1. 이미지가 업로드되는 즉시 meal_images DB 테이블에 바로 연동/저장 (meal_id는 아직 null)
-    const savedImage = await this.foodRepository.createMealImage(
-      imageUrl,
-      true,
-    );
-    Logger.info(
-      `[FoodService] Immediate image registration created in DB: meal_images ID ${savedImage.id}`,
-    );
-
-    const res = await this.analyzeFoodVision(imageUrl, mealType);
-
-    // [테스트/디버그 용] Bounding Box가 존재하는 경우 네모 표시가 된 추가 이미지 생성 및 저장 (_debug.jpg)
-    if (res && res.detectedFoods && res.detectedFoods.length > 0) {
-      await drawBoundingBoxesAndSave(filePath, res.detectedFoods);
-    }
-
-    return {
-      ...res,
-      imageId: savedImage.id.toString(),
-    };
-  }
 
   /**
    * [FOD-005] 음식명 스마트 매칭 메서드 (foods 마스터 보호 원칙)
@@ -171,115 +122,6 @@ export default class FoodService {
     return FoodMapper.toFoodSmartMatchResultFromFallback(rawName, detected);
   }
 
-  public async analyzeFoodVision(
-    imageUrl: string,
-    mealType?: string,
-  ): Promise<FoodVisionScanResponse> {
-    Logger.info(
-      `[FoodService] Analyzing food vision for image: ${imageUrl}, mealType: ${mealType || "N/A"}`,
-    );
-
-    let aiVisionResult: Partial<FoodVisionScanResponse> | null = null;
-    const yoloContext = {
-      attempted: true,
-      detected: false,
-      reason: "",
-    };
-    // [FOD-001] 1차: 자체 경량 YOLO 모델(ONNX) 스캔
-    const imageBuffer = this.storageAdapter.readFile(imageUrl);
-    if (imageBuffer) {
-      try {
-        const localResults =
-          await this.localVisionService.detectFoodObjects(imageBuffer);
-
-        if (localResults && localResults.length > 0) {
-          Logger.info(
-            `[FoodService] YOLO 1차 스캔 성공! ${localResults.length}개 객체 탐지.`,
-          );
-          yoloContext.detected = true;
-          aiVisionResult = {
-            scanEngine: "YOLO",
-            detectedFoods: localResults.map((r, idx) => ({
-              boxId: idx,
-              foodName: r.className,
-              boundingBox: r.bbox,
-              confidence: r.confidence,
-              estimatedGram: 0,
-              calories: 0,
-              carbs: 0,
-              protein: 0,
-              fat: 0,
-            })),
-          };
-        } else {
-          yoloContext.reason = "NO_OBJECTS_DETECTED";
-          Logger.info(
-            "[FoodService] YOLO 1차 스캔 결과 없음. Vision LLM Fallback 실행.",
-          );
-        }
-      } catch (err) {
-        yoloContext.reason = "SCAN_ERROR";
-        Logger.warn(
-          `[FoodService] YOLO 1차 스캔 에러 발생. Vision LLM Fallback 실행: ${err}`,
-        );
-      }
-    } else {
-      yoloContext.reason = "FILE_NOT_FOUND";
-      Logger.warn(
-        `[FoodService] Image file not found for YOLO scan: ${imageUrl}. Vision LLM Fallback 실행.`,
-      );
-    }
-
-    // 2차: 미식별/불분명 시 Vision LLM Fallback 추가 분석 요청
-    if (!aiVisionResult) {
-      aiVisionResult = (await this.aiService.analyzeFoodVision(
-        imageUrl,
-        mealType,
-        undefined,
-        yoloContext,
-      )) as unknown as Partial<FoodVisionScanResponse>;
-      if (aiVisionResult) aiVisionResult.scanEngine = "VisionLLM";
-    }
-
-    if (
-      aiVisionResult.detectedFoods &&
-      aiVisionResult.detectedFoods.length > 0
-    ) {
-      const enrichedFoods = [];
-      let idx = 0;
-      for (const item of aiVisionResult.detectedFoods) {
-        const rawFoodName = item.foodName || "음식";
-        const mapping = await this.getOrMapFood(rawFoodName);
-        enrichedFoods.push({
-          boxId: item.boxId !== undefined ? item.boxId : idx++,
-          ...item,
-          foodName: rawFoodName,
-          // 영양 수치는 foods 마스터 DB에서 온다. YOLO도 Vision LLM도
-          // 음식명과 좌표만 주므로, 여기서 채우지 않으면
-          // DetectedFoodItem의 필수 필드가 빈 채로 나간다.
-          estimatedGram: mapping.standardServingG,
-          calories: mapping.caloriesKcal,
-          carbs: mapping.carbohydrateG,
-          protein: mapping.proteinG,
-          fat: mapping.fatG,
-          matchedStandardFoodName:
-            mapping.foodId > 0 ? mapping.rawName : rawFoodName,
-          matchedFoodId: mapping.foodId > 0 ? mapping.foodId : undefined,
-          matchType: mapping.matchType,
-        });
-      }
-      return {
-        ...aiVisionResult,
-        detectedFoods: enrichedFoods,
-      } as FoodVisionScanResponse;
-    }
-
-    return (aiVisionResult || {
-      isIdentified: false,
-      scanEngine: "Unknown",
-      detectedFoods: [],
-    }) as FoodVisionScanResponse;
-  }
 
   public async logMeal(
     userId: number,
@@ -303,7 +145,7 @@ export default class FoodService {
         gram: f.gram || 100,
       }));
     } else {
-      throw new Error("음식 항목(foods)은 최소 1개 이상 전송해야 합니다.");
+      throw new BadRequestError("음식 항목(foods)은 최소 1개 이상 전송해야 합니다.");
     }
 
     const processedItems: Array<{
@@ -398,64 +240,4 @@ export default class FoodService {
     return FoodMapper.toFoodSearchResponse(dbFoods);
   }
 
-  public async detectFoodViaExternalAi(
-    file?: UploadedImageFile,
-  ): Promise<FoodVisionScanResponse> {
-    if (!file) {
-      throw new BadRequestError("업로드할 이미지 파일이 없습니다.");
-    }
-
-    // 1. 이미지 임시 저장 (AiAdapter가 파일을 읽을 수 있도록)
-    const { urlPath: imageUrl } = this.storageAdapter.saveFile(
-      file.buffer,
-      file.originalname,
-    );
-
-    // 2. 로컬 YOLO를 건너뛰고, 메인 AI 서버(Vision LLM)로 바로 요청!
-    let aiVisionResult: Partial<FoodVisionScanResponse> | null = null;
-    try {
-      aiVisionResult = (await this.aiService.analyzeFoodVision(
-        imageUrl,
-      )) as unknown as Partial<FoodVisionScanResponse>;
-      if (aiVisionResult) aiVisionResult.scanEngine = "VisionLLM_Direct";
-    } catch (error) {
-      Logger.error(`[FoodService] 메인 AI 서버 Vision 연동 실패: ${error}`);
-      throw new Error("AI 서버에서 이미지를 분석하는 데 실패했습니다.");
-    }
-
-    // 3. 검출된 음식들을 getOrMapFood(매칭 테이블 조회 및 추가 로직)로 영양성분 매핑
-    const enrichedFoods = [];
-    let idx = 0;
-
-    if (
-      aiVisionResult &&
-      aiVisionResult.detectedFoods &&
-      aiVisionResult.detectedFoods.length > 0
-    ) {
-      for (const item of aiVisionResult.detectedFoods) {
-        const rawFoodName = item.foodName || "음식";
-        const mapping = await this.getOrMapFood(rawFoodName);
-
-        enrichedFoods.push({
-          boxId: item.boxId !== undefined ? item.boxId : idx++,
-          ...item,
-          foodName: rawFoodName,
-          estimatedGram: mapping.standardServingG,
-          calories: mapping.caloriesKcal,
-          carbs: mapping.carbohydrateG,
-          protein: mapping.proteinG,
-          fat: mapping.fatG,
-          matchedStandardFoodName:
-            mapping.foodId > 0 ? mapping.rawName : rawFoodName,
-          matchedFoodId: mapping.foodId > 0 ? mapping.foodId : undefined,
-          matchType: mapping.matchType,
-        });
-      }
-    }
-
-    return {
-      ...(aiVisionResult || { isIdentified: false, scanEngine: "Unknown" }),
-      detectedFoods: enrichedFoods,
-    } as FoodVisionScanResponse;
-  }
 }
