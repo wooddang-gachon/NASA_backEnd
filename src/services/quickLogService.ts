@@ -57,11 +57,7 @@ export default class QuickLogService {
     const earnedFuel = DEFAULT_FUEL_GAIN ?? 10;
 
     const log = await this.quickLogRepository.create(
-      QuickLogMapper.toCreateInput(
-        userId,
-        data as never,
-        earnedFuel,
-      ) as never,
+      QuickLogMapper.toCreateInput(userId, data as never, earnedFuel) as never,
     );
 
     let gauge = {

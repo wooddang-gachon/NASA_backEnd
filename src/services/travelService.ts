@@ -1,10 +1,5 @@
 import { Service, Inject } from "typedi";
-import {
-  FUEL_REWARDS,
-  REPORT_FUEL_COST,
-  PLANET_CONFIGS,
-  TOTAL_TARGET_DISTANCE,
-} from "@/constants/gamification";
+import { REPORT_FUEL_COST } from "@/constants/gamification";
 import AiService from "./aiService";
 
 import Logger from "../loaders/logger";
@@ -13,12 +8,7 @@ import UserRepository from "../repositories/UserRepository";
 import { UserNotFoundError, BadRequestError, NotFoundError } from "../errors";
 import { PlanetType } from "../interfaces/enums";
 import {
-  PlanetTravelStartApiRequest,
-  PlanetTravelStartApiResponse,
-  TravelStateInfoResponse,
   DashboardSummaryInfo,
-  FuelAddApiResponse,
-  PlanetStateItem,
   StarTravelStateResponse,
   StarTravelDepartRequest,
   StarTravelDepartResponse,
@@ -38,7 +28,6 @@ export default class TravelService {
 
   @Inject(() => UserRepository)
   private userRepository!: UserRepository;
-
 
   /**
    * 탐사 대시보드 통계 요약 조회 (칼로리 트렌드, 영양 밸런스 등)
@@ -221,11 +210,14 @@ export default class TravelService {
   /**
    * Star Travel 상태 조회 (전역 Fuel, 4대 행성 거리/상태, 출발 가능 목록)
    */
-  public async getStarTravelState(userId: number): Promise<StarTravelStateResponse> {
+  public async getStarTravelState(
+    userId: number,
+  ): Promise<StarTravelStateResponse> {
     const user = await this.travelRepository.findUserById(userId);
     if (!user) throw new UserNotFoundError(userId);
 
-    const { fuel, progresses } = await this.travelRepository.getTravelStateData(userId);
+    const { fuel, progresses } =
+      await this.travelRepository.getTravelStateData(userId);
 
     const planetNameMap: Record<string, string> = {
       meal: "식사별",
@@ -265,21 +257,31 @@ export default class TravelService {
     if (!user) throw new UserNotFoundError(userId);
 
     try {
-      const result = await this.travelRepository.departTravel(userId, data.planetId);
+      const result = await this.travelRepository.departTravel(
+        userId,
+        data.planetId,
+      );
       return {
         planetId: data.planetId,
         status: "TRAVELING",
         departedAt: result.departedAt.toISOString(),
       };
-    } catch (err: any) {
-      if (err.message === "INSUFFICIENT_FUEL") {
-        throw new BadRequestError("연료가 부족해요. 100이 필요합니다.", "INSUFFICIENT_FUEL");
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg === "INSUFFICIENT_FUEL") {
+        throw new BadRequestError(
+          "연료가 부족해요. 100이 필요합니다.",
+          "INSUFFICIENT_FUEL",
+        );
       }
-      if (err.message === "DISTANCE_NOT_ZERO") {
+      if (msg === "DISTANCE_NOT_ZERO") {
         throw new BadRequestError("아직 거리가 남았어요.", "DISTANCE_NOT_ZERO");
       }
-      if (err.message === "ALREADY_TRAVELING") {
-        throw new BadRequestError("이미 여행 중인 행성입니다.", "ALREADY_TRAVELING");
+      if (msg === "ALREADY_TRAVELING") {
+        throw new BadRequestError(
+          "이미 여행 중인 행성입니다.",
+          "ALREADY_TRAVELING",
+        );
       }
       throw err;
     }
@@ -297,9 +299,13 @@ export default class TravelService {
 
     let arriveResult;
     try {
-      arriveResult = await this.travelRepository.arriveTravel(userId, data.planetId);
-    } catch (err: any) {
-      if (err.message === "INVALID_TRAVEL_STATUS") {
+      arriveResult = await this.travelRepository.arriveTravel(
+        userId,
+        data.planetId,
+      );
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (msg === "INVALID_TRAVEL_STATUS") {
         throw new BadRequestError(
           "해당 행성은 현재 여행 중(TRAVELING) 상태가 아닙니다.",
           "INVALID_TRAVEL_STATUS",
@@ -338,7 +344,9 @@ export default class TravelService {
     planetId: string,
     tripNumber: number,
   ) {
-    Logger.info(`[TravelService] Generating Star Planet Report for user ${userId}, planet: ${planetId}`);
+    Logger.info(
+      `[TravelService] Generating Star Planet Report for user ${userId}, planet: ${planetId}`,
+    );
     const user = await this.travelRepository.findUserById(userId);
     if (!user) throw new UserNotFoundError(userId);
 
@@ -347,7 +355,8 @@ export default class TravelService {
     const periodTo = new Date();
 
     let headline = `${planetId} 탐사 여행, 잘 다녀왔어! 🌟`;
-    let summary = "이번 여행 동안 꾸준하게 기록을 이어갔어요. 타미와 함께 앞으로도 건강한 습관을 만들어가요!";
+    let summary =
+      "이번 여행 동안 꾸준하게 기록을 이어갔어요. 타미와 함께 앞으로도 건강한 습관을 만들어가요!";
     let recommendations = ["매일 규칙적인 기록 이어가기"];
     let stats: Record<string, unknown> = {};
     let activityBreakdown: Record<string, unknown> = {};
@@ -369,18 +378,25 @@ export default class TravelService {
       );
 
       if (aiRes.title) headline = aiRes.title;
-      if (aiRes.markdown || aiRes.findings) summary = aiRes.markdown || aiRes.findings || summary;
+      if (aiRes.markdown || aiRes.findings)
+        summary = aiRes.markdown || aiRes.findings || summary;
       if (aiRes.nextActionChecks) {
         recommendations = Array.isArray(aiRes.nextActionChecks)
           ? aiRes.nextActionChecks
           : [aiRes.nextActionChecks];
       }
     } catch (e) {
-      Logger.warn(`[TravelService] AI report generation failed, using fallback template: ${e}`);
+      Logger.warn(
+        `[TravelService] AI report generation failed, using fallback template: ${e}`,
+      );
     }
 
     if (planetId === "water") {
-      stats = { totalIntakeCount: 20, totalIntakeMl: 5000, avgDailyIntakeMl: 1000 };
+      stats = {
+        totalIntakeCount: 20,
+        totalIntakeMl: 5000,
+        avgDailyIntakeMl: 1000,
+      };
       activityBreakdown = { waterLog: 20 };
     } else if (planetId === "meal") {
       stats = { totalMeals: 10, avgCaloriesKcal: 600 };
@@ -410,7 +426,9 @@ export default class TravelService {
       recommendations: JSON.stringify(recommendations) as unknown as object,
       wellness_score: null,
       stats: JSON.stringify(stats) as unknown as object,
-      activity_breakdown: JSON.stringify(activityBreakdown) as unknown as object,
+      activity_breakdown: JSON.stringify(
+        activityBreakdown,
+      ) as unknown as object,
       tammy_motion: "BOUNCE",
       data_density: "normal",
       is_fallback: false,
@@ -438,13 +456,14 @@ export default class TravelService {
         reportId: report.report_uuid,
         travelResultId: report.report_uuid,
         userId: report.user_id,
-        planetType: (report.planet_id.toUpperCase() as PlanetType) || PlanetType.MEAL,
+        planetType:
+          (report.planet_id.toUpperCase() as PlanetType) || PlanetType.MEAL,
         title: report.headline,
         summaryContent: report.summary,
         recommendations: report.recommendations
-          ? (typeof report.recommendations === "string"
-              ? JSON.parse(report.recommendations)
-              : report.recommendations)
+          ? typeof report.recommendations === "string"
+            ? JSON.parse(report.recommendations)
+            : report.recommendations
           : ["매일 규칙적인 기록 이어가기"],
         createdAt: report.created_at.toISOString(),
       };
@@ -457,7 +476,8 @@ export default class TravelService {
       userId,
       planetType: PlanetType.MEAL,
       title: "별여행 탐사 결과 진단서 🌟",
-      summaryContent: "이번 여행 동안 꾸준하게 기록을 이어갔어요. 타미와 함께 앞으로도 건강한 습관을 만들어가요!",
+      summaryContent:
+        "이번 여행 동안 꾸준하게 기록을 이어갔어요. 타미와 함께 앞으로도 건강한 습관을 만들어가요!",
       recommendations: ["매일 규칙적인 기록 이어가기"],
       createdAt: new Date().toISOString(),
     };

@@ -137,7 +137,6 @@ describe("TravelService", () => {
     });
   });
 
-
   describe("getDashboard", () => {
     it("should throw UserNotFoundError if user not found", async () => {
       mockTravelRepository.findUserById.mockResolvedValue(null);

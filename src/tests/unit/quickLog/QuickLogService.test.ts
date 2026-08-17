@@ -65,9 +65,18 @@ describe("QuickLogService", () => {
     it("should create a quick log and update Two-Gauge correctly", async () => {
       const userId = 1;
       const data = { category: "WATER", amount: 250 } as never;
-      const mappedInput = { user_id: userId, category: "WATER", earned_fuel: 10 };
+      const mappedInput = {
+        user_id: userId,
+        category: "WATER",
+        earned_fuel: 10,
+      };
       const createdLog = { id: 100, user_id: userId, category: "WATER" };
-      const apiResponse = { logId: "100", category: "WATER", totalFuel: 10, gainedFuel: 10 };
+      const apiResponse = {
+        logId: "100",
+        category: "WATER",
+        totalFuel: 10,
+        gainedFuel: 10,
+      };
 
       (QuickLogMapper.toCreateInput as jest.Mock).mockReturnValue(mappedInput);
       mockQuickLogRepository.create.mockResolvedValue(createdLog as never);

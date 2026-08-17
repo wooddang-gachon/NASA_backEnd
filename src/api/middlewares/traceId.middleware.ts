@@ -2,13 +2,17 @@ import { Request, Response, NextFunction } from "express";
 import { randomUUID } from "crypto";
 import { asyncLocalStorage } from "../../loaders/logger";
 
-export function traceIdMiddleware(req: Request, res: Response, next: NextFunction) {
+export function traceIdMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
   // 클라이언트나 API 게이트웨이에서 넘겨준 ID가 있다면 사용, 없으면 새로 생성
   const traceId =
     (req.headers["x-request-id"] as string) ||
     (req.headers["x-correlation-id"] as string) ||
     randomUUID();
-  
+
   res.setHeader("X-Request-Id", traceId);
 
   // 현재 요청 생명주기 동안 유지될 Map 컨텍스트 생성

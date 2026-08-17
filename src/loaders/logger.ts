@@ -14,19 +14,19 @@ const injectTraceId = winston.format((info) => {
 
 // 민감 정보 마스킹 포맷
 const sanitizeData = winston.format((info) => {
-  const sensitiveKeys = ['password', 'token', 'buffer', 'secret'];
-  
-  const mask = (obj: any) => {
-    if (!obj || typeof obj !== 'object') return;
+  const sensitiveKeys = ["password", "token", "buffer", "secret"];
+
+  const mask = (obj: Record<string, unknown> | null | undefined) => {
+    if (!obj || typeof obj !== "object") return;
     for (const key in obj) {
       if (sensitiveKeys.includes(key.toLowerCase())) {
-        obj[key] = '***MASKED***';
-      } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-        mask(obj[key]);
+        obj[key] = "***MASKED***";
+      } else if (typeof obj[key] === "object" && obj[key] !== null) {
+        mask(obj[key] as Record<string, unknown>);
       }
     }
   };
-  
+
   mask(info);
   return info;
 });
@@ -59,7 +59,9 @@ if (process.env.NODE_ENV === "production") {
           const prefixStr = prefix ? `[${prefix}]` : "";
           const corrStr = traceId ? ` [${traceId}]` : "";
           const metaString =
-            Object.keys(meta).length > 0 ? `\n${JSON.stringify(meta, null, 2)}` : "";
+            Object.keys(meta).length > 0
+              ? `\n${JSON.stringify(meta, null, 2)}`
+              : "";
           return `[${timestamp}] [${level}]${corrStr} ${prefixStr}: ${message}${metaString}`;
         }),
       ),

@@ -67,10 +67,7 @@ describe("TravelController", () => {
       expect(mockTravelService.departStarTravel).toHaveBeenCalledWith(1, body);
       expect(
         (controller as unknown as { success: jest.Mock }).success,
-      ).toHaveBeenCalledWith(
-        mockResult,
-        "별여행 탐사가 시작되었습니다.",
-      );
+      ).toHaveBeenCalledWith(mockResult, "별여행 탐사가 시작되었습니다.");
     });
   });
 
@@ -93,10 +90,7 @@ describe("TravelController", () => {
       expect(mockTravelService.arriveStarTravel).toHaveBeenCalledWith(1, body);
       expect(
         (controller as unknown as { success: jest.Mock }).success,
-      ).toHaveBeenCalledWith(
-        mockResult,
-        "별여행 도착 처리가 완료되었습니다.",
-      );
+      ).toHaveBeenCalledWith(mockResult, "별여행 도착 처리가 완료되었습니다.");
     });
   });
 

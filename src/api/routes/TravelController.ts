@@ -7,9 +7,6 @@ import type { AuthenticatedRequest } from "../../interfaces/express";
 import { ApiResponse } from "../../dto";
 import { BaseController } from "./BaseController";
 import {
-  PlanetTravelStartApiRequest,
-  PlanetTravelStartApiResponse,
-  TravelStateInfoResponse,
   DashboardSummaryInfo,
   TravelResultDetailInfo,
   StarTravelStateResponse,
