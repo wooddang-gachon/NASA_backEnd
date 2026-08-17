@@ -53,6 +53,10 @@ export default {
       ? process.env.CORS_ORIGINS.split(",")
           .map((origin) => origin.trim())
           .filter(Boolean)
-      : ["http://localhost:3000", "http://localhost:5173"],
+      : [
+          "http://localhost:3000",
+          "http://localhost:5173",
+          "https://nasa-wellness.com",
+        ],
   },
 };
