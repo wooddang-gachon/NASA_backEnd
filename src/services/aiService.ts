@@ -24,6 +24,22 @@ export default class AiService {
     return this.aiAdapter.processChat(userId, userMessage, nickname, history);
   }
 
+  public async streamChat(
+    userId: number,
+    userMessage: string,
+    nickname?: string,
+    history?: ChatTurn[],
+    onToken?: (token: string) => void,
+  ): Promise<AiChatInternalResponse> {
+    return this.aiAdapter.streamChat(
+      userId,
+      userMessage,
+      nickname,
+      history,
+      onToken,
+    );
+  }
+
   public async analyzeFoodVision(
     imageUrl?: string,
     mealType?: string,

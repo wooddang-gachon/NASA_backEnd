@@ -96,10 +96,19 @@ describe("ChatService", () => {
         updatedUser: { current_fuel: 10 } as never,
       });
 
-      mockAiService.processChat.mockResolvedValue({
-        replyText: "Hello world",
-        motionTag: "smile",
-      } as never);
+      mockAiService.streamChat.mockImplementation(
+        async (_userId, _msg, _nick, _hist, onToken) => {
+          if (onToken) {
+            onToken("Hello");
+            onToken(" ");
+            onToken("world");
+          }
+          return {
+            replyText: "Hello world",
+            motionTag: "smile",
+          } as never;
+        },
+      );
 
       const tokens: string[] = [];
       const result = await chatService.streamChat(1, "Hi", (token) => {
@@ -107,7 +116,7 @@ describe("ChatService", () => {
       });
 
       expect(result).toBeDefined();
-      expect(tokens.length).toBeGreaterThan(0);
+      expect(tokens.length).toBe(3);
       expect(tokens.join("")).toBe("Hello world");
     });
   });

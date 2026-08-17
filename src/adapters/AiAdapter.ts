@@ -158,6 +158,128 @@ export class AiAdapter {
     );
   }
 
+  /**
+   * AI 타미 실시간 SSE 스트리밍 통신 처리
+   * AI 서버가 스트리밍을 지원하면 실시간 청크를 즉시 onToken으로 방출하고,
+   * 지원하지 않거나 실패 시 processChat으로 안전하게 폴백합니다.
+   */
+  public async streamChat(
+    userId: number,
+    userMessage: string,
+    nickname?: string,
+    history?: ChatTurn[],
+    onToken?: (token: string) => void,
+  ): Promise<AiChatInternalResponse> {
+    const payload: AiChatInternalPayload = {
+      userId,
+      userMessage,
+      nickname,
+      history,
+    };
+    const url = `${config.ai.serverUrl}/v1/chat/stream`;
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          ...this.getHeaders(),
+          Accept: "text/event-stream",
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal as unknown as RequestInit["signal"],
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok && response.body) {
+        let accumulatedReply = "";
+        const finalMetadata: Partial<AiChatInternalResponse> = {};
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let isDone = false;
+
+        while (!isDone) {
+          const { done, value } = await reader.read();
+          if (done) {
+            isDone = true;
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("data:")) {
+              const dataStr = trimmed.replace(/^data:\s*/, "");
+              if (dataStr === "[DONE]") continue;
+
+              try {
+                const parsed = JSON.parse(dataStr);
+                if (parsed.token) {
+                  accumulatedReply += parsed.token;
+                  if (onToken) onToken(parsed.token);
+                }
+                if (parsed.replyText && !parsed.token) {
+                  accumulatedReply = parsed.replyText;
+                }
+                if (parsed.motionTag)
+                  finalMetadata.motionTag = parsed.motionTag;
+                if (parsed.emotion) finalMetadata.emotion = parsed.emotion;
+                if (parsed.intentLabel)
+                  finalMetadata.intentLabel = parsed.intentLabel;
+                if (parsed.extractedMemory)
+                  finalMetadata.extractedMemory = parsed.extractedMemory;
+              } catch {
+                // 일반 텍스트 토큰인 경우
+                accumulatedReply += dataStr;
+                if (onToken) onToken(dataStr);
+              }
+            }
+          }
+        }
+
+        if (accumulatedReply) {
+          return {
+            replyText: accumulatedReply,
+            motionTag: finalMetadata.motionTag || "TALK_HAPPY",
+            emotion: finalMetadata.emotion || {
+              state: "NEUTRAL",
+              motionType: "TALK_HAPPY",
+            },
+            intentLabel: finalMetadata.intentLabel || "CHAT",
+            extractedMemory: finalMetadata.extractedMemory,
+          };
+        }
+      }
+    } catch (err) {
+      Logger.warn(
+        `[AiAdapter] Direct streaming failed, falling back to processChat: ${err}`,
+      );
+    }
+
+    // 스트리밍 실패 또는 미지원 시 폴백 (전체 수신 후 토큰 단위 방출)
+    const result = await this.processChat(
+      userId,
+      userMessage,
+      nickname,
+      history,
+    );
+    if (onToken && result.replyText) {
+      const words = result.replyText.split(/(\s+)/);
+      for (const word of words) {
+        onToken(word);
+      }
+    }
+    return result;
+  }
+
   public async analyzeFoodVision(
     imageUrl?: string,
     mealType?: string,

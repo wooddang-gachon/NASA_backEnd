@@ -32,6 +32,28 @@ export default class MockAiService extends AiService {
     };
   }
 
+  public async streamChat(
+    userId: number,
+    userMessage: string,
+    userNickname?: string,
+    _history?: ChatTurn[],
+    onToken?: (token: string) => void,
+  ): Promise<AiChatInternalResponse> {
+    const result = await this.processChat(
+      userId,
+      userMessage,
+      userNickname,
+      _history,
+    );
+    if (onToken && result.replyText) {
+      const words = result.replyText.split(/(\s+)/);
+      for (const word of words) {
+        onToken(word);
+      }
+    }
+    return result;
+  }
+
   public async analyzeFoodVision(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _imageUrl?: string,
