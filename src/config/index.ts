@@ -48,4 +48,11 @@ export default {
     user: process.env.SWAGGER_USER || "admin",
     password: process.env.SWAGGER_PASSWORD || "",
   },
+  cors: {
+    origins: process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(",")
+          .map((origin) => origin.trim())
+          .filter(Boolean)
+      : ["http://localhost:3000", "http://localhost:5173"],
+  },
 };
