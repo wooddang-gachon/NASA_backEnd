@@ -93,7 +93,7 @@ describe("FoodService", () => {
         mockFoodRepository.createMealLogWithTransaction,
       ).toHaveBeenCalled();
       expect(String(result.mealId)).toBe("100");
-      expect(result.earnedFuel).toBe(10);
+      expect(result.earnedFuel).toBe(50);
       expect(result.totalCalories).toBe(200);
     });
   });
@@ -244,7 +244,7 @@ describe("FoodService", () => {
       } as any;
 
       const res = await foodService.logMeal(1, payload);
-      expect(res.earnedFuel).toBe(10);
+      expect(res.earnedFuel).toBe(50);
       expect(
         mockFoodRepository.createMealLogWithTransaction,
       ).toHaveBeenCalled();

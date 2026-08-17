@@ -2,7 +2,6 @@ import "reflect-metadata";
 import { TravelController } from "../../../api/routes/TravelController";
 import TravelService from "../../../services/travelService";
 import { Container } from "typedi";
-import { PlanetType } from "../../../interfaces/enums";
 
 jest.mock("../../../services/travelService");
 
@@ -29,35 +28,19 @@ describe("TravelController", () => {
     Container.reset();
   });
 
-  describe("startPlanetTravel", () => {
-    it("should start planet travel successfully", async () => {
-      const mockResult = { fuelSpent: 10 } as never;
-      mockTravelService.startPlanetTravel.mockResolvedValue(mockResult);
-
-      const request = {} as never;
-      const body = { planetType: PlanetType.MEAL, fuelSpent: 10 } as never;
-
-      await controller.startPlanetTravel(request, body);
-
-      expect(mockTravelService.startPlanetTravel).toHaveBeenCalledWith(1, body);
-      expect(
-        (controller as unknown as { success: jest.Mock }).success,
-      ).toHaveBeenCalledWith(
-        mockResult,
-        "별여행 탐사가 성공적으로 시작되었습니다.",
-      );
-    });
-  });
-
   describe("getTravelState", () => {
-    it("should return travel state", async () => {
-      const mockResult = { progressPercent: 50 } as never;
-      mockTravelService.getTravelState.mockResolvedValue(mockResult);
+    it("should return Star Travel state", async () => {
+      const mockResult = {
+        fuel: 100,
+        planets: [],
+        readyToDepart: ["water"],
+      } as never;
+      mockTravelService.getStarTravelState.mockResolvedValue(mockResult);
 
       const request = {} as never;
       await controller.getTravelState(request);
 
-      expect(mockTravelService.getTravelState).toHaveBeenCalledWith(1);
+      expect(mockTravelService.getStarTravelState).toHaveBeenCalledWith(1);
       expect(
         (controller as unknown as { success: jest.Mock }).success,
       ).toHaveBeenCalledWith(
@@ -67,31 +50,53 @@ describe("TravelController", () => {
     });
   });
 
-  describe("getTravelResult", () => {
-    it("should return travel result detail", async () => {
+  describe("departTravel", () => {
+    it("should depart travel successfully", async () => {
       const mockResult = {
-        id: "1",
-        userId: 1,
-        planetType: "MEAL",
-        title: "Test",
-        summaryContent: "Summary",
-        recommendations: "Recs",
-        createdAt: new Date().toISOString(),
+        planetId: "water",
+        status: "TRAVELING" as const,
+        departedAt: new Date().toISOString(),
       };
-      mockTravelService.getTravelResultById.mockResolvedValue(
-        mockResult as never,
-      );
+      mockTravelService.departStarTravel.mockResolvedValue(mockResult);
 
       const request = {} as never;
-      await controller.getTravelResult("1", request);
+      const body = { planetId: "water" };
 
-      expect(mockTravelService.getTravelResultById).toHaveBeenCalledWith(
-        "1",
-        1,
-      );
+      await controller.departTravel(request, body);
+
+      expect(mockTravelService.departStarTravel).toHaveBeenCalledWith(1, body);
       expect(
         (controller as unknown as { success: jest.Mock }).success,
-      ).toHaveBeenCalled();
+      ).toHaveBeenCalledWith(
+        mockResult,
+        "별여행 탐사가 시작되었습니다.",
+      );
+    });
+  });
+
+  describe("arriveTravel", () => {
+    it("should arrive travel successfully", async () => {
+      const mockResult = {
+        planetId: "water",
+        status: "ARRIVED" as const,
+        resetFuel: 10,
+        resetDistance: 100,
+        reportGeneration: { jobId: "job_1", status: "PENDING" as const },
+      };
+      mockTravelService.arriveStarTravel.mockResolvedValue(mockResult);
+
+      const request = {} as never;
+      const body = { planetId: "water" };
+
+      await controller.arriveTravel(request, body);
+
+      expect(mockTravelService.arriveStarTravel).toHaveBeenCalledWith(1, body);
+      expect(
+        (controller as unknown as { success: jest.Mock }).success,
+      ).toHaveBeenCalledWith(
+        mockResult,
+        "별여행 도착 처리가 완료되었습니다.",
+      );
     });
   });
 

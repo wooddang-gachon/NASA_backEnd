@@ -35,12 +35,24 @@ export class QuickLogMapper extends BaseMapper {
   public static toApiResponse(
     log: DbQuickLogItem,
     totalFuel: number,
+    gauge?: {
+      gainedFuel: number;
+      currentFuel: number;
+      distanceReduced: number;
+      currentDistance: number;
+      planetId: string;
+    },
   ): QuickLogApiResponse {
     return {
       logId: log.id.toString(),
       category: log.category,
-      earnedFuel: log.earned_fuel,
-      totalFuel,
+      earnedFuel: gauge ? gauge.gainedFuel : log.earned_fuel,
+      totalFuel: gauge ? gauge.currentFuel : totalFuel,
+      gainedFuel: gauge ? gauge.gainedFuel : log.earned_fuel,
+      currentFuel: gauge ? gauge.currentFuel : totalFuel,
+      distanceReduced: gauge?.distanceReduced ?? 0,
+      currentDistance: gauge?.currentDistance ?? 100,
+      planetId: gauge?.planetId ?? "water",
       createdAt: log.created_at
         ? new Date(log.created_at).toISOString()
         : new Date().toISOString(),

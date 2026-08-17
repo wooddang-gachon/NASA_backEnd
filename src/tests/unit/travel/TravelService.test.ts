@@ -35,120 +35,108 @@ describe("TravelService", () => {
     Container.reset();
   });
 
-  describe("startPlanetTravel", () => {
+  describe("getStarTravelState", () => {
     it("should throw UserNotFoundError if user not found", async () => {
       mockTravelRepository.findUserById.mockResolvedValue(null);
 
-      await expect(
-        travelService.startPlanetTravel(1, {
-          planetType: PlanetType.MEAL,
-          fuelSpent: 10,
-        } as never),
-      ).rejects.toThrow(UserNotFoundError);
-    });
-
-    it("should throw BadRequestError if already traveling", async () => {
-      mockTravelRepository.findUserById.mockResolvedValue({
-        current_fuel: 100,
-      } as never);
-      mockTravelRepository.findActivePlanetTravelByUser.mockResolvedValue({
-        id: BigInt(1),
-      } as never);
-
-      await expect(
-        travelService.startPlanetTravel(1, {
-          planetType: PlanetType.MEAL,
-          fuelSpent: 10,
-        } as never),
-      ).rejects.toThrow(BadRequestError);
-    });
-
-    it("should throw BadRequestError if fuel is insufficient", async () => {
-      mockTravelRepository.findUserById.mockResolvedValue({
-        current_fuel: 5,
-      } as never);
-      mockTravelRepository.findActivePlanetTravelByUser.mockResolvedValue(null);
-
-      await expect(
-        travelService.startPlanetTravel(1, {
-          planetType: PlanetType.MEAL,
-          fuelSpent: 10,
-        } as never),
-      ).rejects.toThrow(BadRequestError);
-    });
-
-    it("should start travel and return result", async () => {
-      mockTravelRepository.findUserById.mockResolvedValue({
-        current_fuel: 100,
-        nickname: "test",
-      } as never);
-      mockTravelRepository.findActivePlanetTravelByUser.mockResolvedValue(null);
-      mockTravelRepository.createPlanetTravelAndFuelTransaction.mockResolvedValue(
-        {
-          travel: {
-            id: BigInt(1),
-            user_id: 1,
-            planet_type: PlanetType.MEAL,
-            started_at: new Date(),
-          } as never,
-          updatedUser: { current_fuel: 90 } as never,
-        },
-      );
-
-      mockAiService.generatePlanetReport.mockResolvedValue({
-        title: "Test",
-        markdown: "Summary",
-        nextActionChecks: ["Action 1"],
-      } as never);
-
-      const result = await travelService.startPlanetTravel(1, {
-        planetType: PlanetType.MEAL,
-        fuelSpent: 10,
-      } as never);
-
-      expect(result).toBeDefined();
-      expect(
-        mockTravelRepository.createPlanetTravelAndFuelTransaction,
-      ).toHaveBeenCalledWith(1, expect.anything(), 10);
-      expect(mockAiService.generatePlanetReport).toHaveBeenCalled();
-    });
-  });
-
-  describe("getTravelState", () => {
-    it("should throw UserNotFoundError if user not found", async () => {
-      mockTravelRepository.findUserWithTammyStatus.mockResolvedValue(null);
-
-      await expect(travelService.getTravelState(1)).rejects.toThrow(
+      await expect(travelService.getStarTravelState(1)).rejects.toThrow(
         UserNotFoundError,
       );
     });
 
-    it("should return travel state", async () => {
-      mockTravelRepository.findUserWithTammyStatus.mockResolvedValue(
-        {} as never,
-      );
-      mockTravelRepository.findActivePlanetTravelByUser.mockResolvedValue(null);
-      mockTravelRepository.findCompletedPlanetTravelsByUser.mockResolvedValue(
-        [],
-      );
-      mockTravelRepository.getPlanetActionCounts.mockResolvedValue({} as never);
+    it("should return Star Travel state and readyToDepart list", async () => {
+      mockTravelRepository.findUserById.mockResolvedValue({ id: 1 } as never);
+      mockTravelRepository.getTravelStateData.mockResolvedValue({
+        fuel: 100,
+        progresses: [
+          {
+            user_id: 1,
+            planet_id: "water",
+            distance: 0,
+            status: "READY",
+            trip_count: 1,
+            last_arrived_at: new Date(),
+            updated_at: new Date(),
+          },
+          {
+            user_id: 1,
+            planet_id: "meal",
+            distance: 50,
+            status: "READY",
+            trip_count: 0,
+            last_arrived_at: null,
+            updated_at: new Date(),
+          },
+        ] as never,
+      });
 
-      const result = await travelService.getTravelState(1);
-      expect(result).toBeDefined();
+      const result = await travelService.getStarTravelState(1);
+      expect(result.fuel).toBe(100);
+      expect(result.planets).toHaveLength(2);
+      expect(result.readyToDepart).toEqual(["water"]);
     });
   });
 
-  describe("addFuel", () => {
-    it("should add fuel successfully", async () => {
-      mockTravelRepository.findUserById.mockResolvedValue({} as never);
-      mockUserRepository.updateUserFuel.mockResolvedValue({
-        current_fuel: 10,
-      } as never);
+  describe("departStarTravel", () => {
+    it("should depart successfully", async () => {
+      mockTravelRepository.findUserById.mockResolvedValue({ id: 1 } as never);
+      mockTravelRepository.departTravel.mockResolvedValue({
+        progress: {
+          user_id: 1,
+          planet_id: "water",
+          distance: 0,
+          status: "TRAVELING",
+        } as never,
+        departedAt: new Date(),
+      });
 
-      const result = await travelService.addFuel(1);
-      expect(result.currentFuel).toBe(10);
+      const result = await travelService.departStarTravel(1, {
+        planetId: "water",
+      });
+
+      expect(result.planetId).toBe("water");
+      expect(result.status).toBe("TRAVELING");
+      expect(result.departedAt).toBeDefined();
+    });
+
+    it("should throw BadRequestError on INSUFFICIENT_FUEL", async () => {
+      mockTravelRepository.findUserById.mockResolvedValue({ id: 1 } as never);
+      mockTravelRepository.departTravel.mockRejectedValue(
+        new Error("INSUFFICIENT_FUEL"),
+      );
+
+      await expect(
+        travelService.departStarTravel(1, { planetId: "water" }),
+      ).rejects.toThrow(BadRequestError);
     });
   });
+
+  describe("arriveStarTravel", () => {
+    it("should arrive and enqueue report generation job", async () => {
+      mockTravelRepository.findUserById.mockResolvedValue({ id: 1 } as never);
+      mockTravelRepository.arriveTravel.mockResolvedValue({
+        progress: {
+          user_id: 1,
+          planet_id: "water",
+          distance: 100,
+          status: "READY",
+          trip_count: 1,
+        } as never,
+        currentFuel: 10,
+        arrivedAt: new Date(),
+      });
+
+      const result = await travelService.arriveStarTravel(1, {
+        planetId: "water",
+      });
+
+      expect(result.planetId).toBe("water");
+      expect(result.status).toBe("ARRIVED");
+      expect(result.resetDistance).toBe(100);
+      expect(result.reportGeneration.jobId).toBeDefined();
+    });
+  });
+
 
   describe("getDashboard", () => {
     it("should throw UserNotFoundError if user not found", async () => {

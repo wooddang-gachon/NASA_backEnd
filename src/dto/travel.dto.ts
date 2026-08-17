@@ -77,3 +77,57 @@ export interface DashboardSummaryInfo {
   nutritionBalance: NutritionBalanceInfo;
   weeklyWorkoutCompletedDays: number;
 }
+
+// ─────────────────────────────────────────────
+// Star Travel Two-Gauge DTOs
+// ─────────────────────────────────────────────
+
+export interface StarTravelPlanetItem {
+  planetId: string;
+  planetName: string;
+  distance: number;
+  status: "READY" | "TRAVELING" | "ARRIVED";
+  tripCount?: number;
+  lastArrivedAt?: string | null;
+}
+
+export interface StarTravelStateResponse {
+  fuel: number;
+  planets: StarTravelPlanetItem[];
+  readyToDepart: string[];
+}
+
+export interface StarTravelDepartRequest {
+  planetId: "meal" | "water" | "emotion" | "habit" | string;
+  clientRequestId?: string;
+}
+
+export interface StarTravelDepartResponse {
+  planetId: string;
+  status: "TRAVELING";
+  departedAt: string;
+}
+
+export interface StarTravelArriveRequest {
+  planetId: "meal" | "water" | "emotion" | "habit" | string;
+  clientRequestId?: string;
+}
+
+export interface StarTravelArriveResponse {
+  planetId: string;
+  status: "ARRIVED";
+  resetFuel: number;
+  resetDistance: number;
+  reportGeneration: {
+    jobId: string;
+    status: "PENDING" | "PROCESSING" | "COMPLETED";
+  };
+}
+
+export interface CommonGaugeResult {
+  gainedFuel: number;
+  currentFuel: number;
+  distanceReduced: number;
+  currentDistance: number;
+  planetId: string;
+}

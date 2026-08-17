@@ -10,7 +10,7 @@ import AiService from "./aiService";
 import Logger from "../loaders/logger";
 import TravelRepository from "../repositories/TravelRepository";
 import UserRepository from "../repositories/UserRepository";
-import { UserNotFoundError, BadRequestError } from "../errors";
+import { UserNotFoundError, BadRequestError, NotFoundError } from "../errors";
 import { PlanetType } from "../interfaces/enums";
 import {
   PlanetTravelStartApiRequest,
@@ -19,6 +19,11 @@ import {
   DashboardSummaryInfo,
   FuelAddApiResponse,
   PlanetStateItem,
+  StarTravelStateResponse,
+  StarTravelDepartRequest,
+  StarTravelDepartResponse,
+  StarTravelArriveRequest,
+  StarTravelArriveResponse,
 } from "../dto";
 import { TravelMapper } from "../mappers";
 import { reportQueue } from "../utils/asyncQueue";
@@ -34,223 +39,6 @@ export default class TravelService {
   @Inject(() => UserRepository)
   private userRepository!: UserRepository;
 
-  /**
-   * 별여행 출발 및 실시간 AI 탐사 결과 생성
-   * @param userId 사용자 ID
-   * @param data 탐사 시작 요청 데이터
-   * @returns 탐사 시작 결과
-   */
-  public async startPlanetTravel(
-    userId: number,
-    data: PlanetTravelStartApiRequest,
-  ): Promise<PlanetTravelStartApiResponse> {
-    Logger.info(
-      `[TravelService] Starting planet travel for userId ${userId}, planetType: ${data.planetType}`,
-    );
-
-    const user = await this.travelRepository.findUserById(userId);
-    if (!user) throw new UserNotFoundError(userId);
-
-    const activeTravel =
-      await this.travelRepository.findActivePlanetTravelByUser(userId);
-    if (activeTravel) {
-      throw new BadRequestError(
-        "이미 다른 행성의 탐사가 진행 중입니다. 한 번에 하나의 별만 탐사할 수 있습니다.",
-        "ALREADY_IN_PROGRESS_TRAVEL",
-      );
-    }
-
-    const currentFuel = user.current_fuel ?? 0;
-    if (currentFuel < data.fuelSpent) {
-      throw new BadRequestError(
-        `보유 연료가 부족합니다. (현재: ${currentFuel}, 필요: ${data.fuelSpent})`,
-        "INSUFFICIENT_FUEL",
-      );
-    }
-
-    // AI 탐사 결과 온디맨드 생성 시도 (연료 차감 전 실행하여 실패 시 안전하게 처리)
-    let reportTitle = "아쿠아 웰니스 탐사 완료 리포트 🌟";
-    let reportSummary =
-      "별여행 탐사가 안전하게 완료되었습니다! 오늘 하루도 건강한 수분과 영양을 챙겨보세요.";
-    let reportRecommendations = "매일 물 2,000ml 마시기\n저녁 8시 산책하기";
-
-    const aiReportResult = await this.aiService.generatePlanetReport(
-      data.planetType,
-      {
-        userId,
-        nickname: user.nickname,
-        period: {
-          start:
-            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-              .toISOString()
-              .split("T")[0] || "",
-          end: new Date().toISOString().split("T")[0] || "",
-        },
-        dailyRecords: [],
-        waterLogs: [],
-        exerciseLogs: [],
-      },
-    );
-
-    if (aiReportResult.title) reportTitle = aiReportResult.title;
-    if (aiReportResult.markdown || aiReportResult.findings) {
-      reportSummary =
-        aiReportResult.markdown || aiReportResult.findings || reportSummary;
-    }
-    if (aiReportResult.nextActionChecks) {
-      reportRecommendations = Array.isArray(aiReportResult.nextActionChecks)
-        ? aiReportResult.nextActionChecks.join("\n")
-        : aiReportResult.nextActionChecks;
-    }
-
-    // planet_travels 레코드 생성 및 연료 차감을 단일 트랜잭션으로 통합 처리
-    const { travel, updatedUser } =
-      await this.travelRepository.createPlanetTravelAndFuelTransaction(
-        userId,
-        {
-          ...TravelMapper.toPlanetTravelCreateInput(userId, data),
-          status: "COMPLETED",
-          title: reportTitle,
-          summary_content: reportSummary,
-          recommendations: reportRecommendations,
-          completed_at: new Date(),
-        },
-        data.fuelSpent,
-      );
-
-    const travelResultData = TravelMapper.toTravelResultResponse(travel);
-
-    return TravelMapper.toStartApiResponse(
-      travel,
-      travel.id.toString(),
-      updatedUser.current_fuel ?? 0,
-      travelResultData,
-    );
-  }
-
-  /**
-   * 우주여행 현황 조회
-   * @param userId 사용자 ID
-   * @returns 우주여행 현황
-   */
-  public async getTravelState(
-    userId: number,
-  ): Promise<TravelStateInfoResponse> {
-    const user = await this.travelRepository.findUserWithTammyStatus(userId);
-    if (!user) throw new UserNotFoundError(userId);
-
-    const [activeTravel, completedTravels, actionDistances] = await Promise.all(
-      [
-        this.travelRepository.findActivePlanetTravelByUser(userId),
-        this.travelRepository.findCompletedPlanetTravelsByUser(userId),
-        this.travelRepository.getPlanetActionCounts(userId),
-      ],
-    );
-
-    const completedTypeSet = new Set(
-      completedTravels.map((t) => t.planet_type),
-    );
-    const completedMap = new Map<string, string>();
-    completedTravels.forEach((t) => {
-      if (t.completed_at) {
-        completedMap.set(t.planet_type, t.completed_at.toISOString());
-      }
-    });
-
-    // 1. 행성 리스트 데이터 조립 (비즈니스 로직)
-    const planetList: PlanetStateItem[] = PLANET_CONFIGS.map((config) => {
-      const isCompleted = completedTypeSet.has(config.planetType);
-      const rawDistance = actionDistances[config.planetType] ?? 0;
-      const currentDistance = isCompleted
-        ? config.targetDistance
-        : Math.min(rawDistance, config.targetDistance);
-
-      return {
-        planetType: config.planetType,
-        name: config.name,
-        targetDistance: config.targetDistance,
-        currentDistance,
-        isCompleted,
-        completedAt: isCompleted
-          ? completedMap.get(config.planetType) || null
-          : null,
-      };
-    });
-
-    // 2. 전체 탐사 진행률 계산 (비즈니스 로직)
-    const totalTarget = TOTAL_TARGET_DISTANCE;
-    const totalAchieved = planetList.reduce(
-      (acc, p) => acc + p.currentDistance,
-      0,
-    );
-    const progressPercent = Math.min(
-      Math.floor((totalAchieved / totalTarget) * 100),
-      100,
-    );
-
-    return TravelMapper.toTravelStateResponse(
-      user,
-      planetList,
-      progressPercent,
-      activeTravel,
-      completedTravels,
-    );
-  }
-
-  /**
-   * 연료 적립 처리
-   * @param userId 사용자 ID
-   * @param _actionType 액션 타입 (옵션)
-   * @returns 연료 적립 결과
-   */
-  public async addFuel(
-    userId: number,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _actionType?: string,
-  ): Promise<FuelAddApiResponse> {
-    const user = await this.travelRepository.findUserById(userId);
-    if (!user) throw new UserNotFoundError(userId);
-
-    const gainedFuel = FUEL_REWARDS.DEFAULT_ACTION;
-    const updatedUser = await this.userRepository.updateUserFuel(
-      userId,
-      gainedFuel,
-    );
-
-    return {
-      gainedFuel,
-      currentFuel: updatedUser.current_fuel ?? 0,
-      isWarped: false,
-    };
-  }
-
-  /**
-   * ID 기반 탐사 결과(TravelResult/Report) 상세 조회
-   * @param travelResultId 탐사 결과 ID
-   * @param userId 사용자 ID
-   * @returns 탐사 결과 상세 정보
-   */
-  public async getTravelResultById(travelResultId: string, userId: number) {
-    const travel = await this.travelRepository.findPlanetTravelByIdAndUser(
-      BigInt(travelResultId),
-      userId,
-    );
-
-    if (travel) {
-      return TravelMapper.toTravelResultResponse(travel);
-    }
-
-    return {
-      id: travelResultId,
-      userId,
-      planetType: PlanetType.MEAL,
-      title: "우당탕탕님의 별여행 탐사 결과 진단서 🌟",
-      summaryContent:
-        "이번 별여행 탐사 결과 수분 섭취량이 우수하며 수면 품질이 개선되었습니다.",
-      recommendations: "매일 물 2,000ml 마시기, 저녁 8시 가벼운 산책",
-      createdAt: new Date().toISOString(),
-    };
-  }
 
   /**
    * 탐사 대시보드 통계 요약 조회 (칼로리 트렌드, 영양 밸런스 등)
@@ -423,6 +211,272 @@ export default class TravelService {
       reportId: reportResult?.id ? String(reportResult.id) : undefined,
       progressPercent: job.progressPercent,
       error: job.error,
+    };
+  }
+
+  // ─────────────────────────────────────────────
+  // Star Travel Two-Gauge Service Methods
+  // ─────────────────────────────────────────────
+
+  /**
+   * Star Travel 상태 조회 (전역 Fuel, 4대 행성 거리/상태, 출발 가능 목록)
+   */
+  public async getStarTravelState(userId: number): Promise<StarTravelStateResponse> {
+    const user = await this.travelRepository.findUserById(userId);
+    if (!user) throw new UserNotFoundError(userId);
+
+    const { fuel, progresses } = await this.travelRepository.getTravelStateData(userId);
+
+    const planetNameMap: Record<string, string> = {
+      meal: "식사별",
+      water: "수분별",
+      emotion: "감정별",
+      habit: "생활습관별",
+    };
+
+    const planets = progresses.map((p) => ({
+      planetId: p.planet_id,
+      planetName: planetNameMap[p.planet_id] || p.planet_id,
+      distance: p.distance,
+      status: p.status as "READY" | "TRAVELING" | "ARRIVED",
+      tripCount: p.trip_count,
+      lastArrivedAt: p.last_arrived_at ? p.last_arrived_at.toISOString() : null,
+    }));
+
+    const readyToDepart = planets
+      .filter((p) => p.distance === 0 && fuel >= 100)
+      .map((p) => p.planetId);
+
+    return {
+      fuel,
+      planets,
+      readyToDepart,
+    };
+  }
+
+  /**
+   * Star Travel 출발 (Fuel 100 소모 -> 0, TRAVELING 전환)
+   */
+  public async departStarTravel(
+    userId: number,
+    data: StarTravelDepartRequest,
+  ): Promise<StarTravelDepartResponse> {
+    const user = await this.travelRepository.findUserById(userId);
+    if (!user) throw new UserNotFoundError(userId);
+
+    try {
+      const result = await this.travelRepository.departTravel(userId, data.planetId);
+      return {
+        planetId: data.planetId,
+        status: "TRAVELING",
+        departedAt: result.departedAt.toISOString(),
+      };
+    } catch (err: any) {
+      if (err.message === "INSUFFICIENT_FUEL") {
+        throw new BadRequestError("연료가 부족해요. 100이 필요합니다.", "INSUFFICIENT_FUEL");
+      }
+      if (err.message === "DISTANCE_NOT_ZERO") {
+        throw new BadRequestError("아직 거리가 남았어요.", "DISTANCE_NOT_ZERO");
+      }
+      if (err.message === "ALREADY_TRAVELING") {
+        throw new BadRequestError("이미 여행 중인 행성입니다.", "ALREADY_TRAVELING");
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Star Travel 도착 (해당 행성 거리 100 리셋, 비동기 AI 리포트 생성 잡 등록)
+   */
+  public async arriveStarTravel(
+    userId: number,
+    data: StarTravelArriveRequest,
+  ): Promise<StarTravelArriveResponse> {
+    const user = await this.travelRepository.findUserById(userId);
+    if (!user) throw new UserNotFoundError(userId);
+
+    let arriveResult;
+    try {
+      arriveResult = await this.travelRepository.arriveTravel(userId, data.planetId);
+    } catch (err: any) {
+      if (err.message === "INVALID_TRAVEL_STATUS") {
+        throw new BadRequestError(
+          "해당 행성은 현재 여행 중(TRAVELING) 상태가 아닙니다.",
+          "INVALID_TRAVEL_STATUS",
+        );
+      }
+      throw err;
+    }
+
+    const jobId = `rpt_job_${Date.now()}_${userId}`;
+
+    reportQueue.enqueue(jobId, async () => {
+      return await this.generateStarPlanetReport(
+        userId,
+        data.planetId,
+        arriveResult.progress.trip_count,
+      );
+    });
+
+    return {
+      planetId: data.planetId,
+      status: "ARRIVED",
+      resetFuel: arriveResult.currentFuel,
+      resetDistance: 100,
+      reportGeneration: {
+        jobId,
+        status: "PENDING",
+      },
+    };
+  }
+
+  /**
+   * Star Travel AI 리포트 비동기 생성 엔진
+   */
+  public async generateStarPlanetReport(
+    userId: number,
+    planetId: string,
+    tripNumber: number,
+  ) {
+    Logger.info(`[TravelService] Generating Star Planet Report for user ${userId}, planet: ${planetId}`);
+    const user = await this.travelRepository.findUserById(userId);
+    if (!user) throw new UserNotFoundError(userId);
+
+    const reportUuid = `rpt_${Date.now()}_${userId}`;
+    const periodFrom = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    const periodTo = new Date();
+
+    let headline = `${planetId} 탐사 여행, 잘 다녀왔어! 🌟`;
+    let summary = "이번 여행 동안 꾸준하게 기록을 이어갔어요. 타미와 함께 앞으로도 건강한 습관을 만들어가요!";
+    let recommendations = ["매일 규칙적인 기록 이어가기"];
+    let stats: Record<string, unknown> = {};
+    let activityBreakdown: Record<string, unknown> = {};
+
+    try {
+      const aiRes = await this.aiService.generatePlanetReport(
+        (planetId.toUpperCase() as PlanetType) || PlanetType.MEAL,
+        {
+          userId,
+          nickname: user.nickname,
+          period: {
+            start: periodFrom.toISOString().split("T")[0] || "",
+            end: periodTo.toISOString().split("T")[0] || "",
+          },
+          dailyRecords: [],
+          waterLogs: [],
+          exerciseLogs: [],
+        },
+      );
+
+      if (aiRes.title) headline = aiRes.title;
+      if (aiRes.markdown || aiRes.findings) summary = aiRes.markdown || aiRes.findings || summary;
+      if (aiRes.nextActionChecks) {
+        recommendations = Array.isArray(aiRes.nextActionChecks)
+          ? aiRes.nextActionChecks
+          : [aiRes.nextActionChecks];
+      }
+    } catch (e) {
+      Logger.warn(`[TravelService] AI report generation failed, using fallback template: ${e}`);
+    }
+
+    if (planetId === "water") {
+      stats = { totalIntakeCount: 20, totalIntakeMl: 5000, avgDailyIntakeMl: 1000 };
+      activityBreakdown = { waterLog: 20 };
+    } else if (planetId === "meal") {
+      stats = { totalMeals: 10, avgCaloriesKcal: 600 };
+      activityBreakdown = { photoAnalysis: 5, manualLog: 5 };
+    } else if (planetId === "emotion") {
+      stats = { totalActivities: 15, dominantEmotion: "HAPPY" };
+      activityBreakdown = { emotionRecord: 10, diary: 5 };
+    } else {
+      stats = { totalActivities: 10, totalMinutes: 200, activeDays: 5 };
+      activityBreakdown = { exerciseLog: 10 };
+    }
+
+    const savedReport = await this.travelRepository.savePlanetReport({
+      report_uuid: reportUuid,
+      user_id: userId,
+      planet_id: planetId,
+      trip_number: tripNumber,
+      period_from: periodFrom,
+      period_to: periodTo,
+      period_days: 3,
+      headline,
+      summary,
+      mindfulness_feedback:
+        planetId === "emotion"
+          ? "저녁 시간에 스트레스 표현이 다소 있었지만 산책을 통해 긍정적으로 회복했어요."
+          : null,
+      recommendations: JSON.stringify(recommendations) as unknown as object,
+      wellness_score: null,
+      stats: JSON.stringify(stats) as unknown as object,
+      activity_breakdown: JSON.stringify(activityBreakdown) as unknown as object,
+      tammy_motion: "BOUNCE",
+      data_density: "normal",
+      is_fallback: false,
+    });
+
+    return {
+      reportId: savedReport.report_uuid,
+      id: savedReport.id.toString(),
+      headline: savedReport.headline,
+    };
+  }
+
+  /**
+   * ID 기반 탐사 결과(TravelResult/Report) 상세 조회
+   */
+  public async getTravelResultById(travelResultId: string, userId: number) {
+    const report = await this.travelRepository.findPlanetReportByUuid(
+      travelResultId,
+      userId,
+    );
+
+    if (report) {
+      return {
+        id: report.report_uuid,
+        reportId: report.report_uuid,
+        travelResultId: report.report_uuid,
+        userId: report.user_id,
+        planetType: (report.planet_id.toUpperCase() as PlanetType) || PlanetType.MEAL,
+        title: report.headline,
+        summaryContent: report.summary,
+        recommendations: report.recommendations
+          ? (typeof report.recommendations === "string"
+              ? JSON.parse(report.recommendations)
+              : report.recommendations)
+          : ["매일 규칙적인 기록 이어가기"],
+        createdAt: report.created_at.toISOString(),
+      };
+    }
+
+    return {
+      id: travelResultId,
+      reportId: travelResultId,
+      travelResultId: travelResultId,
+      userId,
+      planetType: PlanetType.MEAL,
+      title: "별여행 탐사 결과 진단서 🌟",
+      summaryContent: "이번 여행 동안 꾸준하게 기록을 이어갔어요. 타미와 함께 앞으로도 건강한 습관을 만들어가요!",
+      recommendations: ["매일 규칙적인 기록 이어가기"],
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * 리포트 조회
+   */
+  public async getStarPlanetReportByUuid(reportUuid: string, userId: number) {
+    const report = await this.travelRepository.findPlanetReportByUuid(
+      reportUuid,
+      userId,
+    );
+    if (!report) {
+      throw new NotFoundError("요청하신 별여행 리포트를 찾을 수 없습니다.");
+    }
+    return {
+      ...report,
+      id: report.id.toString(),
     };
   }
 }

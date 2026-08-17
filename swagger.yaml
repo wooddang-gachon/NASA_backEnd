@@ -139,69 +139,54 @@ components:
         - code
       type: object
       additionalProperties: false
-    _36_Enums.TravelStatus:
-      type: string
-      enum:
-        - IN_PROGRESS
-        - COMPLETED
-        - FAILED
-    TravelStatus:
-      $ref: "#/components/schemas/_36_Enums.TravelStatus"
-    TravelResultSummary:
+    StarTravelPlanetItem:
       properties:
-        id:
-          anyOf:
-            - type: string
-            - type: number
-              format: double
-        userId:
+        planetId:
+          type: string
+        planetName:
+          type: string
+        distance:
           type: number
           format: double
-        title:
+        status:
           type: string
-        summaryContent:
+          enum:
+            - READY
+            - TRAVELING
+            - ARRIVED
+        tripCount:
+          type: number
+          format: double
+        lastArrivedAt:
           type: string
-        recommendations:
+          nullable: true
+      required:
+        - planetId
+        - planetName
+        - distance
+        - status
+      type: object
+      additionalProperties: false
+    StarTravelStateResponse:
+      properties:
+        fuel:
+          type: number
+          format: double
+        planets:
+          items:
+            $ref: "#/components/schemas/StarTravelPlanetItem"
+          type: array
+        readyToDepart:
           items:
             type: string
           type: array
       required:
-        - id
-        - userId
-        - title
-        - summaryContent
-        - recommendations
+        - fuel
+        - planets
+        - readyToDepart
       type: object
       additionalProperties: false
-    PlanetTravelStartApiResponse:
-      properties:
-        travelId:
-          anyOf:
-            - type: string
-            - type: number
-              format: double
-        travelResultId:
-          anyOf:
-            - type: string
-            - type: number
-              format: double
-        remainingFuel:
-          type: number
-          format: double
-        status:
-          anyOf:
-            - $ref: "#/components/schemas/TravelStatus"
-            - type: string
-        travelResult:
-          $ref: "#/components/schemas/TravelResultSummary"
-      required:
-        - travelId
-        - travelResultId
-        - remainingFuel
-        - status
-      type: object
-      additionalProperties: false
-    ApiResponse_PlanetTravelStartApiResponse_:
+    ApiResponse_StarTravelStateResponse_:
       properties:
         success:
           type: boolean
@@ -209,7 +194,7 @@ components:
           type: string
         data:
           allOf:
-            - $ref: "#/components/schemas/PlanetTravelStartApiResponse"
+            - $ref: "#/components/schemas/StarTravelStateResponse"
           nullable: true
         code:
           type: number
@@ -221,101 +206,24 @@ components:
         - code
       type: object
       additionalProperties: false
-    _36_Enums.PlanetType:
-      type: string
-      enum:
-        - MEAL
-        - WATER
-        - EMOTION
-        - LIFESTYLE
-        - RETROSPECT
-    PlanetType:
-      $ref: "#/components/schemas/_36_Enums.PlanetType"
-    PlanetTravelStartApiRequest:
+    StarTravelDepartResponse:
       properties:
-        planetType:
-          anyOf:
-            - $ref: "#/components/schemas/PlanetType"
-            - type: string
-              enum:
-                - MEAL
-                - WATER
-                - EMOTION
-                - LIFESTYLE
-                - RETROSPECT
-        fuelSpent:
-          type: number
-          format: double
+        planetId:
+          type: string
+        status:
+          type: string
+          enum:
+            - TRAVELING
+          nullable: false
+        departedAt:
+          type: string
       required:
-        - planetType
-        - fuelSpent
+        - planetId
+        - status
+        - departedAt
       type: object
       additionalProperties: false
-    PlanetStateItem:
-      properties:
-        planetType:
-          $ref: "#/components/schemas/PlanetType"
-        name:
-          type: string
-        targetDistance:
-          type: number
-          format: double
-        currentDistance:
-          type: number
-          format: double
-        isCompleted:
-          type: boolean
-        completedAt:
-          type: string
-          nullable: true
-      required:
-        - planetType
-        - name
-        - targetDistance
-        - currentDistance
-        - isCompleted
-      type: object
-      additionalProperties: false
-    TravelStateInfoResponse:
-      properties:
-        currentPlanet:
-          type: string
-        activePlanet:
-          allOf:
-            - $ref: "#/components/schemas/PlanetType"
-          nullable: true
-        explorationProgressPercent:
-          type: number
-          format: double
-        currentFuel:
-          type: number
-          format: double
-        requiredFuelForNextPlanet:
-          type: number
-          format: double
-        totalStarCount:
-          type: number
-          format: double
-        completedStarCount:
-          type: number
-          format: double
-        tammyRelationshipLevel:
-          type: number
-          format: double
-        planetList:
-          items:
-            $ref: "#/components/schemas/PlanetStateItem"
-          type: array
-      required:
-        - explorationProgressPercent
-        - currentFuel
-        - totalStarCount
-        - completedStarCount
-        - tammyRelationshipLevel
-        - planetList
-      type: object
-      additionalProperties: false
-    ApiResponse_TravelStateInfoResponse_:
+    ApiResponse_StarTravelDepartResponse_:
       properties:
         success:
           type: boolean
@@ -323,7 +231,135 @@ components:
           type: string
         data:
           allOf:
-            - $ref: "#/components/schemas/TravelStateInfoResponse"
+            - $ref: "#/components/schemas/StarTravelDepartResponse"
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
+      type: object
+      additionalProperties: false
+    StarTravelDepartRequest:
+      properties:
+        planetId:
+          anyOf:
+            - type: string
+            - type: string
+              enum:
+                - meal
+                - water
+                - emotion
+                - habit
+        clientRequestId:
+          type: string
+      required:
+        - planetId
+      type: object
+      additionalProperties: false
+    StarTravelArriveResponse:
+      properties:
+        planetId:
+          type: string
+        status:
+          type: string
+          enum:
+            - ARRIVED
+          nullable: false
+        resetFuel:
+          type: number
+          format: double
+        resetDistance:
+          type: number
+          format: double
+        reportGeneration:
+          properties:
+            status:
+              type: string
+              enum:
+                - PENDING
+                - PROCESSING
+                - COMPLETED
+            jobId:
+              type: string
+          required:
+            - status
+            - jobId
+          type: object
+      required:
+        - planetId
+        - status
+        - resetFuel
+        - resetDistance
+        - reportGeneration
+      type: object
+      additionalProperties: false
+    ApiResponse_StarTravelArriveResponse_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          allOf:
+            - $ref: "#/components/schemas/StarTravelArriveResponse"
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
+      type: object
+      additionalProperties: false
+    StarTravelArriveRequest:
+      properties:
+        planetId:
+          anyOf:
+            - type: string
+            - type: string
+              enum:
+                - meal
+                - water
+                - emotion
+                - habit
+        clientRequestId:
+          type: string
+      required:
+        - planetId
+      type: object
+      additionalProperties: false
+    ApiResponse__jobId-string--status-string--travelResultId_63_-string--reportId_63_-string--progressPercent-number--error_63_-string__:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          properties:
+            error:
+              type: string
+            progressPercent:
+              type: number
+              format: double
+            reportId:
+              type: string
+            travelResultId:
+              type: string
+            status:
+              type: string
+            jobId:
+              type: string
+          required:
+            - progressPercent
+            - status
+            - jobId
+          type: object
           nullable: true
         code:
           type: number
@@ -489,6 +525,20 @@ components:
         totalFuel:
           type: number
           format: double
+        gainedFuel:
+          type: number
+          format: double
+        currentFuel:
+          type: number
+          format: double
+        distanceReduced:
+          type: number
+          format: double
+        currentDistance:
+          type: number
+          format: double
+        planetId:
+          type: string
         createdAt:
           type: string
       required:
@@ -496,6 +546,11 @@ components:
         - category
         - earnedFuel
         - totalFuel
+        - gainedFuel
+        - currentFuel
+        - distanceReduced
+        - currentDistance
+        - planetId
       type: object
       additionalProperties: false
     ApiResponse_QuickLogApiResponse_:
@@ -553,6 +608,8 @@ components:
         durationMinutes:
           type: number
           format: double
+        clientRequestId:
+          type: string
       required:
         - category
       type: object
@@ -1158,19 +1215,35 @@ paths:
       security:
         - jwt: []
       parameters: []
-  /planet-travel/start:
-    post:
-      operationId: StartPlanetTravel
+  /planet-travel/state:
+    get:
+      operationId: GetTravelState
       responses:
         "200":
           description: Ok
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiResponse_PlanetTravelStartApiResponse_"
-      description: 보유한 우주 연료(Fuel)를 소모하여 선택한 행성으로 별여행을 출발하고, AI 탐사 결과(travelResult)
-        진단서를 실시간 동기 생성합니다.
-      summary: 별여행 탐사 출발 및 AI 탐사결과 생성
+                $ref: "#/components/schemas/ApiResponse_StarTravelStateResponse_"
+      description: Star Travel 현재 상태 조회 (전역 Fuel, 4대 행성별 거리/상태, 출발 가능 행성 목록)
+      summary: 우주여행 현황 및 Two-Gauge 게이지 조회
+      tags:
+        - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
+      security:
+        - jwt: []
+      parameters: []
+  /planet-travel/depart:
+    post:
+      operationId: DepartTravel
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_StarTravelDepartResponse_"
+      description: Star Travel 별여행 출발 (Fuel 100 소모 -> 0, TRAVELING 전환)
+      summary: 별여행 출발
       tags:
         - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
       security:
@@ -1181,24 +1254,54 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PlanetTravelStartApiRequest"
-  /planet-travel/state:
-    get:
-      operationId: GetTravelState
+              $ref: "#/components/schemas/StarTravelDepartRequest"
+  /planet-travel/arrive:
+    post:
+      operationId: ArriveTravel
       responses:
         "200":
           description: Ok
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiResponse_TravelStateInfoResponse_"
-      description: 우주여행 현황 조회
-      summary: 우주여행 현황 조회
+                $ref: "#/components/schemas/ApiResponse_StarTravelArriveResponse_"
+      description: Star Travel 별여행 도착 (해당 행성 거리 100 리셋, 비동기 AI 리포트 생성 잡 등록)
+      summary: 별여행 도착 처리
       tags:
         - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
       security:
         - jwt: []
       parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StarTravelArriveRequest"
+  /reports/jobs/{jobId}:
+    get:
+      operationId: GetReportJobStatus
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse__jobId-string--status-string--travelRes\
+                  ultId_63_-string--reportId_63_-string--progressPercent-number\
+                  --error_63_-string__"
+      description: 비동기 리포트 생성 작업 진행 상태 조회
+      summary: 비동기 리포트 작업 상태 조회
+      tags:
+        - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
+      security:
+        - jwt: []
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
   /travel-results/{travelResultId}:
     get:
       operationId: GetTravelResult

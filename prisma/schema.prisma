@@ -142,6 +142,10 @@ model users {
   // 1:N 관계
   quick_logs              quick_logs[]
   planet_travels          planet_travels[]
+  user_planet_progress    user_planet_progress[]
+  fuel_logs               fuel_logs[]
+  monthly_retro_reports   monthly_retro_reports[]
+  planet_reports          planet_reports[]
   meals                   meals[]
   chat_messages           chat_messages[]
   proactive_triggers      proactive_triggers[]
@@ -167,6 +171,12 @@ model tammy_statuses {
 
 
 
+enum PlanetProgressStatus {
+  READY
+  TRAVELING
+  ARRIVED
+}
+
 model quick_logs {
   id                   BigInt      @id @default(autoincrement())
   user_id              Int
@@ -177,12 +187,80 @@ model quick_logs {
   duration_minutes     Int?
   burned_calories_kcal Int?        @default(0)
   earned_fuel          Int         @default(10)
+  client_request_id    String?     @unique(map: "uk_quick_log_client_request_id") @db.VarChar(64)
   created_at           DateTime    @default(now()) @db.Timestamp(0)
   deleted_at           DateTime?   @db.Timestamp(0)
 
   user                 users       @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, created_at(sort: Desc)], map: "idx_quick_log_user_created")
+}
+
+model user_planet_progress {
+  user_id         Int
+  planet_id       String               @db.VarChar(20)
+  distance        Int                  @default(100)
+  status          PlanetProgressStatus @default(READY)
+  last_arrived_at DateTime?            @db.Timestamp(0)
+  trip_count      Int                  @default(0)
+  updated_at      DateTime             @default(now()) @updatedAt @db.Timestamp(0)
+
+  user            users                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([user_id, planet_id])
+}
+
+model fuel_logs {
+  id                BigInt   @id @default(autoincrement())
+  user_id           Int
+  amount            Int
+  source            String   @db.VarChar(30)
+  source_ref_id     BigInt?
+  client_request_id String?  @unique(map: "uk_fuel_log_client_request_id") @db.VarChar(64)
+  created_at        DateTime @default(now()) @db.Timestamp(0)
+
+  user              users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, created_at(sort: Desc)], map: "idx_fuel_log_user_created")
+}
+
+model monthly_retro_reports {
+  id             BigInt   @id @default(autoincrement())
+  user_id        Int
+  year_month     String   @db.Char(7)
+  wellness_score Int?
+  content_json   Json
+  generated_at   DateTime @default(now()) @db.Timestamp(0)
+
+  user           users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, year_month], map: "uk_monthly_retro_user_month")
+}
+
+model planet_reports {
+  id                   BigInt   @id @default(autoincrement())
+  report_uuid          String   @unique(map: "uk_planet_report_uuid") @db.VarChar(64)
+  user_id              Int
+  planet_id            String   @db.VarChar(20)
+  trip_number          Int      @default(1)
+  period_from          DateTime @db.Timestamp(0)
+  period_to            DateTime @db.Timestamp(0)
+  period_days          Int      @default(3)
+  headline             String   @db.VarChar(255)
+  summary              String   @db.Text
+  mindfulness_feedback String?  @db.Text
+  recommendations      Json?
+  wellness_score       Int?
+  stats                Json?
+  activity_breakdown   Json?
+  tammy_motion         String   @default("BOUNCE") @db.VarChar(50)
+  data_density         String   @default("normal") @db.VarChar(20)
+  is_fallback          Boolean  @default(false)
+  created_at           DateTime @default(now()) @db.Timestamp(0)
+
+  user                 users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, planet_id, created_at(sort: Desc)], map: "idx_planet_report_user_planet")
 }
 
 model planets {

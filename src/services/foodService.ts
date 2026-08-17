@@ -3,6 +3,7 @@ import { FUEL_REWARDS, EXP_REWARDS } from "@/constants/gamification";
 import AiService from "./aiService";
 import Logger from "../loaders/logger";
 import FoodRepository from "../repositories/FoodRepository";
+import TravelRepository from "../repositories/TravelRepository";
 import { UserNotFoundError } from "../errors";
 import { FoodMapper, UserMapper } from "../mappers";
 import type {
@@ -22,6 +23,9 @@ export default class FoodService {
 
   @Inject(() => FoodRepository)
   private foodRepository!: FoodRepository;
+
+  @Inject(() => TravelRepository)
+  private travelRepository!: TravelRepository;
 
   /**
    * [FOD-005] 음식명 스마트 매칭 메서드 (foods 마스터 보호 원칙)
@@ -206,12 +210,32 @@ export default class FoodService {
       mealData,
       processedItems,
       { imageId: data.imageId },
-      FUEL_REWARDS.FOOD_CONFIRM, // gainedFuel
+      0, // gainedFuel은 TravelRepository에서 통합 관리
       EXP_REWARDS.FOOD_CONFIRM, // gainedExp
       FoodMapper.toMealItemCreateInput,
       FoodMapper.toMealImageCreateInput,
       UserMapper.toStatusLogCreateInput,
     );
+
+    let gauge = {
+      isDuplicateRequest: false,
+      gainedFuel: 10,
+      distanceReduced: 10,
+      currentFuel: result.updatedUser.current_fuel ?? 0,
+      currentDistance: 90,
+      planetId: "meal",
+    };
+
+    if (this.travelRepository?.recordActivityAndGauge) {
+      gauge = await this.travelRepository.recordActivityAndGauge({
+        userId,
+        planetId: "meal",
+        fuelGain: 10,
+        distanceReduction: 10,
+        source: "food_confirm",
+        sourceRefId: result.meal.id,
+      });
+    }
 
     Logger.info(
       `[FoodService] Meal logged successfully (mealId: ${result.meal.id}, userId: ${userId}, itemsCount: ${processedItems.length}, totalCalories: ${totalCalories})`,
@@ -219,9 +243,9 @@ export default class FoodService {
 
     return FoodMapper.toMealLogRegisterResponse(
       result.meal.id,
-      result.gainedFuel,
+      FUEL_REWARDS.FOOD_CONFIRM,
       totalCalories,
-      result.updatedUser.current_fuel ?? 0,
+      gauge.currentFuel,
     );
   }
 

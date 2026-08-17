@@ -12,6 +12,11 @@ import {
   TravelStateInfoResponse,
   DashboardSummaryInfo,
   TravelResultDetailInfo,
+  StarTravelStateResponse,
+  StarTravelDepartRequest,
+  StarTravelDepartResponse,
+  StarTravelArriveRequest,
+  StarTravelArriveResponse,
 } from "../../dto";
 import { toTravelResultDetailInfo } from "../../mappers";
 
@@ -22,38 +27,78 @@ export class TravelController extends BaseController {
   private travelService = Container.get(TravelService);
 
   /**
-   * 보유한 우주 연료(Fuel)를 소모하여 선택한 행성으로 별여행을 출발하고, AI 탐사 결과(travelResult) 진단서를 실시간 동기 생성합니다.
+   * Star Travel 현재 상태 조회 (전역 Fuel, 4대 행성별 거리/상태, 출발 가능 행성 목록)
    * @param request
-   * @param body
-   * @summary 별여행 탐사 출발 및 AI 탐사결과 생성
-   */
-  @Post("planet-travel/start")
-  @Security("jwt")
-  public async startPlanetTravel(
-    @Request() request: AuthenticatedRequest,
-    @Body() body: PlanetTravelStartApiRequest,
-  ): Promise<ApiResponse<PlanetTravelStartApiResponse>> {
-    const result = await this.travelService.startPlanetTravel(
-      this.getUserId(request),
-      body,
-    );
-    return this.success(result, "별여행 탐사가 성공적으로 시작되었습니다.");
-  }
-
-  /**
-   * 우주여행 현황 조회
-   * @param request
-   * @summary 우주여행 현황 조회
+   * @summary 우주여행 현황 및 Two-Gauge 게이지 조회
    */
   @Get("planet-travel/state")
   @Security("jwt")
   public async getTravelState(
     @Request() request: AuthenticatedRequest,
-  ): Promise<ApiResponse<TravelStateInfoResponse>> {
-    const result = await this.travelService.getTravelState(
+  ): Promise<ApiResponse<StarTravelStateResponse>> {
+    const result = await this.travelService.getStarTravelState(
       this.getUserId(request),
     );
     return this.success(result, "우주여행 현황 조회가 완료되었습니다.");
+  }
+
+  /**
+   * Star Travel 별여행 출발 (Fuel 100 소모 -> 0, TRAVELING 전환)
+   * @param request
+   * @param body
+   * @summary 별여행 출발
+   */
+  @Post("planet-travel/depart")
+  @Security("jwt")
+  public async departTravel(
+    @Request() request: AuthenticatedRequest,
+    @Body() body: StarTravelDepartRequest,
+  ): Promise<ApiResponse<StarTravelDepartResponse>> {
+    const result = await this.travelService.departStarTravel(
+      this.getUserId(request),
+      body,
+    );
+    return this.success(result, "별여행 탐사가 시작되었습니다.");
+  }
+
+  /**
+   * Star Travel 별여행 도착 (해당 행성 거리 100 리셋, 비동기 AI 리포트 생성 잡 등록)
+   * @param request
+   * @param body
+   * @summary 별여행 도착 처리
+   */
+  @Post("planet-travel/arrive")
+  @Security("jwt")
+  public async arriveTravel(
+    @Request() request: AuthenticatedRequest,
+    @Body() body: StarTravelArriveRequest,
+  ): Promise<ApiResponse<StarTravelArriveResponse>> {
+    const result = await this.travelService.arriveStarTravel(
+      this.getUserId(request),
+      body,
+    );
+    return this.success(result, "별여행 도착 처리가 완료되었습니다.");
+  }
+
+  /**
+   * 비동기 리포트 생성 작업 진행 상태 조회
+   * @param jobId
+   * @summary 비동기 리포트 작업 상태 조회
+   */
+  @Get("reports/jobs/{jobId}")
+  @Security("jwt")
+  public async getReportJobStatus(@Path() jobId: string): Promise<
+    ApiResponse<{
+      jobId: string;
+      status: string;
+      travelResultId?: string;
+      reportId?: string;
+      progressPercent: number;
+      error?: string;
+    }>
+  > {
+    const result = await this.travelService.getJobStatus(jobId);
+    return this.success(result, "리포트 작업 상태 조회가 완료되었습니다.");
   }
 
   /**

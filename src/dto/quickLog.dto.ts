@@ -15,6 +15,7 @@ export interface QuickLogApiRequest {
   journalContent?: string;
   exerciseName?: string;
   durationMinutes?: number;
+  clientRequestId?: string;
 }
 
 export interface QuickLogApiResponse {
@@ -22,5 +23,10 @@ export interface QuickLogApiResponse {
   category: LogCategory | string;
   earnedFuel: number;
   totalFuel: number;
+  gainedFuel: number;
+  currentFuel: number;
+  distanceReduced: number;
+  currentDistance: number;
+  planetId: string;
   createdAt?: string;
 }
