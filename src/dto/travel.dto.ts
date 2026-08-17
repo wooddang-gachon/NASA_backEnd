@@ -146,6 +146,32 @@ export interface UnifiedPlanetReportResponse {
   error?: string | null;
 }
 
+export interface MonthlyPlanetSummary {
+  planetId: "meal" | "water" | "emotion" | "habit" | string;
+  planetName: string;
+  arrivals: number;
+}
+
+export interface MonthlyRetroReportResponse {
+  yearMonth: string;
+  title: string;
+  period: {
+    from: string;
+    to: string;
+    totalDays: number;
+  };
+  wellnessScore: number;
+  scoreDiff: number;
+  totalArrivals: number;
+  planetSummaries: MonthlyPlanetSummary[];
+  aiLetter: string;
+  mindfulnessInsight?: string | null;
+  strengths: string[];
+  improvements: string[];
+  nextMonthGoals: string[];
+  generatedAt: string;
+}
+
 export interface CommonGaugeResult {
   gainedFuel: number;
   currentFuel: number;

@@ -177,6 +177,56 @@ describe("TravelService", () => {
     });
   });
 
+  describe("calculateWellnessScore", () => {
+    it("should calculate balanced wellness score correctly around 78 for 4/6/4/3 arrivals", () => {
+      const score = travelService.calculateWellnessScore({
+        meal: 4,
+        water: 6,
+        emotion: 4,
+        habit: 3,
+      });
+      expect(score).toBeGreaterThanOrEqual(70);
+      expect(score).toBeLessThanOrEqual(85);
+    });
+
+    it("should return 0 when total arrivals are 0", () => {
+      const score = travelService.calculateWellnessScore({
+        meal: 0,
+        water: 0,
+        emotion: 0,
+        habit: 0,
+      });
+      expect(score).toBe(0);
+    });
+  });
+
+  describe("getMonthlyRetroReport", () => {
+    it("should return existing monthly retro report from DB", async () => {
+      mockTravelRepository.findMonthlyRetroReport.mockResolvedValue({
+        user_id: 1,
+        year_month: "2026-07",
+        wellness_score: 78,
+        content_json: JSON.stringify({
+          title: "7월 회고",
+          period: { from: "2026-07-01", to: "2026-07-31", totalDays: 31 },
+          wellnessScore: 78,
+          scoreDiff: 6,
+          totalArrivals: 17,
+          planetSummaries: [],
+          aiLetter: "잘했어",
+          strengths: [],
+          improvements: [],
+          nextMonthGoals: [],
+        }),
+        generated_at: new Date(),
+      } as never);
+
+      const result = await travelService.getMonthlyRetroReport(1, "2026-07");
+      expect(result.yearMonth).toBe("2026-07");
+      expect(result.wellnessScore).toBe(78);
+    });
+  });
+
   describe("getDashboard", () => {
     it("should throw UserNotFoundError if user not found", async () => {
       mockTravelRepository.findUserById.mockResolvedValue(null);

@@ -30,4 +30,19 @@ describe("건강 인사이트 & AI 리포트 API 통합 테스트 (RPT Module)",
       expect(notFoundRes.body.code).toBe("NOT_FOUND");
     });
   });
+
+  describe("🌙 회고별 월간 종합 리포트 조회 기능", () => {
+    it("[성공 사례] GET /api/v1/planet-travel/reports/monthly/2026-07 - 월간 회고 리포트 조회 (온디맨드 백필 포함)", async () => {
+      const res = await request(app).get(
+        "/api/v1/planet-travel/reports/monthly/2026-07",
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.yearMonth).toBe("2026-07");
+      expect(res.body.data).toHaveProperty("wellnessScore");
+      expect(res.body.data).toHaveProperty("planetSummaries");
+      expect(res.body.data).toHaveProperty("aiLetter");
+    });
+  });
 });

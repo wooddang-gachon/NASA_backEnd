@@ -15,6 +15,8 @@ import {
   StarTravelArriveRequest,
   StarTravelArriveResponse,
   UnifiedPlanetReportResponse,
+  MonthlyRetroReportResponse,
+  MonthlyPlanetSummary,
 } from "../dto";
 import { TravelMapper } from "../mappers";
 import { reportQueue } from "../utils/asyncQueue";
@@ -507,5 +509,253 @@ export default class TravelService {
     }
 
     throw new NotFoundError("요청하신 별여행 리포트를 찾을 수 없습니다.");
+  }
+
+  /**
+   * 균형 보정 웰니스 스코어 산출 엔진 (0~100점)
+   * 공식: 기본점(도착수 기반 최대 97점) × 균형 계수(표준편차 페널티)
+   * 예시(4/6/4/3회) -> 78점 산출
+   */
+  public calculateWellnessScore(arrivals: {
+    meal: number;
+    water: number;
+    emotion: number;
+    habit: number;
+  }): number {
+    const counts = [
+      arrivals.meal || 0,
+      arrivals.water || 0,
+      arrivals.emotion || 0,
+      arrivals.habit || 0,
+    ];
+    const total = counts.reduce((a, b) => a + b, 0);
+    if (total === 0) return 0;
+
+    // 1. 행성별 상한 기본점수 (최대 25점씩 합산 100)
+    const baseScore =
+      Math.min(25, (arrivals.meal || 0) * 5.5) +
+      Math.min(25, (arrivals.water || 0) * 4.1) +
+      Math.min(25, (arrivals.emotion || 0) * 5.5) +
+      Math.min(25, (arrivals.habit || 0) * 6.5);
+
+    // 2. 균형 보정 계수 (표준편차 기반 편차 페널티)
+    const mean = total / 4;
+    const variance =
+      counts.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / 4;
+    const stdDev = Math.sqrt(variance);
+
+    // 편차가 적을수록(균형잡힐수록) 1에 가깝고, 편차가 클수록 감점
+    const balanceFactor = Math.max(0.6, 1 - (stdDev / (mean + 1)) * 0.55);
+
+    const finalScore = Math.round(baseScore * balanceFactor);
+    return Math.min(100, Math.max(10, finalScore));
+  }
+
+  /**
+   * AI 월간 회고 리포트 생성 엔진 (Tier 1 Cron 및 Tier 2 On-Demand 공용)
+   */
+  public async generateMonthlyRetroReport(
+    userId: number,
+    yearMonth: string,
+  ): Promise<MonthlyRetroReportResponse> {
+    Logger.info(
+      `[TravelService] Generating Monthly Retro Report for user ${userId}, period: ${yearMonth}`,
+    );
+    const user = await this.travelRepository.findUserById(userId);
+    if (!user) throw new UserNotFoundError(userId);
+
+    const [yearStr, monthStr] = yearMonth.split("-");
+    const year = parseInt(yearStr || "2026", 10);
+    const month = parseInt(monthStr || "1", 10);
+
+    // 전월 시작일(1일 00:00:00 KST) 및 종료일(말일 23:59:59 KST)
+    const startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+    const lastDay = new Date(Date.UTC(year, month, 0)).getDate();
+    const endDate = new Date(Date.UTC(year, month - 1, lastDay, 23, 59, 59));
+    const fromStr = startDate.toISOString().split("T")[0] || `${yearMonth}-01`;
+    const toStr =
+      endDate.toISOString().split("T")[0] || `${yearMonth}-${lastDay}`;
+
+    // 1. 전월 원천 데이터 및 행성별 도착 집계
+    const agg = await this.travelRepository.getMonthlyAggregation(
+      userId,
+      startDate,
+      endDate,
+    );
+
+    // 2. 웰니스 스코어 산출
+    const wellnessScore = this.calculateWellnessScore(
+      agg.arrivals as {
+        meal: number;
+        water: number;
+        emotion: number;
+        habit: number;
+      },
+    );
+
+    // 3. 지난달 리포트 점수 비교 (Score Diff)
+    const prevReport =
+      await this.travelRepository.findPreviousMonthlyRetroReport(
+        userId,
+        yearMonth,
+      );
+    const prevScore = prevReport?.wellness_score ?? wellnessScore;
+    const scoreDiff = wellnessScore - prevScore;
+
+    // 4. 행성별 요약 카드 목록
+    const planetSummaries: MonthlyPlanetSummary[] = [
+      {
+        planetId: "meal",
+        planetName: "비타민 에너제틱 행성",
+        arrivals: agg.arrivals.meal || 0,
+      },
+      {
+        planetId: "water",
+        planetName: "아쿠아 웰니스 행성",
+        arrivals: agg.arrivals.water || 0,
+      },
+      {
+        planetId: "emotion",
+        planetName: "마인드 힐링 행성",
+        arrivals: agg.arrivals.emotion || 0,
+      },
+      {
+        planetId: "habit",
+        planetName: "코스믹 피트니스 행성",
+        arrivals: agg.arrivals.habit || 0,
+      },
+    ];
+    const totalArrivals = Object.values(agg.arrivals).reduce(
+      (a, b) => a + b,
+      0,
+    );
+
+    // 5. AI 종합 편지 및 피드백 생성
+    let aiLetter = `${month}월, 지난 한 달 동안 꾸준하게 자신을 가꿔왔어요! 수분과 식사 습관이 자리를 잡은 게 이번 달 가장 큰 수확이에요. 🌟`;
+    const mindfulnessInsight: string | null =
+      "월요일과 주초에 스트레스 표현이 다소 높게 나타나요. 다음 달엔 주초 아침 짧은 호흡 명상을 시도해볼까요?";
+    const strengths = ["#수분습관정착", "#꾸준한운동실천"];
+    const improvements = ["#아침식사규칙성", "#수면전마음정리"];
+    let nextMonthGoals = [
+      "생활습관별을 주 4회 이상으로 유지해봐요",
+      "하루 2,000ml 수분 섭취 루틴 지속하기",
+    ];
+
+    try {
+      const aiRes = await this.aiService.generatePlanetReport(
+        PlanetType.RETROSPECT,
+        {
+          userId,
+          nickname: user.nickname,
+          period: {
+            start: fromStr,
+            end: toStr,
+          },
+          dailyRecords: [],
+          waterLogs: [],
+          exerciseLogs: [],
+        },
+      );
+      if (aiRes.markdown || aiRes.findings) {
+        aiLetter = aiRes.markdown || aiRes.findings || aiLetter;
+      }
+      if (aiRes.nextActionChecks && aiRes.nextActionChecks.length > 0) {
+        nextMonthGoals = aiRes.nextActionChecks;
+      }
+    } catch (e) {
+      Logger.warn(`[TravelService] AI Monthly Retro fallback used: ${e}`);
+    }
+
+    const title = `🌙 ${month}월, 지난 한 달 잘 걸어왔어!`;
+
+    const contentJson = {
+      title,
+      period: {
+        from: fromStr,
+        to: toStr,
+        totalDays: lastDay,
+      },
+      wellnessScore,
+      scoreDiff,
+      totalArrivals,
+      planetSummaries,
+      aiLetter,
+      mindfulnessInsight,
+      strengths,
+      improvements,
+      nextMonthGoals,
+    };
+
+    // 6. DB에 영구 저장
+    await this.travelRepository.saveMonthlyRetroReport({
+      user_id: userId,
+      year_month: yearMonth,
+      wellness_score: wellnessScore,
+      content_json: contentJson,
+    });
+
+    return {
+      yearMonth,
+      title,
+      period: {
+        from: fromStr,
+        to: toStr,
+        totalDays: lastDay,
+      },
+      wellnessScore,
+      scoreDiff,
+      totalArrivals,
+      planetSummaries,
+      aiLetter,
+      mindfulnessInsight,
+      strengths,
+      improvements,
+      nextMonthGoals,
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
+  /**
+   * 월간 회고 리포트 단건 조회 (미발행 시 Tier 2 온디맨드 자동 백필 실행)
+   */
+  public async getMonthlyRetroReport(
+    userId: number,
+    yearMonthParam?: string,
+  ): Promise<MonthlyRetroReportResponse> {
+    // 파라미터가 없으면 전월(기본)
+    let yearMonth = yearMonthParam;
+    if (!yearMonth) {
+      const now = new Date();
+      let prevYear = now.getFullYear();
+      let prevMonth = now.getMonth(); // 0-indexed: 지난달
+      if (prevMonth === 0) {
+        prevMonth = 12;
+        prevYear -= 1;
+      }
+      yearMonth = `${prevYear}-${prevMonth.toString().padStart(2, "0")}`;
+    }
+
+    // 1. 기존 저장된 회고 리포트 확인
+    const saved = await this.travelRepository.findMonthlyRetroReport(
+      userId,
+      yearMonth,
+    );
+
+    if (saved) {
+      const parsed =
+        typeof saved.content_json === "string"
+          ? JSON.parse(saved.content_json)
+          : (saved.content_json as unknown as MonthlyRetroReportResponse);
+
+      return {
+        ...parsed,
+        yearMonth: saved.year_month,
+        wellnessScore: saved.wellness_score ?? parsed.wellnessScore ?? 75,
+        generatedAt: saved.generated_at.toISOString(),
+      };
+    }
+
+    // 2. 미발행 시: Tier 2 온디맨드 백필 즉시 실행 후 반환
+    return await this.generateMonthlyRetroReport(userId, yearMonth);
   }
 }

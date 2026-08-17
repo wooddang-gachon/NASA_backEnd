@@ -433,6 +433,115 @@ components:
         - code
       type: object
       additionalProperties: false
+    MonthlyPlanetSummary:
+      properties:
+        planetId:
+          anyOf:
+            - type: string
+            - type: string
+              enum:
+                - meal
+                - water
+                - emotion
+                - habit
+        planetName:
+          type: string
+        arrivals:
+          type: number
+          format: double
+      required:
+        - planetId
+        - planetName
+        - arrivals
+      type: object
+      additionalProperties: false
+    MonthlyRetroReportResponse:
+      properties:
+        yearMonth:
+          type: string
+        title:
+          type: string
+        period:
+          properties:
+            totalDays:
+              type: number
+              format: double
+            to:
+              type: string
+            from:
+              type: string
+          required:
+            - totalDays
+            - to
+            - from
+          type: object
+        wellnessScore:
+          type: number
+          format: double
+        scoreDiff:
+          type: number
+          format: double
+        totalArrivals:
+          type: number
+          format: double
+        planetSummaries:
+          items:
+            $ref: "#/components/schemas/MonthlyPlanetSummary"
+          type: array
+        aiLetter:
+          type: string
+        mindfulnessInsight:
+          type: string
+          nullable: true
+        strengths:
+          items:
+            type: string
+          type: array
+        improvements:
+          items:
+            type: string
+          type: array
+        nextMonthGoals:
+          items:
+            type: string
+          type: array
+        generatedAt:
+          type: string
+      required:
+        - yearMonth
+        - title
+        - period
+        - wellnessScore
+        - scoreDiff
+        - totalArrivals
+        - planetSummaries
+        - aiLetter
+        - strengths
+        - improvements
+        - nextMonthGoals
+        - generatedAt
+      type: object
+      additionalProperties: false
+    ApiResponse_MonthlyRetroReportResponse_:
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          allOf:
+            - $ref: "#/components/schemas/MonthlyRetroReportResponse"
+          nullable: true
+        code:
+          type: number
+          format: double
+      required:
+        - success
+        - message
+        - data
+        - code
+      type: object
+      additionalProperties: false
     CalorieTrendItem:
       properties:
         date:
@@ -1306,6 +1415,29 @@ paths:
         - description: 리포트 식별자 (arrive 호출 시 발급받은 reportId)
           in: path
           name: reportId
+          required: true
+          schema:
+            type: string
+  /planet-travel/reports/monthly/{yearMonth}:
+    get:
+      operationId: GetMonthlyRetroReport
+      responses:
+        "200":
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse_MonthlyRetroReportResponse_"
+      description: 🌙 회고별 월간 종합 리포트 조회 (미발행 시 Tier 2 온디맨드 자동 백필 실행)
+      summary: 🌙 회고별 월간 종합 리포트 조회
+      tags:
+        - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
+      security:
+        - jwt: []
+      parameters:
+        - description: '조회 년월 (예: "2026-07")'
+          in: path
+          name: yearMonth
           required: true
           schema:
             type: string

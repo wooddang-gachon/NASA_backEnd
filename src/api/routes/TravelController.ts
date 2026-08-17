@@ -12,6 +12,7 @@ import {
   StarTravelArriveRequest,
   StarTravelArriveResponse,
   UnifiedPlanetReportResponse,
+  MonthlyRetroReportResponse,
 } from "../../dto";
 
 @Service()
@@ -91,6 +92,25 @@ export class TravelController extends BaseController {
       this.getUserId(request),
     );
     return this.success(result, "별여행 리포트 조회가 완료되었습니다.");
+  }
+
+  /**
+   * 🌙 회고별 월간 종합 리포트 조회 (미발행 시 Tier 2 온디맨드 자동 백필 실행)
+   * @param yearMonth 조회 년월 (예: "2026-07")
+   * @param request
+   * @summary 🌙 회고별 월간 종합 리포트 조회
+   */
+  @Get("planet-travel/reports/monthly/{yearMonth}")
+  @Security("jwt")
+  public async getMonthlyRetroReport(
+    @Path() yearMonth: string,
+    @Request() request: AuthenticatedRequest,
+  ): Promise<ApiResponse<MonthlyRetroReportResponse>> {
+    const result = await this.travelService.getMonthlyRetroReport(
+      this.getUserId(request),
+      yearMonth,
+    );
+    return this.success(result, "월간 회고 리포트 조회가 완료되었습니다.");
   }
 
   /**

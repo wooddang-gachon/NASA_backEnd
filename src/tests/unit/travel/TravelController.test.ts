@@ -148,4 +148,29 @@ describe("TravelController", () => {
       );
     });
   });
+
+  describe("getMonthlyRetroReport", () => {
+    it("should return monthly retro report", async () => {
+      const mockResult = {
+        yearMonth: "2026-07",
+        title: "7월 회고",
+        wellnessScore: 78,
+      } as never;
+      mockTravelService.getMonthlyRetroReport.mockResolvedValue(mockResult);
+
+      const request = {} as never;
+      await controller.getMonthlyRetroReport("2026-07", request);
+
+      expect(mockTravelService.getMonthlyRetroReport).toHaveBeenCalledWith(
+        1,
+        "2026-07",
+      );
+      expect(
+        (controller as unknown as { success: jest.Mock }).success,
+      ).toHaveBeenCalledWith(
+        mockResult,
+        "월간 회고 리포트 조회가 완료되었습니다.",
+      );
+    });
+  });
 });

@@ -408,4 +408,180 @@ export default class TravelRepository extends BaseRepository<
       },
     });
   }
+
+  /**
+   * 특정 년월(YYYY-MM)의 월간 회고 리포트 조회
+   */
+  public async findMonthlyRetroReport(userId: number, yearMonth: string) {
+    const prisma = getPrisma();
+    return prisma.monthly_retro_reports.findUnique({
+      where: {
+        user_id_year_month: {
+          user_id: userId,
+          year_month: yearMonth,
+        },
+      },
+    });
+  }
+
+  /**
+   * 이전 달의 월간 회고 리포트 조회 (점수 증감 계산용)
+   */
+  public async findPreviousMonthlyRetroReport(
+    userId: number,
+    currentYearMonth: string,
+  ) {
+    const prisma = getPrisma();
+    const [yearStr, monthStr] = currentYearMonth.split("-");
+    let prevYear = parseInt(yearStr || "2026", 10);
+    let prevMonth = parseInt(monthStr || "1", 10) - 1;
+    if (prevMonth === 0) {
+      prevMonth = 12;
+      prevYear -= 1;
+    }
+    const prevYearMonth = `${prevYear}-${prevMonth.toString().padStart(2, "0")}`;
+
+    return prisma.monthly_retro_reports.findUnique({
+      where: {
+        user_id_year_month: {
+          user_id: userId,
+          year_month: prevYearMonth,
+        },
+      },
+    });
+  }
+
+  /**
+   * 월간 회고 리포트 저장 (upsert)
+   */
+  public async saveMonthlyRetroReport(data: {
+    user_id: number;
+    year_month: string;
+    wellness_score: number;
+    content_json: object;
+  }) {
+    const prisma = getPrisma();
+    return prisma.monthly_retro_reports.upsert({
+      where: {
+        user_id_year_month: {
+          user_id: data.user_id,
+          year_month: data.year_month,
+        },
+      },
+      update: {
+        wellness_score: data.wellness_score,
+        content_json:
+          data.content_json as unknown as import("@prisma/client").Prisma.InputJsonValue,
+        generated_at: new Date(),
+      },
+      create: {
+        user_id: data.user_id,
+        year_month: data.year_month,
+        wellness_score: data.wellness_score,
+        content_json:
+          data.content_json as unknown as import("@prisma/client").Prisma.InputJsonValue,
+      },
+    });
+  }
+
+  /**
+   * 월간 기간 동안의 행성별 도착 횟수 및 활동 로그 집계
+   */
+  public async getMonthlyAggregation(
+    userId: number,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    const prisma = getPrisma();
+
+    // 1. 해당 월에 완료된 행성별 도착 횟수 카운트
+    const reports = await prisma.planet_reports.findMany({
+      where: {
+        user_id: userId,
+        created_at: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        planet_id: true,
+      },
+    });
+
+    const arrivals: Record<string, number> = {
+      meal: 0,
+      water: 0,
+      emotion: 0,
+      habit: 0,
+    };
+
+    for (const r of reports) {
+      const pid = r.planet_id.toLowerCase();
+      if (arrivals[pid] !== undefined) {
+        arrivals[pid] += 1;
+      }
+    }
+
+    // 2. 활동 로그 원본 카운트
+    const mealCount = await prisma.meals.count({
+      where: {
+        user_id: userId,
+        registered_at: { gte: startDate, lte: endDate },
+      },
+    });
+
+    const waterLogs = await prisma.quick_logs.findMany({
+      where: {
+        user_id: userId,
+        category: "WATER",
+        created_at: { gte: startDate, lte: endDate },
+      },
+    });
+    const totalWaterMl = waterLogs.reduce(
+      (acc, cur) => acc + (cur.amount || 250),
+      0,
+    );
+
+    const emotionLogs = await prisma.quick_logs.count({
+      where: {
+        user_id: userId,
+        category: { in: ["EMOTION", "JOURNAL"] },
+        created_at: { gte: startDate, lte: endDate },
+      },
+    });
+
+    const exerciseLogs = await prisma.quick_logs.findMany({
+      where: {
+        user_id: userId,
+        category: "EXERCISE",
+        created_at: { gte: startDate, lte: endDate },
+      },
+    });
+    const totalExerciseMinutes = exerciseLogs.reduce(
+      (acc, cur) => acc + (cur.duration_minutes || 0),
+      0,
+    );
+
+    return {
+      arrivals,
+      mealCount,
+      totalWaterMl,
+      waterLogCount: waterLogs.length,
+      emotionCount: emotionLogs,
+      exerciseCount: exerciseLogs.length,
+      totalExerciseMinutes,
+    };
+  }
+
+  /**
+   * 모든 활성 사용자 ID 목록 조회 (월간 배치용)
+   */
+  public async findAllActiveUserIds(): Promise<number[]> {
+    const prisma = getPrisma();
+    const users = await prisma.users.findMany({
+      where: { status: "ACTIVE" },
+      select: { id: true },
+    });
+    return users.map((u) => u.id);
+  }
 }
