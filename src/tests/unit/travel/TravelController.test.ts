@@ -78,7 +78,8 @@ describe("TravelController", () => {
         status: "ARRIVED" as const,
         resetFuel: 10,
         resetDistance: 100,
-        reportGeneration: { jobId: "job_1", status: "PENDING" as const },
+        reportId: "rpt_1",
+        reportStatus: "PENDING" as const,
       };
       mockTravelService.arriveStarTravel.mockResolvedValue(mockResult);
 
@@ -91,6 +92,42 @@ describe("TravelController", () => {
       expect(
         (controller as unknown as { success: jest.Mock }).success,
       ).toHaveBeenCalledWith(mockResult, "별여행 도착 처리가 완료되었습니다.");
+    });
+  });
+
+  describe("getPlanetReport", () => {
+    it("should return unified planet report", async () => {
+      const mockResult = {
+        reportId: "rpt_1",
+        status: "COMPLETED" as const,
+        progressPercent: 100,
+        report: {
+          reportId: "rpt_1",
+          planetId: "water",
+          tripNumber: 1,
+          headline: "Test headline",
+          summary: "Test summary",
+          recommendations: ["rec1"],
+          tammyMotion: "BOUNCE",
+          periodDays: 3,
+          createdAt: new Date().toISOString(),
+        },
+      };
+      mockTravelService.getUnifiedPlanetReport.mockResolvedValue(mockResult);
+
+      const request = {} as never;
+      await controller.getPlanetReport("rpt_1", request);
+
+      expect(mockTravelService.getUnifiedPlanetReport).toHaveBeenCalledWith(
+        "rpt_1",
+        1,
+      );
+      expect(
+        (controller as unknown as { success: jest.Mock }).success,
+      ).toHaveBeenCalledWith(
+        mockResult,
+        "별여행 리포트 조회가 완료되었습니다.",
+      );
     });
   });
 

@@ -14,6 +14,7 @@ import {
   StarTravelDepartResponse,
   StarTravelArriveRequest,
   StarTravelArriveResponse,
+  UnifiedPlanetReportResponse,
 } from "../dto";
 import { TravelMapper } from "../mappers";
 import { reportQueue } from "../utils/asyncQueue";
@@ -314,13 +315,14 @@ export default class TravelService {
       throw err;
     }
 
-    const jobId = `rpt_job_${Date.now()}_${userId}`;
+    const reportId = `rpt_${Date.now()}_${userId}`;
 
-    reportQueue.enqueue(jobId, async () => {
+    reportQueue.enqueue(reportId, async () => {
       return await this.generateStarPlanetReport(
         userId,
         data.planetId,
         arriveResult.progress.trip_count,
+        reportId,
       );
     });
 
@@ -329,10 +331,8 @@ export default class TravelService {
       status: "ARRIVED",
       resetFuel: arriveResult.currentFuel,
       resetDistance: 100,
-      reportGeneration: {
-        jobId,
-        status: "PENDING",
-      },
+      reportId,
+      reportStatus: "PENDING",
     };
   }
 
@@ -343,6 +343,7 @@ export default class TravelService {
     userId: number,
     planetId: string,
     tripNumber: number,
+    presetReportId?: string,
   ) {
     Logger.info(
       `[TravelService] Generating Star Planet Report for user ${userId}, planet: ${planetId}`,
@@ -350,7 +351,7 @@ export default class TravelService {
     const user = await this.travelRepository.findUserById(userId);
     if (!user) throw new UserNotFoundError(userId);
 
-    const reportUuid = `rpt_${Date.now()}_${userId}`;
+    const reportUuid = presetReportId || `rpt_${Date.now()}_${userId}`;
     const periodFrom = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     const periodTo = new Date();
 
@@ -442,61 +443,69 @@ export default class TravelService {
   }
 
   /**
-   * ID 기반 탐사 결과(TravelResult/Report) 상세 조회
+   * 단일 통합 별여행 리포트 조회 (생성 중 상태 또는 완성된 리포트 내용 반환)
    */
-  public async getTravelResultById(travelResultId: string, userId: number) {
+  public async getUnifiedPlanetReport(
+    reportId: string,
+    userId: number,
+  ): Promise<UnifiedPlanetReportResponse> {
     const report = await this.travelRepository.findPlanetReportByUuid(
-      travelResultId,
+      reportId,
       userId,
     );
 
     if (report) {
+      const parsedRecommendations = report.recommendations
+        ? typeof report.recommendations === "string"
+          ? JSON.parse(report.recommendations)
+          : (report.recommendations as string[])
+        : ["매일 규칙적인 기록 이어가기"];
+
+      const parsedStats = report.stats
+        ? typeof report.stats === "string"
+          ? JSON.parse(report.stats)
+          : (report.stats as Record<string, unknown>)
+        : null;
+
+      const parsedActivity = report.activity_breakdown
+        ? typeof report.activity_breakdown === "string"
+          ? JSON.parse(report.activity_breakdown)
+          : (report.activity_breakdown as Record<string, unknown>)
+        : null;
+
       return {
-        id: report.report_uuid,
         reportId: report.report_uuid,
-        travelResultId: report.report_uuid,
-        userId: report.user_id,
-        planetType:
-          (report.planet_id.toUpperCase() as PlanetType) || PlanetType.MEAL,
-        title: report.headline,
-        summaryContent: report.summary,
-        recommendations: report.recommendations
-          ? typeof report.recommendations === "string"
-            ? JSON.parse(report.recommendations)
-            : report.recommendations
-          : ["매일 규칙적인 기록 이어가기"],
-        createdAt: report.created_at.toISOString(),
+        status: "COMPLETED",
+        progressPercent: 100,
+        report: {
+          reportId: report.report_uuid,
+          planetId: report.planet_id,
+          tripNumber: report.trip_number,
+          headline: report.headline,
+          summary: report.summary,
+          mindfulnessFeedback: report.mindfulness_feedback,
+          recommendations: parsedRecommendations,
+          wellnessScore: report.wellness_score,
+          stats: parsedStats,
+          activityBreakdown: parsedActivity,
+          tammyMotion: report.tammy_motion,
+          periodDays: report.period_days,
+          createdAt: report.created_at.toISOString(),
+        },
       };
     }
 
-    return {
-      id: travelResultId,
-      reportId: travelResultId,
-      travelResultId: travelResultId,
-      userId,
-      planetType: PlanetType.MEAL,
-      title: "별여행 탐사 결과 진단서 🌟",
-      summaryContent:
-        "이번 여행 동안 꾸준하게 기록을 이어갔어요. 타미와 함께 앞으로도 건강한 습관을 만들어가요!",
-      recommendations: ["매일 규칙적인 기록 이어가기"],
-      createdAt: new Date().toISOString(),
-    };
-  }
-
-  /**
-   * 리포트 조회
-   */
-  public async getStarPlanetReportByUuid(reportUuid: string, userId: number) {
-    const report = await this.travelRepository.findPlanetReportByUuid(
-      reportUuid,
-      userId,
-    );
-    if (!report) {
-      throw new NotFoundError("요청하신 별여행 리포트를 찾을 수 없습니다.");
+    const job = reportQueue.getJob(reportId);
+    if (job) {
+      return {
+        reportId,
+        status: job.status as
+          "PENDING" | "PROCESSING" | "IN_PROGRESS" | "COMPLETED" | "FAILED",
+        progressPercent: job.progressPercent,
+        error: job.error,
+      };
     }
-    return {
-      ...report,
-      id: report.id.toString(),
-    };
+
+    throw new NotFoundError("요청하신 별여행 리포트를 찾을 수 없습니다.");
   }
 }

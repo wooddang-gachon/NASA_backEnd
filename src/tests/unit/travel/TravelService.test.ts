@@ -4,7 +4,11 @@ import AiService from "../../../services/aiService";
 import TravelRepository from "../../../repositories/TravelRepository";
 import UserRepository from "../../../repositories/UserRepository";
 import { Container } from "typedi";
-import { UserNotFoundError, BadRequestError } from "../../../errors";
+import {
+  UserNotFoundError,
+  BadRequestError,
+  NotFoundError,
+} from "../../../errors";
 import { PlanetType } from "../../../interfaces/enums";
 
 jest.mock("../../../services/aiService");
@@ -133,7 +137,43 @@ describe("TravelService", () => {
       expect(result.planetId).toBe("water");
       expect(result.status).toBe("ARRIVED");
       expect(result.resetDistance).toBe(100);
-      expect(result.reportGeneration.jobId).toBeDefined();
+      expect(result.reportId).toBeDefined();
+      expect(result.reportStatus).toBe("PENDING");
+    });
+  });
+
+  describe("getUnifiedPlanetReport", () => {
+    it("should return COMPLETED report from DB if exists", async () => {
+      mockTravelRepository.findPlanetReportByUuid.mockResolvedValue({
+        report_uuid: "rpt_1",
+        user_id: 1,
+        planet_id: "water",
+        trip_number: 1,
+        headline: "Test headline",
+        summary: "Test summary",
+        mindfulness_feedback: null,
+        recommendations: JSON.stringify(["rec1"]),
+        wellness_score: null,
+        stats: JSON.stringify({ count: 20 }),
+        activity_breakdown: null,
+        tammy_motion: "BOUNCE",
+        period_days: 3,
+        created_at: new Date(),
+      } as never);
+
+      const res = await travelService.getUnifiedPlanetReport("rpt_1", 1);
+      expect(res.status).toBe("COMPLETED");
+      expect(res.progressPercent).toBe(100);
+      expect(res.report?.headline).toBe("Test headline");
+      expect(res.report?.recommendations).toEqual(["rec1"]);
+    });
+
+    it("should throw NotFoundError if report not found in DB or queue", async () => {
+      mockTravelRepository.findPlanetReportByUuid.mockResolvedValue(null);
+
+      await expect(
+        travelService.getUnifiedPlanetReport("non_existent", 1),
+      ).rejects.toThrow(NotFoundError);
     });
   });
 

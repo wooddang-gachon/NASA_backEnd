@@ -118,10 +118,32 @@ export interface StarTravelArriveResponse {
   status: "ARRIVED";
   resetFuel: number;
   resetDistance: number;
-  reportGeneration: {
-    jobId: string;
-    status: "PENDING" | "PROCESSING" | "COMPLETED";
-  };
+  reportId: string;
+  reportStatus: "PENDING" | "PROCESSING" | "COMPLETED";
+}
+
+export interface PlanetReportDetail {
+  reportId: string;
+  planetId: string;
+  tripNumber: number;
+  headline: string;
+  summary: string;
+  mindfulnessFeedback?: string | null;
+  recommendations: string[];
+  wellnessScore?: number | null;
+  stats?: Record<string, unknown> | null;
+  activityBreakdown?: Record<string, unknown> | null;
+  tammyMotion: string;
+  periodDays: number;
+  createdAt: string;
+}
+
+export interface UnifiedPlanetReportResponse {
+  reportId: string;
+  status: "PENDING" | "PROCESSING" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+  progressPercent: number;
+  report?: PlanetReportDetail | null;
+  error?: string | null;
 }
 
 export interface CommonGaugeResult {

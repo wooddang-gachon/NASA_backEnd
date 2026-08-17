@@ -12,6 +12,8 @@ async function main() {
   await prisma.meal_images.deleteMany();
   await prisma.meals.deleteMany();
   await prisma.planet_travels.deleteMany();
+  await prisma.food_mappings.deleteMany();
+  await prisma.foods.deleteMany();
   console.log("🧹 Cleared existing transactional seed data.");
 
   // 1. 테스트 사용자 생성 (users)
@@ -111,7 +113,7 @@ async function main() {
 
   for (const item of yoloFoods) {
     const createdFood = await prisma.foods.upsert({
-      where: { id: item.id },
+      where: { name: item.name },
       update: item,
       create: item,
     });
@@ -124,10 +126,9 @@ async function main() {
   }
 
   const food1 = await prisma.foods.upsert({
-    where: { id: 1 },
-    update: { name: "연어 샐러드", calories_kcal: 380 },
+    where: { name: "연어 샐러드" },
+    update: { calories_kcal: 380 },
     create: {
-      id: 1,
       name: "연어 샐러드",
       standard_serving_g: 250,
       calories_kcal: 380,
@@ -138,10 +139,9 @@ async function main() {
   });
 
   const food2 = await prisma.foods.upsert({
-    where: { id: 2 },
-    update: { name: "닭가슴살 아보카도 샌드위치", calories_kcal: 450 },
+    where: { name: "닭가슴살 아보카도 샌드위치" },
+    update: { calories_kcal: 450 },
     create: {
-      id: 2,
       name: "닭가슴살 아보카도 샌드위치",
       standard_serving_g: 200,
       calories_kcal: 450,

@@ -275,26 +275,21 @@ components:
         resetDistance:
           type: number
           format: double
-        reportGeneration:
-          properties:
-            status:
-              type: string
-              enum:
-                - PENDING
-                - PROCESSING
-                - COMPLETED
-            jobId:
-              type: string
-          required:
-            - status
-            - jobId
-          type: object
+        reportId:
+          type: string
+        reportStatus:
+          type: string
+          enum:
+            - PENDING
+            - PROCESSING
+            - COMPLETED
       required:
         - planetId
         - status
         - resetFuel
         - resetDistance
-        - reportGeneration
+        - reportId
+        - reportStatus
       type: object
       additionalProperties: false
     ApiResponse_StarTravelArriveResponse_:
@@ -334,78 +329,91 @@ components:
         - planetId
       type: object
       additionalProperties: false
-    ApiResponse__jobId-string--status-string--travelResultId_63_-string--reportId_63_-string--progressPercent-number--error_63_-string__:
-      properties:
-        success:
-          type: boolean
-        message:
-          type: string
-        data:
-          properties:
-            error:
-              type: string
-            progressPercent:
-              type: number
-              format: double
-            reportId:
-              type: string
-            travelResultId:
-              type: string
-            status:
-              type: string
-            jobId:
-              type: string
-          required:
-            - progressPercent
-            - status
-            - jobId
-          type: object
-          nullable: true
-        code:
-          type: number
-          format: double
-      required:
-        - success
-        - message
-        - data
-        - code
+    Record_string.unknown_:
+      properties: {}
+      additionalProperties: {}
       type: object
-      additionalProperties: false
-    TravelResultDetailInfo:
+      description: Construct a type with a set of properties K of type T
+    PlanetReportDetail:
       properties:
         reportId:
-          anyOf:
-            - type: string
-            - type: number
-              format: double
-        travelResultId:
-          anyOf:
-            - type: string
-            - type: number
-              format: double
-        userId:
+          type: string
+        planetId:
+          type: string
+        tripNumber:
           type: number
           format: double
-        title:
+        headline:
           type: string
-        summaryContent:
+        summary:
           type: string
+        mindfulnessFeedback:
+          type: string
+          nullable: true
         recommendations:
           items:
             type: string
           type: array
+        wellnessScore:
+          type: number
+          format: double
+          nullable: true
+        stats:
+          allOf:
+            - $ref: "#/components/schemas/Record_string.unknown_"
+          nullable: true
+        activityBreakdown:
+          allOf:
+            - $ref: "#/components/schemas/Record_string.unknown_"
+          nullable: true
+        tammyMotion:
+          type: string
+        periodDays:
+          type: number
+          format: double
         createdAt:
-          anyOf:
-            - type: string
-            - type: string
-              format: date-time
+          type: string
       required:
-        - title
-        - summaryContent
+        - reportId
+        - planetId
+        - tripNumber
+        - headline
+        - summary
         - recommendations
+        - tammyMotion
+        - periodDays
+        - createdAt
       type: object
       additionalProperties: false
-    ApiResponse_TravelResultDetailInfo_:
+    UnifiedPlanetReportResponse:
+      properties:
+        reportId:
+          type: string
+        status:
+          type: string
+          enum:
+            - PENDING
+            - PROCESSING
+            - IN_PROGRESS
+            - COMPLETED
+            - FAILED
+        progressPercent:
+          type: number
+          format: double
+        report:
+          allOf:
+            - $ref: "#/components/schemas/PlanetReportDetail"
+          nullable: true
+        error:
+          type: string
+          nullable: true
+      required:
+        - reportId
+        - status
+        - progressPercent
+      type: object
+      additionalProperties: false
+    ApiResponse_UnifiedPlanetReportResponse_:
       properties:
         success:
           type: boolean
@@ -413,7 +421,7 @@ components:
           type: string
         data:
           allOf:
-            - $ref: "#/components/schemas/TravelResultDetailInfo"
+            - $ref: "#/components/schemas/UnifiedPlanetReportResponse"
           nullable: true
         code:
           type: number
@@ -1278,49 +1286,26 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/StarTravelArriveRequest"
-  /reports/jobs/{jobId}:
+  /planet-travel/reports/{reportId}:
     get:
-      operationId: GetReportJobStatus
+      operationId: GetPlanetReport
       responses:
         "200":
           description: Ok
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiResponse__jobId-string--status-string--travelRes\
-                  ultId_63_-string--reportId_63_-string--progressPercent-number\
-                  --error_63_-string__"
-      description: 비동기 리포트 생성 작업 진행 상태 조회
-      summary: 비동기 리포트 작업 상태 조회
+                $ref: "#/components/schemas/ApiResponse_UnifiedPlanetReportResponse_"
+      description: 별여행 AI 리포트 통합 단일 조회 (생성 진행 중 상태 및 완성된 8블록 상세 리포트 반환)
+      summary: 별여행 AI 리포트 단일 통합 조회
       tags:
         - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
       security:
         - jwt: []
       parameters:
-        - in: path
-          name: jobId
-          required: true
-          schema:
-            type: string
-  /travel-results/{travelResultId}:
-    get:
-      operationId: GetTravelResult
-      responses:
-        "200":
-          description: Ok
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ApiResponse_TravelResultDetailInfo_"
-      description: 행성 탐사 완료 후 생성된 AI 별여행 탐사 결과 진단서(travelResult)의 상세 보고서 내용을 조회합니다.
-      summary: AI 별여행 탐사 결과 진단서 상세 조회
-      tags:
-        - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
-      security:
-        - jwt: []
-      parameters:
-        - in: path
-          name: travelResultId
+        - description: 리포트 식별자 (arrive 호출 시 발급받은 reportId)
+          in: path
+          name: reportId
           required: true
           schema:
             type: string
@@ -1341,23 +1326,6 @@ paths:
       security:
         - jwt: []
       parameters: []
-  /reports/sse/{jobId}:
-    get:
-      operationId: GetReportSSE
-      responses:
-        "204":
-          description: No content
-      description: 비동기 리포트 작업의 진행 상황을 Server-Sent Events(SSE)로 실시간 푸시합니다.
-      summary: 비동기 리포트 생성 실시간 상태 조회 (SSE)
-      tags:
-        - 6. PlanetTravel - 별여행 게이미피케이션 탐사 & 진단서
-      security: []
-      parameters:
-        - in: path
-          name: jobId
-          required: true
-          schema:
-            type: string
   /quick-log:
     post:
       operationId: CreateQuickLog

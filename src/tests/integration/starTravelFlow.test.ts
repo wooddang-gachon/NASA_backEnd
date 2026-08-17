@@ -146,7 +146,19 @@ describe("Star Travel Two-Gauge E2E 플로우 통합 테스트", () => {
     expect(arriveRes.body.data.status).toBe("ARRIVED");
     expect(arriveRes.body.data.resetDistance).toBe(100);
     expect(arriveRes.body.data.resetFuel).toBe(10); // 여행 중 적립된 10 보존
-    expect(arriveRes.body.data.reportGeneration).toHaveProperty("jobId");
+    expect(arriveRes.body.data).toHaveProperty("reportId");
+
+    const reportId = arriveRes.body.data.reportId;
+
+    // 5단계: 단일 리포트 조회 API (GET /api/v1/planet-travel/reports/{reportId})
+    const reportRes = await request(app).get(
+      `/api/v1/planet-travel/reports/${reportId}`,
+    );
+    expect(reportRes.status).toBe(200);
+    expect(reportRes.body.success).toBe(true);
+    expect(["PENDING", "PROCESSING", "IN_PROGRESS", "COMPLETED"]).toContain(
+      reportRes.body.data.status,
+    );
 
     // 도착 후 최종 상태 검증
     const finalState = await request(app).get("/api/v1/planet-travel/state");
