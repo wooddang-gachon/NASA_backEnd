@@ -2203,6 +2203,37 @@
 				}
 			}
 		},
+		"/chat/stream": {
+			"post": {
+				"operationId": "StreamMessage",
+				"responses": {
+					"204": {
+						"description": "No content"
+					}
+				},
+				"description": "AI 버추얼 펫 타미(TAMMY)와 실시간 SSE 토큰 스트리밍 대화를 나눕니다.",
+				"summary": "AI 타미 실시간 SSE 스트리밍 대화",
+				"tags": [
+					"5. TammyChat - AI 타미 심리 공감 대화"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ChatMessageApiRequest"
+							}
+						}
+					}
+				}
+			}
+		},
 		"/chat/messages/{messageId}": {
 			"delete": {
 				"operationId": "DeleteMessage",

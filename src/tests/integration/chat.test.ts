@@ -54,6 +54,21 @@ describe("AI 타미 심리 공감 대화 API 통합 테스트 (CHT Module)", () 
       expect(res.status).toBe(400);
     });
 
+    it("[성공 사례] POST /api/chat/stream - 실시간 SSE 토큰 스트리밍 대화 수신", async () => {
+      const res = await request(app)
+        .post("/api/v1/chat/stream")
+        .set("Authorization", "Bearer mock_test_token")
+        .send({
+          messageText: "오늘 하루도 수고했어 타미야",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.headers["content-type"]).toContain("text/event-stream");
+      expect(res.text).toContain("event: start");
+      expect(res.text).toContain("event: token");
+      expect(res.text).toContain("event: complete");
+    });
+
     it("[성공 사례] POST /api/chat/messages/123/undo - 삭제 취소(Undo) 성공", async () => {
       const res = await request(app)
         .post("/api/v1/chat/messages/123/undo")

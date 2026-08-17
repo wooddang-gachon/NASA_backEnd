@@ -86,6 +86,32 @@ describe("ChatService", () => {
     });
   });
 
+  describe("streamChat", () => {
+    it("should stream tokens and return final response", async () => {
+      mockChatRepository.findUserById.mockResolvedValue({
+        nickname: "test",
+      } as never);
+      mockChatRepository.saveAiResponseAndFuelTransaction.mockResolvedValue({
+        tammyMsg: {} as never,
+        updatedUser: { current_fuel: 10 } as never,
+      });
+
+      mockAiService.processChat.mockResolvedValue({
+        replyText: "Hello world",
+        motionTag: "smile",
+      } as never);
+
+      const tokens: string[] = [];
+      const result = await chatService.streamChat(1, "Hi", (token) => {
+        tokens.push(token);
+      });
+
+      expect(result).toBeDefined();
+      expect(tokens.length).toBeGreaterThan(0);
+      expect(tokens.join("")).toBe("Hello world");
+    });
+  });
+
   describe("deleteMessage", () => {
     it("should update message deleted state to true", async () => {
       mockChatRepository.updateMessageDeletedState.mockResolvedValue(

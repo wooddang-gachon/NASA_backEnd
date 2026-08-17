@@ -32,6 +32,48 @@ export class ChatController extends BaseController {
   }
 
   /**
+   * AI 버추얼 펫 타미(TAMMY)와 실시간 SSE 토큰 스트리밍 대화를 나눕니다.
+   * @param request
+   * @param body
+   * @summary AI 타미 실시간 SSE 스트리밍 대화
+   */
+  @Post("stream")
+  @Security("jwt")
+  public async streamMessage(
+    @Request() request: AuthenticatedRequest,
+    @Body() body: ChatMessageApiRequest,
+  ): Promise<void> {
+    const res = request.res;
+    if (!res) throw new Error("Express Response 객체를 찾을 수 없습니다.");
+
+    const { initSSE, sendSSEEvent } = await import("../../utils/sseHelper");
+    initSSE(res);
+
+    sendSSEEvent(res, "start", { sender: "TAMMY", status: "STARTED" });
+
+    try {
+      const finalResult = await this.chatService.streamChat(
+        this.getUserId(request),
+        body.messageText,
+        (token: string) => {
+          sendSSEEvent(res, "token", { token });
+        },
+      );
+
+      sendSSEEvent(res, "complete", finalResult);
+      res.end();
+    } catch (err) {
+      sendSSEEvent(res, "error", {
+        message:
+          (err as Error).message || "스트리밍 대화 중 오류가 발생했습니다.",
+      });
+      res.end();
+    }
+
+    return new Promise(() => {});
+  }
+
+  /**
    * [3.4] 대화 메시지 소프트 삭제 API
    * @param request
    * @param messageId
