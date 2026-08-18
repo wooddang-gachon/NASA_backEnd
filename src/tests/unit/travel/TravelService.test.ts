@@ -409,10 +409,7 @@ describe("TravelService", () => {
         "#충분한수분섭취",
         "#꾸준한유산소",
       ]);
-      expect(res.improvements).toEqual([
-        "#주말수면패턴유지",
-        "#아침스트레칭",
-      ]);
+      expect(res.improvements).toEqual(["#주말수면패턴유지", "#아침스트레칭"]);
       expect(res.nextMonthGoals).toEqual(["매일 아침 스트레칭 10분"]);
       expect(mockTravelRepository.saveMonthlyRetroReport).toHaveBeenCalled();
     });
@@ -568,9 +565,8 @@ describe("TravelService", () => {
             emotionRecord: 1,
             diary: 1,
           }),
-          mindfulness_feedback: expect.stringContaining(
-            "안정적이고 긍정적인 감정 상태",
-          ),
+          mindfulness_feedback:
+            expect.stringContaining("안정적이고 긍정적인 감정 상태"),
         }),
       );
     });

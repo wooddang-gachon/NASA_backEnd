@@ -60,7 +60,11 @@ export function parseMonthlyRetroMarkdown(
   if (!aiLetter) {
     // 만약 ## 헤더가 없다면 전체 텍스트 또는 첫 번째 ## 이전의 텍스트
     const firstHeaderMatch = markdown.match(/(?:^|\n)##+/);
-    if (firstHeaderMatch && firstHeaderMatch.index && firstHeaderMatch.index > 0) {
+    if (
+      firstHeaderMatch &&
+      firstHeaderMatch.index &&
+      firstHeaderMatch.index > 0
+    ) {
       const leadingText = markdown.slice(0, firstHeaderMatch.index).trim();
       if (leadingText.length > 0) {
         aiLetter = leadingText;
@@ -86,7 +90,9 @@ export function parseMonthlyRetroMarkdown(
     // 1) 해시태그 매칭 (#태그명)
     const hashtagMatches = sectionRaw.match(/#[^\s#,\n]+/g);
     if (hashtagMatches && hashtagMatches.length > 0) {
-      return hashtagMatches.map((t) => (t.startsWith("#") ? t : `#${t}`)).slice(0, 5);
+      return hashtagMatches
+        .map((t) => (t.startsWith("#") ? t : `#${t}`))
+        .slice(0, 5);
     }
     // 2) 불릿 포인트 매칭 (- 항목, * 항목, 1. 항목)
     const lines = sectionRaw.split("\n");
@@ -95,7 +101,9 @@ export function parseMonthlyRetroMarkdown(
       const cleaned = line.replace(/^[\s*\-•\d.]+\s*/, "").trim();
       if (cleaned.length > 0) {
         // 해시태그 형식으로 변환
-        const formatted = cleaned.startsWith("#") ? cleaned : `#${cleaned.replace(/\s+/g, "")}`;
+        const formatted = cleaned.startsWith("#")
+          ? cleaned
+          : `#${cleaned.replace(/\s+/g, "")}`;
         listItems.push(formatted);
       }
     }
@@ -148,9 +156,12 @@ export function parseMonthlyRetroMarkdown(
   return {
     aiLetter: aiLetter || fallback.aiLetter,
     mindfulnessInsight: mindfulnessRaw || fallback.mindfulnessInsight,
-    strengths: parsedStrengths.length > 0 ? parsedStrengths : fallback.strengths,
+    strengths:
+      parsedStrengths.length > 0 ? parsedStrengths : fallback.strengths,
     improvements:
-      parsedImprovements.length > 0 ? parsedImprovements : fallback.improvements,
+      parsedImprovements.length > 0
+        ? parsedImprovements
+        : fallback.improvements,
     nextMonthGoals:
       parsedGoals.length > 0 ? parsedGoals : fallback.nextMonthGoals,
   };

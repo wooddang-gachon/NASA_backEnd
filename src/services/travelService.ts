@@ -25,6 +25,25 @@ import {
   RetroFallbackValues,
 } from "../utils/markdownParser";
 
+interface MealActivityItem {
+  id?: bigint | number;
+  meal_type?: string;
+  total_calories_kcal?: number;
+  registered_at?: Date;
+  meal_images?: Array<{ id?: bigint | number }>;
+  meal_items?: Array<{ custom_food_name?: string }>;
+}
+
+interface QuickLogActivityItem {
+  id?: bigint | number;
+  amount?: number | null;
+  duration_minutes?: number | null;
+  emotion_type?: string | null;
+  journal_content?: string | null;
+  category?: string;
+  created_at: Date;
+}
+
 @Service()
 export default class TravelService {
   @Inject(() => AiService)
@@ -368,7 +387,8 @@ export default class TravelService {
       habit: "생활습관별(코스믹 피트니스 행성)",
       lifestyle: "생활습관별(코스믹 피트니스 행성)",
     };
-    const planetDisplayName = planetNameMap[planetId.toLowerCase()] || `${planetId} 행성`;
+    const planetDisplayName =
+      planetNameMap[planetId.toLowerCase()] || `${planetId} 행성`;
 
     let headline = `${planetDisplayName} 탐사 여행, 잘 다녀왔어! 🌟`;
     let summary =
@@ -412,7 +432,7 @@ export default class TravelService {
       const avgCaloriesKcal =
         totalMeals > 0 ? Math.round(totalCaloriesKcal / totalMeals) : 0;
       const photoCount = meals.filter(
-        (m: any) => m.meal_images && m.meal_images.length > 0,
+        (m: MealActivityItem) => m.meal_images && m.meal_images.length > 0,
       ).length;
       const manualCount = Math.max(0, totalMeals - photoCount);
       stats = {
@@ -437,7 +457,8 @@ export default class TravelService {
           "",
         ) || "CALM";
       const diaryCount = emotionLogs.filter(
-        (e: any) => e.category === "JOURNAL" || e.journal_content,
+        (e: QuickLogActivityItem) =>
+          e.category === "JOURNAL" || e.journal_content,
       ).length;
       const emotionRecordCount = Math.max(0, totalActivities - diaryCount);
 
@@ -465,7 +486,9 @@ export default class TravelService {
         0,
       );
       const activeDays = new Set(
-        exerciseLogs.map((e: any) => new Date(e.created_at).toDateString()),
+        exerciseLogs.map((e: QuickLogActivityItem) =>
+          new Date(e.created_at).toDateString(),
+        ),
       ).size;
       stats = {
         totalActivities,
@@ -477,32 +500,38 @@ export default class TravelService {
 
     // 3. 실제 데이터를 바탕으로 AI 리포트 생성 요청
     try {
-      const dailyRecords = meals.map((m: any) => ({
+      const dailyRecords = meals.map((m: MealActivityItem) => ({
         mealId: m.id?.toString(),
         mealType: m.meal_type,
         calories: m.total_calories_kcal,
         registeredAt: m.registered_at,
-        foods: (m.meal_items || []).map((i: any) => i.custom_food_name),
+        foods: (m.meal_items || []).map(
+          (i: { custom_food_name?: string }) => i.custom_food_name,
+        ),
       }));
 
-      const waterLogsPayload = waterLogs.map((w: any) => ({
+      const waterLogsPayload = waterLogs.map((w: QuickLogActivityItem) => ({
         id: w.id?.toString(),
         amountMl: w.amount || 250,
         createdAt: w.created_at,
       }));
 
-      const exerciseLogsPayload = exerciseLogs.map((e: any) => ({
-        id: e.id?.toString(),
-        durationMinutes: e.duration_minutes || 0,
-        createdAt: e.created_at,
-      }));
+      const exerciseLogsPayload = exerciseLogs.map(
+        (e: QuickLogActivityItem) => ({
+          id: e.id?.toString(),
+          durationMinutes: e.duration_minutes || 0,
+          createdAt: e.created_at,
+        }),
+      );
 
-      const emotionLogsPayload = emotionLogs.map((em: any) => ({
-        id: em.id?.toString(),
-        emotionType: em.emotion_type,
-        journalContent: em.journal_content,
-        createdAt: em.created_at,
-      }));
+      const emotionLogsPayload = emotionLogs.map(
+        (em: QuickLogActivityItem) => ({
+          id: em.id?.toString(),
+          emotionType: em.emotion_type,
+          journalContent: em.journal_content,
+          createdAt: em.created_at,
+        }),
+      );
 
       const aiRes = await this.aiService.generatePlanetReport(
         (planetId.toUpperCase() as PlanetType) || PlanetType.MEAL,
@@ -786,32 +815,42 @@ export default class TravelService {
       };
 
       try {
-        const dailyRecords = (agg.recentMeals || []).map((m: any) => ({
-          mealId: m.id?.toString(),
-          mealType: m.meal_type,
-          calories: m.total_calories_kcal,
-          registeredAt: m.registered_at,
-          foods: (m.meal_items || []).map((i: any) => i.custom_food_name),
-        }));
+        const dailyRecords = (agg.recentMeals || []).map(
+          (m: MealActivityItem) => ({
+            mealId: m.id?.toString(),
+            mealType: m.meal_type,
+            calories: m.total_calories_kcal,
+            registeredAt: m.registered_at,
+            foods: (m.meal_items || []).map(
+              (i: { custom_food_name?: string }) => i.custom_food_name,
+            ),
+          }),
+        );
 
-        const waterLogs = (agg.recentWaterLogs || []).map((w: any) => ({
-          id: w.id?.toString(),
-          amountMl: w.amount || 250,
-          createdAt: w.created_at,
-        }));
+        const waterLogs = (agg.recentWaterLogs || []).map(
+          (w: QuickLogActivityItem) => ({
+            id: w.id?.toString(),
+            amountMl: w.amount || 250,
+            createdAt: w.created_at,
+          }),
+        );
 
-        const exerciseLogs = (agg.recentExerciseLogs || []).map((e: any) => ({
-          id: e.id?.toString(),
-          durationMinutes: e.duration_minutes || 0,
-          createdAt: e.created_at,
-        }));
+        const exerciseLogs = (agg.recentExerciseLogs || []).map(
+          (e: QuickLogActivityItem) => ({
+            id: e.id?.toString(),
+            durationMinutes: e.duration_minutes || 0,
+            createdAt: e.created_at,
+          }),
+        );
 
-        const emotionLogs = (agg.recentEmotionLogs || []).map((em: any) => ({
-          id: em.id?.toString(),
-          emotionType: em.emotion_type,
-          journalContent: em.journal_content,
-          createdAt: em.created_at,
-        }));
+        const emotionLogs = (agg.recentEmotionLogs || []).map(
+          (em: QuickLogActivityItem) => ({
+            id: em.id?.toString(),
+            emotionType: em.emotion_type,
+            journalContent: em.journal_content,
+            createdAt: em.created_at,
+          }),
+        );
 
         const summary = {
           totalDays: lastDay,

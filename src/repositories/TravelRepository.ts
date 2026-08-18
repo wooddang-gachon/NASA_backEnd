@@ -580,7 +580,10 @@ export default class TravelRepository extends BaseRepository<
 
     // 2. 활동 로그 원본 카운트 및 상세 로그
     const recentStartDate = new Date(
-      Math.max(startDate.getTime(), endDate.getTime() - 14 * 24 * 60 * 60 * 1000),
+      Math.max(
+        startDate.getTime(),
+        endDate.getTime() - 14 * 24 * 60 * 60 * 1000,
+      ),
     );
 
     const mealCount = await prisma.meals.count({
