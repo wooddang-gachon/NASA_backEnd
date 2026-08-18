@@ -44,11 +44,7 @@ sudo -u "$APP_USER" npm ci --omit=dev --no-audit --no-fund
 echo "==> Prisma Client 생성"
 sudo -u "$APP_USER" npx prisma generate
 
-echo "==> DB 마이그레이션 적용"
-# 릴리스에 담겨 온 prisma/migrations 중 아직 적용되지 않은 것만 반영합니다.
-# 적용할 게 없으면 아무 일도 하지 않으므로 매 배포마다 돌려도 안전합니다.
-# 여기서 실패하면 set -e 로 배포가 중단되고, 아래 재기동을 타지 않으므로
-# 기존 프로세스가 이전 코드를 그대로 서빙한 채 남습니다.
+echo "==> Prisma DB 마이그레이션 적용"
 sudo -u "$APP_USER" npx prisma migrate deploy
 
 echo "==> 앱 기동/재기동"

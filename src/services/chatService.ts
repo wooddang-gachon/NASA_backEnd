@@ -123,18 +123,13 @@ export default class ChatService {
       );
     }
 
-    const aiResult = await this.aiService.processChat(
+    const aiResult = await this.aiService.streamChat(
       userId,
       userMessage,
       user.nickname,
       history,
+      onToken,
     );
-
-    // 단어/토큰 단위 실시간 전송 시뮬레이션 (글자가 실시간으로 타자쳐지는 효과)
-    const replyWords = aiResult.replyText.split(/(\s+)/);
-    for (const word of replyWords) {
-      onToken(word);
-    }
 
     const gainedFuel = FUEL_REWARDS.CHAT;
     const { tammyMsg, updatedUser } =

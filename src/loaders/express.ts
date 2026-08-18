@@ -27,11 +27,7 @@ export default ({ app }: { app: express.Application }) => {
     res.status(200).end();
   });
 
-  const whitelist = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "https://nasa-wellness.com",
-  ];
+  const whitelist = config.cors.origins;
   const corsOptions = {
     origin: function (
       origin: string | undefined,

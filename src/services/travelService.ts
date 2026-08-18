@@ -20,6 +20,10 @@ import {
 } from "../dto";
 import { TravelMapper } from "../mappers";
 import { reportQueue } from "../utils/asyncQueue";
+import {
+  parseMonthlyRetroMarkdown,
+  RetroFallbackValues,
+} from "../utils/markdownParser";
 
 @Service()
 export default class TravelService {
@@ -357,14 +361,149 @@ export default class TravelService {
     const periodFrom = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     const periodTo = new Date();
 
-    let headline = `${planetId} 탐사 여행, 잘 다녀왔어! 🌟`;
+    const planetNameMap: Record<string, string> = {
+      meal: "식사별(비타민 에너제틱 행성)",
+      water: "수분별(아쿠아 웰니스 행성)",
+      emotion: "감정별(마인드 힐링 행성)",
+      habit: "생활습관별(코스믹 피트니스 행성)",
+      lifestyle: "생활습관별(코스믹 피트니스 행성)",
+    };
+    const planetDisplayName = planetNameMap[planetId.toLowerCase()] || `${planetId} 행성`;
+
+    let headline = `${planetDisplayName} 탐사 여행, 잘 다녀왔어! 🌟`;
     let summary =
       "이번 여행 동안 꾸준하게 기록을 이어갔어요. 타미와 함께 앞으로도 건강한 습관을 만들어가요!";
     let recommendations = ["매일 규칙적인 기록 이어가기"];
+    let mindfulnessFeedback: string | null = null;
+    let isFallback = false;
+
+    // 1. 탐사 기간 동안의 실제 활동 원천 데이터 조회
+    const { meals, waterLogs, exerciseLogs, emotionLogs } =
+      await this.travelRepository.getPlanetActivityData(
+        userId,
+        periodFrom,
+        periodTo,
+      );
+
+    // 2. 행성별 실제 통계(stats) 및 활동 분석(activityBreakdown) 동적 계산
     let stats: Record<string, unknown> = {};
     let activityBreakdown: Record<string, unknown> = {};
+    const normPlanetId = planetId.toLowerCase();
 
+    if (normPlanetId === "water") {
+      const totalIntakeCount = waterLogs.length;
+      const totalIntakeMl = waterLogs.reduce(
+        (acc, cur) => acc + (cur.amount || 250),
+        0,
+      );
+      const avgDailyIntakeMl = Math.round(totalIntakeMl / 3);
+      stats = {
+        totalIntakeCount,
+        totalIntakeMl,
+        avgDailyIntakeMl,
+      };
+      activityBreakdown = { waterLog: totalIntakeCount };
+    } else if (normPlanetId === "meal") {
+      const totalMeals = meals.length;
+      const totalCaloriesKcal = meals.reduce(
+        (acc, cur) => acc + (cur.total_calories_kcal || 0),
+        0,
+      );
+      const avgCaloriesKcal =
+        totalMeals > 0 ? Math.round(totalCaloriesKcal / totalMeals) : 0;
+      const photoCount = meals.filter(
+        (m: any) => m.meal_images && m.meal_images.length > 0,
+      ).length;
+      const manualCount = Math.max(0, totalMeals - photoCount);
+      stats = {
+        totalMeals,
+        avgCaloriesKcal,
+        totalCaloriesKcal,
+      };
+      activityBreakdown = {
+        photoAnalysis: photoCount,
+        manualLog: manualCount,
+      };
+    } else if (normPlanetId === "emotion") {
+      const totalActivities = emotionLogs.length;
+      const emotionFreq: Record<string, number> = {};
+      for (const log of emotionLogs) {
+        const emo = log.emotion_type || "CALM";
+        emotionFreq[emo] = (emotionFreq[emo] || 0) + 1;
+      }
+      const dominantEmotion =
+        Object.keys(emotionFreq).reduce(
+          (a, b) => ((emotionFreq[a] || 0) > (emotionFreq[b] || 0) ? a : b),
+          "",
+        ) || "CALM";
+      const diaryCount = emotionLogs.filter(
+        (e: any) => e.category === "JOURNAL" || e.journal_content,
+      ).length;
+      const emotionRecordCount = Math.max(0, totalActivities - diaryCount);
+
+      stats = {
+        totalActivities,
+        dominantEmotion,
+      };
+      activityBreakdown = {
+        emotionRecord: emotionRecordCount,
+        diary: diaryCount,
+      };
+
+      if (dominantEmotion === "STRESSED" || dominantEmotion === "ANGRY") {
+        mindfulnessFeedback =
+          "최근 스트레스나 긴장감이 있었지만, 꾸준한 기록과 호흡으로 마음을 잘 돌보고 있어요.";
+      } else {
+        mindfulnessFeedback =
+          "안정적이고 긍정적인 감정 상태를 잘 유지하고 있어요. 이 평온함을 계속 이어가 봐요.";
+      }
+    } else {
+      // habit / lifestyle
+      const totalActivities = exerciseLogs.length;
+      const totalMinutes = exerciseLogs.reduce(
+        (acc, cur) => acc + (cur.duration_minutes || 0),
+        0,
+      );
+      const activeDays = new Set(
+        exerciseLogs.map((e: any) => new Date(e.created_at).toDateString()),
+      ).size;
+      stats = {
+        totalActivities,
+        totalMinutes,
+        activeDays,
+      };
+      activityBreakdown = { exerciseLog: totalActivities };
+    }
+
+    // 3. 실제 데이터를 바탕으로 AI 리포트 생성 요청
     try {
+      const dailyRecords = meals.map((m: any) => ({
+        mealId: m.id?.toString(),
+        mealType: m.meal_type,
+        calories: m.total_calories_kcal,
+        registeredAt: m.registered_at,
+        foods: (m.meal_items || []).map((i: any) => i.custom_food_name),
+      }));
+
+      const waterLogsPayload = waterLogs.map((w: any) => ({
+        id: w.id?.toString(),
+        amountMl: w.amount || 250,
+        createdAt: w.created_at,
+      }));
+
+      const exerciseLogsPayload = exerciseLogs.map((e: any) => ({
+        id: e.id?.toString(),
+        durationMinutes: e.duration_minutes || 0,
+        createdAt: e.created_at,
+      }));
+
+      const emotionLogsPayload = emotionLogs.map((em: any) => ({
+        id: em.id?.toString(),
+        emotionType: em.emotion_type,
+        journalContent: em.journal_content,
+        createdAt: em.created_at,
+      }));
+
       const aiRes = await this.aiService.generatePlanetReport(
         (planetId.toUpperCase() as PlanetType) || PlanetType.MEAL,
         {
@@ -374,42 +513,27 @@ export default class TravelService {
             start: periodFrom.toISOString().split("T")[0] || "",
             end: periodTo.toISOString().split("T")[0] || "",
           },
-          dailyRecords: [],
-          waterLogs: [],
-          exerciseLogs: [],
+          summary: stats,
+          dailyRecords,
+          waterLogs: waterLogsPayload,
+          exerciseLogs: exerciseLogsPayload,
+          emotionLogs: emotionLogsPayload,
         },
       );
 
       if (aiRes.title) headline = aiRes.title;
       if (aiRes.markdown || aiRes.findings)
         summary = aiRes.markdown || aiRes.findings || summary;
-      if (aiRes.nextActionChecks) {
+      if (aiRes.nextActionChecks && aiRes.nextActionChecks.length > 0) {
         recommendations = Array.isArray(aiRes.nextActionChecks)
           ? aiRes.nextActionChecks
           : [aiRes.nextActionChecks];
       }
     } catch (e) {
+      isFallback = true;
       Logger.warn(
         `[TravelService] AI report generation failed, using fallback template: ${e}`,
       );
-    }
-
-    if (planetId === "water") {
-      stats = {
-        totalIntakeCount: 20,
-        totalIntakeMl: 5000,
-        avgDailyIntakeMl: 1000,
-      };
-      activityBreakdown = { waterLog: 20 };
-    } else if (planetId === "meal") {
-      stats = { totalMeals: 10, avgCaloriesKcal: 600 };
-      activityBreakdown = { photoAnalysis: 5, manualLog: 5 };
-    } else if (planetId === "emotion") {
-      stats = { totalActivities: 15, dominantEmotion: "HAPPY" };
-      activityBreakdown = { emotionRecord: 10, diary: 5 };
-    } else {
-      stats = { totalActivities: 10, totalMinutes: 200, activeDays: 5 };
-      activityBreakdown = { exerciseLog: 10 };
     }
 
     const savedReport = await this.travelRepository.savePlanetReport({
@@ -422,10 +546,7 @@ export default class TravelService {
       period_days: 3,
       headline,
       summary,
-      mindfulness_feedback:
-        planetId === "emotion"
-          ? "저녁 시간에 스트레스 표현이 다소 있었지만 산책을 통해 긍정적으로 회복했어요."
-          : null,
+      mindfulness_feedback: mindfulnessFeedback,
       recommendations: JSON.stringify(recommendations) as unknown as object,
       wellness_score: null,
       stats: JSON.stringify(stats) as unknown as object,
@@ -434,7 +555,7 @@ export default class TravelService {
       ) as unknown as object,
       tammy_motion: "BOUNCE",
       data_density: "normal",
-      is_fallback: false,
+      is_fallback: isFallback,
     });
 
     return {
@@ -631,39 +752,111 @@ export default class TravelService {
     );
 
     // 5. AI 종합 편지 및 피드백 생성
+    const isColdStart = (agg.totalActivityCount || 0) <= 3;
+
     let aiLetter = `${month}월, 지난 한 달 동안 꾸준하게 자신을 가꿔왔어요! 수분과 식사 습관이 자리를 잡은 게 이번 달 가장 큰 수확이에요. 🌟`;
-    const mindfulnessInsight: string | null =
+    let mindfulnessInsight: string | null =
       "월요일과 주초에 스트레스 표현이 다소 높게 나타나요. 다음 달엔 주초 아침 짧은 호흡 명상을 시도해볼까요?";
-    const strengths = ["#수분습관정착", "#꾸준한운동실천"];
-    const improvements = ["#아침식사규칙성", "#수면전마음정리"];
+    let strengths = ["#수분습관정착", "#꾸준한운동실천"];
+    let improvements = ["#아침식사규칙성", "#수면전마음정리"];
     let nextMonthGoals = [
       "생활습관별을 주 4회 이상으로 유지해봐요",
       "하루 2,000ml 수분 섭취 루틴 지속하기",
     ];
 
-    try {
-      const aiRes = await this.aiService.generatePlanetReport(
-        PlanetType.RETROSPECT,
-        {
-          userId,
-          nickname: user.nickname,
-          period: {
-            start: fromStr,
-            end: toStr,
+    if (isColdStart) {
+      // 5-A. Cold Start (활동 기록 3건 이하): AI 호출 생략 및 기본 격려 온보딩 템플릿 적용
+      aiLetter = `${month}월은 탐사를 시작하는 단계였군요! 다음 달에는 더 많은 행성을 함께 여행해 봐요 🚀`;
+      mindfulnessInsight =
+        "기록이 쌓이면 나만의 마음 패턴을 발견할 수 있어요. 하루 한 번 감정을 남겨보세요!";
+      strengths = ["#탐험의시작", "#첫발걸음"];
+      improvements = ["#매일기록하기", "#루틴만들기"];
+      nextMonthGoals = [
+        "하루 1번 식사 또는 수분 기록 남기기",
+        "원하는 행성 1곳 방문해보기",
+      ];
+    } else {
+      // 5-B. 정상 데이터: 최근 14일치 상세 데이터 + 월간 누적 통계를 결합하여 AI 호출
+      const fallbackValues: RetroFallbackValues = {
+        aiLetter,
+        mindfulnessInsight,
+        strengths,
+        improvements,
+        nextMonthGoals,
+      };
+
+      try {
+        const dailyRecords = (agg.recentMeals || []).map((m: any) => ({
+          mealId: m.id?.toString(),
+          mealType: m.meal_type,
+          calories: m.total_calories_kcal,
+          registeredAt: m.registered_at,
+          foods: (m.meal_items || []).map((i: any) => i.custom_food_name),
+        }));
+
+        const waterLogs = (agg.recentWaterLogs || []).map((w: any) => ({
+          id: w.id?.toString(),
+          amountMl: w.amount || 250,
+          createdAt: w.created_at,
+        }));
+
+        const exerciseLogs = (agg.recentExerciseLogs || []).map((e: any) => ({
+          id: e.id?.toString(),
+          durationMinutes: e.duration_minutes || 0,
+          createdAt: e.created_at,
+        }));
+
+        const emotionLogs = (agg.recentEmotionLogs || []).map((em: any) => ({
+          id: em.id?.toString(),
+          emotionType: em.emotion_type,
+          journalContent: em.journal_content,
+          createdAt: em.created_at,
+        }));
+
+        const summary = {
+          totalDays: lastDay,
+          totalArrivals,
+          wellnessScore,
+          monthlyTotals: {
+            meals: agg.mealCount,
+            waterMl: agg.totalWaterMl,
+            exerciseMinutes: agg.totalExerciseMinutes,
+            emotionLogs: agg.emotionCount,
           },
-          dailyRecords: [],
-          waterLogs: [],
-          exerciseLogs: [],
-        },
-      );
-      if (aiRes.markdown || aiRes.findings) {
-        aiLetter = aiRes.markdown || aiRes.findings || aiLetter;
+          planetArrivals: agg.arrivals,
+        };
+
+        const aiRes = await this.aiService.generatePlanetReport(
+          PlanetType.RETROSPECT,
+          {
+            userId,
+            nickname: user.nickname,
+            period: {
+              start: fromStr,
+              end: toStr,
+            },
+            summary,
+            dailyRecords,
+            waterLogs,
+            exerciseLogs,
+            emotionLogs,
+          },
+        );
+
+        const rawContent = aiRes.markdown || aiRes.findings || "";
+        const parsed = parseMonthlyRetroMarkdown(rawContent, fallbackValues);
+
+        aiLetter = parsed.aiLetter;
+        mindfulnessInsight = parsed.mindfulnessInsight;
+        strengths = parsed.strengths;
+        improvements = parsed.improvements;
+        nextMonthGoals =
+          aiRes.nextActionChecks && aiRes.nextActionChecks.length > 0
+            ? aiRes.nextActionChecks
+            : parsed.nextMonthGoals;
+      } catch (e) {
+        Logger.warn(`[TravelService] AI Monthly Retro fallback used: ${e}`);
       }
-      if (aiRes.nextActionChecks && aiRes.nextActionChecks.length > 0) {
-        nextMonthGoals = aiRes.nextActionChecks;
-      }
-    } catch (e) {
-      Logger.warn(`[TravelService] AI Monthly Retro fallback used: ${e}`);
     }
 
     const title = `🌙 ${month}월, 지난 한 달 잘 걸어왔어!`;

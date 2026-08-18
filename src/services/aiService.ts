@@ -24,6 +24,22 @@ export default class AiService {
     return this.aiAdapter.processChat(userId, userMessage, nickname, history);
   }
 
+  public async streamChat(
+    userId: number,
+    userMessage: string,
+    nickname?: string,
+    history?: ChatTurn[],
+    onToken?: (token: string) => void,
+  ): Promise<AiChatInternalResponse> {
+    return this.aiAdapter.streamChat(
+      userId,
+      userMessage,
+      nickname,
+      history,
+      onToken,
+    );
+  }
+
   public async analyzeFoodVision(
     imageUrl?: string,
     mealType?: string,
@@ -50,9 +66,11 @@ export default class AiService {
       userId: number;
       nickname?: string;
       period?: { start: string; end: string };
+      summary?: Record<string, unknown>;
       dailyRecords?: unknown[];
       waterLogs?: unknown[];
       exerciseLogs?: unknown[];
+      emotionLogs?: unknown[];
       chatLogs?: unknown[];
       dailySteps?: Record<string, number>;
       dailyGoalMl?: number;

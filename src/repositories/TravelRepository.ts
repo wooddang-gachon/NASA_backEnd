@@ -485,6 +485,62 @@ export default class TravelRepository extends BaseRepository<
   }
 
   /**
+   * 행성 탐사 기간 동안의 원천 활동 로그 조회 (식사, 수분, 운동, 감정/일기)
+   */
+  public async getPlanetActivityData(
+    userId: number,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    const prisma = getPrisma();
+
+    const [meals, waterLogs, exerciseLogs, emotionLogs] = await Promise.all([
+      prisma.meals.findMany({
+        where: {
+          user_id: userId,
+          registered_at: { gte: startDate, lte: endDate },
+        },
+        include: {
+          meal_items: true,
+          meal_images: true,
+        },
+        orderBy: { registered_at: "asc" },
+      }),
+      prisma.quick_logs.findMany({
+        where: {
+          user_id: userId,
+          category: "WATER",
+          created_at: { gte: startDate, lte: endDate },
+        },
+        orderBy: { created_at: "asc" },
+      }),
+      prisma.quick_logs.findMany({
+        where: {
+          user_id: userId,
+          category: "EXERCISE",
+          created_at: { gte: startDate, lte: endDate },
+        },
+        orderBy: { created_at: "asc" },
+      }),
+      prisma.quick_logs.findMany({
+        where: {
+          user_id: userId,
+          category: { in: ["EMOTION", "JOURNAL"] },
+          created_at: { gte: startDate, lte: endDate },
+        },
+        orderBy: { created_at: "asc" },
+      }),
+    ]);
+
+    return {
+      meals,
+      waterLogs,
+      exerciseLogs,
+      emotionLogs,
+    };
+  }
+
+  /**
    * 월간 기간 동안의 행성별 도착 횟수 및 활동 로그 집계
    */
   public async getMonthlyAggregation(
@@ -522,12 +578,27 @@ export default class TravelRepository extends BaseRepository<
       }
     }
 
-    // 2. 활동 로그 원본 카운트
+    // 2. 활동 로그 원본 카운트 및 상세 로그
+    const recentStartDate = new Date(
+      Math.max(startDate.getTime(), endDate.getTime() - 14 * 24 * 60 * 60 * 1000),
+    );
+
     const mealCount = await prisma.meals.count({
       where: {
         user_id: userId,
         registered_at: { gte: startDate, lte: endDate },
       },
+    });
+
+    const recentMeals = await prisma.meals.findMany({
+      where: {
+        user_id: userId,
+        registered_at: { gte: recentStartDate, lte: endDate },
+      },
+      include: {
+        meal_items: true,
+      },
+      orderBy: { registered_at: "asc" },
     });
 
     const waterLogs = await prisma.quick_logs.findMany({
@@ -536,19 +607,27 @@ export default class TravelRepository extends BaseRepository<
         category: "WATER",
         created_at: { gte: startDate, lte: endDate },
       },
+      orderBy: { created_at: "asc" },
     });
     const totalWaterMl = waterLogs.reduce(
       (acc, cur) => acc + (cur.amount || 250),
       0,
     );
+    const recentWaterLogs = waterLogs.filter(
+      (l) => new Date(l.created_at) >= recentStartDate,
+    );
 
-    const emotionLogs = await prisma.quick_logs.count({
+    const emotionLogs = await prisma.quick_logs.findMany({
       where: {
         user_id: userId,
         category: { in: ["EMOTION", "JOURNAL"] },
         created_at: { gte: startDate, lte: endDate },
       },
+      orderBy: { created_at: "asc" },
     });
+    const recentEmotionLogs = emotionLogs.filter(
+      (l) => new Date(l.created_at) >= recentStartDate,
+    );
 
     const exerciseLogs = await prisma.quick_logs.findMany({
       where: {
@@ -556,20 +635,33 @@ export default class TravelRepository extends BaseRepository<
         category: "EXERCISE",
         created_at: { gte: startDate, lte: endDate },
       },
+      orderBy: { created_at: "asc" },
     });
     const totalExerciseMinutes = exerciseLogs.reduce(
       (acc, cur) => acc + (cur.duration_minutes || 0),
       0,
     );
+    const recentExerciseLogs = exerciseLogs.filter(
+      (l) => new Date(l.created_at) >= recentStartDate,
+    );
+
+    const totalActivityCount =
+      mealCount + waterLogs.length + emotionLogs.length + exerciseLogs.length;
 
     return {
       arrivals,
       mealCount,
       totalWaterMl,
       waterLogCount: waterLogs.length,
-      emotionCount: emotionLogs,
+      emotionCount: emotionLogs.length,
       exerciseCount: exerciseLogs.length,
       totalExerciseMinutes,
+      totalActivityCount,
+      recentStartDate,
+      recentMeals,
+      recentWaterLogs,
+      recentEmotionLogs,
+      recentExerciseLogs,
     };
   }
 

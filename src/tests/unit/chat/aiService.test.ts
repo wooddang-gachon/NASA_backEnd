@@ -71,6 +71,46 @@ describe("AiService (ai-swagger.yaml Specification Integration Tests)", () => {
       expect(result.emotion.state).toBe("STRESSED");
       expect(result.emotion.motionType).toBe("PAT_PAT_HEAD");
     });
+
+    it("should correctly handle real SSE stream in streamChat", async () => {
+      const ssePayload =
+        'data: {"token": "오늘 "}\n\ndata: {"token": "많이 "}\n\ndata: {"token": "힘들었구나."}\n\ndata: [DONE]\n\n';
+
+      const mockStream = {
+        getReader: () => {
+          let readCount = 0;
+          return {
+            read: async () => {
+              if (readCount === 0) {
+                readCount++;
+                return {
+                  done: false,
+                  value: new TextEncoder().encode(ssePayload),
+                };
+              }
+              return { done: true, value: undefined };
+            },
+          };
+        },
+      };
+
+      globalFetch.mockResolvedValueOnce({
+        ok: true,
+        body: mockStream,
+      });
+
+      const tokens: string[] = [];
+      const result = await aiService.streamChat(
+        12,
+        "힘들어",
+        "우당탕탕",
+        [],
+        (token) => tokens.push(token),
+      );
+
+      expect(tokens).toEqual(["오늘 ", "많이 ", "힘들었구나."]);
+      expect(result.replyText).toBe("오늘 많이 힘들었구나.");
+    });
   });
 
   describe("2. POST /v1/vision/analyze-food (Vision Food Analysis)", () => {
