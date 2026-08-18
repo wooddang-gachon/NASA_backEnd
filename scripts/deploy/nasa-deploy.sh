@@ -44,6 +44,9 @@ sudo -u "$APP_USER" npm ci --omit=dev --no-audit --no-fund
 echo "==> Prisma Client 생성"
 sudo -u "$APP_USER" npx prisma generate
 
+echo "==> Prisma DB 마이그레이션 적용"
+sudo -u "$APP_USER" npx prisma migrate deploy
+
 echo "==> 앱 기동/재기동"
 # NODE_ENV 는 dotenv 로딩보다 먼저 읽히므로 반드시 프로세스 환경으로 넘겨야 합니다.
 if sudo -u "$APP_USER" pm2 describe nasa-backend >/dev/null 2>&1; then

@@ -98,6 +98,5 @@ jobs:
             --quiet \
             --command="sudo /usr/local/bin/nasa-deploy.sh"
 
-      # DB 마이그레이션은 의도적으로 포함하지 않았습니다.
-      # 스키마 변경 시 서버에서 직접 실행하세요:
-      #   cd /opt/nasa-backend && sudo -u nasa npx prisma migrate deploy
+      # DB 마이그레이션(npx prisma migrate deploy)은 nasa-deploy.sh 내에서
+      # 앱 기동 직전에 자동으로 실행됩니다.
