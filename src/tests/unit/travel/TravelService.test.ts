@@ -301,4 +301,120 @@ describe("TravelService", () => {
       expect(res.status).toBe("COMPLETED");
     });
   });
+
+  describe("generateMonthlyRetroReport", () => {
+    const mockUser = { id: 1, nickname: "스타게이저" };
+
+    it("사용자가 없으면 UserNotFoundError를 발생시켜야 한다", async () => {
+      mockTravelRepository.findUserById.mockResolvedValue(null);
+      await expect(
+        travelService.generateMonthlyRetroReport(1, "2026-08"),
+      ).rejects.toThrow(UserNotFoundError);
+    });
+
+    it("활동 기록이 3건 이하인 Cold Start 사용자는 AI를 호출하지 않고 온보딩 격려 템플릿을 반환해야 한다", async () => {
+      mockTravelRepository.findUserById.mockResolvedValue(mockUser as never);
+      mockTravelRepository.getMonthlyAggregation.mockResolvedValue({
+        arrivals: { meal: 0, water: 1, emotion: 0, habit: 0 },
+        mealCount: 0,
+        totalWaterMl: 500,
+        waterLogCount: 1,
+        emotionCount: 0,
+        exerciseCount: 0,
+        totalExerciseMinutes: 0,
+        totalActivityCount: 1,
+        recentMeals: [],
+        recentWaterLogs: [],
+        recentEmotionLogs: [],
+        recentExerciseLogs: [],
+      } as never);
+      mockTravelRepository.findPreviousMonthlyRetroReport.mockResolvedValue(
+        null,
+      );
+      mockTravelRepository.saveMonthlyRetroReport.mockResolvedValue(
+        undefined as never,
+      );
+
+      const res = await travelService.generateMonthlyRetroReport(1, "2026-08");
+
+      expect(mockAiService.generatePlanetReport).not.toHaveBeenCalled();
+      expect(res.aiLetter).toContain("탐사를 시작하는 단계였군요");
+      expect(res.strengths).toEqual(["#탐험의시작", "#첫발걸음"]);
+      expect(res.improvements).toEqual(["#매일기록하기", "#루틴만들기"]);
+      expect(mockTravelRepository.saveMonthlyRetroReport).toHaveBeenCalled();
+    });
+
+    it("정상 활동 데이터가 있는 경우 AI 서비스를 호출하고 마크다운 섹션을 파싱하여 도메인 필드에 매핑해야 한다", async () => {
+      mockTravelRepository.findUserById.mockResolvedValue(mockUser as never);
+      mockTravelRepository.getMonthlyAggregation.mockResolvedValue({
+        arrivals: { meal: 3, water: 5, emotion: 2, habit: 2 },
+        mealCount: 10,
+        totalWaterMl: 15000,
+        waterLogCount: 15,
+        emotionCount: 5,
+        exerciseCount: 8,
+        totalExerciseMinutes: 240,
+        totalActivityCount: 38,
+        recentMeals: [
+          {
+            id: 1,
+            meal_type: "LUNCH",
+            total_calories_kcal: 600,
+            meal_items: [{ custom_food_name: "샐러드" }],
+          },
+        ],
+        recentWaterLogs: [{ id: 1, amount: 500 }],
+        recentEmotionLogs: [{ id: 1, emotion_type: "HAPPY" }],
+        recentExerciseLogs: [{ id: 1, duration_minutes: 30 }],
+      } as never);
+      mockTravelRepository.findPreviousMonthlyRetroReport.mockResolvedValue(
+        null,
+      );
+      mockTravelRepository.saveMonthlyRetroReport.mockResolvedValue(
+        undefined as never,
+      );
+
+      const aiMarkdown = `
+## 종합 편지
+8월 한 달 동안 건강한 습관을 완벽하게 다지셨습니다!
+
+## 마인드풀니스 인사이트
+주중 오후에 몰입도가 높았으며, 감정 리듬이 매우 안정적이었습니다.
+
+## 잘한 점
+#점심샐러드성공 #충분한수분섭취 #꾸준한유산소
+
+## 개선할 점
+#주말수면패턴유지 #아침스트레칭
+
+## 다음 달 목표
+- 매일 아침 스트레칭 10분
+- 물 2리터 마시기 연속 20일 달성
+      `;
+
+      mockAiService.generatePlanetReport.mockResolvedValue({
+        markdown: aiMarkdown,
+        nextActionChecks: ["매일 아침 스트레칭 10분"],
+      } as never);
+
+      const res = await travelService.generateMonthlyRetroReport(1, "2026-08");
+
+      expect(mockAiService.generatePlanetReport).toHaveBeenCalled();
+      expect(res.aiLetter).toContain(
+        "8월 한 달 동안 건강한 습관을 완벽하게 다지셨습니다!",
+      );
+      expect(res.mindfulnessInsight).toContain("주중 오후에 몰입도");
+      expect(res.strengths).toEqual([
+        "#점심샐러드성공",
+        "#충분한수분섭취",
+        "#꾸준한유산소",
+      ]);
+      expect(res.improvements).toEqual([
+        "#주말수면패턴유지",
+        "#아침스트레칭",
+      ]);
+      expect(res.nextMonthGoals).toEqual(["매일 아침 스트레칭 10분"]);
+      expect(mockTravelRepository.saveMonthlyRetroReport).toHaveBeenCalled();
+    });
+  });
 });

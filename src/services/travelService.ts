@@ -20,6 +20,10 @@ import {
 } from "../dto";
 import { TravelMapper } from "../mappers";
 import { reportQueue } from "../utils/asyncQueue";
+import {
+  parseMonthlyRetroMarkdown,
+  RetroFallbackValues,
+} from "../utils/markdownParser";
 
 @Service()
 export default class TravelService {
@@ -631,39 +635,111 @@ export default class TravelService {
     );
 
     // 5. AI 종합 편지 및 피드백 생성
+    const isColdStart = (agg.totalActivityCount || 0) <= 3;
+
     let aiLetter = `${month}월, 지난 한 달 동안 꾸준하게 자신을 가꿔왔어요! 수분과 식사 습관이 자리를 잡은 게 이번 달 가장 큰 수확이에요. 🌟`;
-    const mindfulnessInsight: string | null =
+    let mindfulnessInsight: string | null =
       "월요일과 주초에 스트레스 표현이 다소 높게 나타나요. 다음 달엔 주초 아침 짧은 호흡 명상을 시도해볼까요?";
-    const strengths = ["#수분습관정착", "#꾸준한운동실천"];
-    const improvements = ["#아침식사규칙성", "#수면전마음정리"];
+    let strengths = ["#수분습관정착", "#꾸준한운동실천"];
+    let improvements = ["#아침식사규칙성", "#수면전마음정리"];
     let nextMonthGoals = [
       "생활습관별을 주 4회 이상으로 유지해봐요",
       "하루 2,000ml 수분 섭취 루틴 지속하기",
     ];
 
-    try {
-      const aiRes = await this.aiService.generatePlanetReport(
-        PlanetType.RETROSPECT,
-        {
-          userId,
-          nickname: user.nickname,
-          period: {
-            start: fromStr,
-            end: toStr,
+    if (isColdStart) {
+      // 5-A. Cold Start (활동 기록 3건 이하): AI 호출 생략 및 기본 격려 온보딩 템플릿 적용
+      aiLetter = `${month}월은 탐사를 시작하는 단계였군요! 다음 달에는 더 많은 행성을 함께 여행해 봐요 🚀`;
+      mindfulnessInsight =
+        "기록이 쌓이면 나만의 마음 패턴을 발견할 수 있어요. 하루 한 번 감정을 남겨보세요!";
+      strengths = ["#탐험의시작", "#첫발걸음"];
+      improvements = ["#매일기록하기", "#루틴만들기"];
+      nextMonthGoals = [
+        "하루 1번 식사 또는 수분 기록 남기기",
+        "원하는 행성 1곳 방문해보기",
+      ];
+    } else {
+      // 5-B. 정상 데이터: 최근 14일치 상세 데이터 + 월간 누적 통계를 결합하여 AI 호출
+      const fallbackValues: RetroFallbackValues = {
+        aiLetter,
+        mindfulnessInsight,
+        strengths,
+        improvements,
+        nextMonthGoals,
+      };
+
+      try {
+        const dailyRecords = (agg.recentMeals || []).map((m: any) => ({
+          mealId: m.id?.toString(),
+          mealType: m.meal_type,
+          calories: m.total_calories_kcal,
+          registeredAt: m.registered_at,
+          foods: (m.meal_items || []).map((i: any) => i.custom_food_name),
+        }));
+
+        const waterLogs = (agg.recentWaterLogs || []).map((w: any) => ({
+          id: w.id?.toString(),
+          amountMl: w.amount || 250,
+          createdAt: w.created_at,
+        }));
+
+        const exerciseLogs = (agg.recentExerciseLogs || []).map((e: any) => ({
+          id: e.id?.toString(),
+          durationMinutes: e.duration_minutes || 0,
+          createdAt: e.created_at,
+        }));
+
+        const emotionLogs = (agg.recentEmotionLogs || []).map((em: any) => ({
+          id: em.id?.toString(),
+          emotionType: em.emotion_type,
+          journalContent: em.journal_content,
+          createdAt: em.created_at,
+        }));
+
+        const summary = {
+          totalDays: lastDay,
+          totalArrivals,
+          wellnessScore,
+          monthlyTotals: {
+            meals: agg.mealCount,
+            waterMl: agg.totalWaterMl,
+            exerciseMinutes: agg.totalExerciseMinutes,
+            emotionLogs: agg.emotionCount,
           },
-          dailyRecords: [],
-          waterLogs: [],
-          exerciseLogs: [],
-        },
-      );
-      if (aiRes.markdown || aiRes.findings) {
-        aiLetter = aiRes.markdown || aiRes.findings || aiLetter;
+          planetArrivals: agg.arrivals,
+        };
+
+        const aiRes = await this.aiService.generatePlanetReport(
+          PlanetType.RETROSPECT,
+          {
+            userId,
+            nickname: user.nickname,
+            period: {
+              start: fromStr,
+              end: toStr,
+            },
+            summary,
+            dailyRecords,
+            waterLogs,
+            exerciseLogs,
+            emotionLogs,
+          },
+        );
+
+        const rawContent = aiRes.markdown || aiRes.findings || "";
+        const parsed = parseMonthlyRetroMarkdown(rawContent, fallbackValues);
+
+        aiLetter = parsed.aiLetter;
+        mindfulnessInsight = parsed.mindfulnessInsight;
+        strengths = parsed.strengths;
+        improvements = parsed.improvements;
+        nextMonthGoals =
+          aiRes.nextActionChecks && aiRes.nextActionChecks.length > 0
+            ? aiRes.nextActionChecks
+            : parsed.nextMonthGoals;
+      } catch (e) {
+        Logger.warn(`[TravelService] AI Monthly Retro fallback used: ${e}`);
       }
-      if (aiRes.nextActionChecks && aiRes.nextActionChecks.length > 0) {
-        nextMonthGoals = aiRes.nextActionChecks;
-      }
-    } catch (e) {
-      Logger.warn(`[TravelService] AI Monthly Retro fallback used: ${e}`);
     }
 
     const title = `🌙 ${month}월, 지난 한 달 잘 걸어왔어!`;

@@ -66,9 +66,11 @@ export default class AiService {
       userId: number;
       nickname?: string;
       period?: { start: string; end: string };
+      summary?: Record<string, unknown>;
       dailyRecords?: unknown[];
       waterLogs?: unknown[];
       exerciseLogs?: unknown[];
+      emotionLogs?: unknown[];
       chatLogs?: unknown[];
       dailySteps?: Record<string, number>;
       dailyGoalMl?: number;
