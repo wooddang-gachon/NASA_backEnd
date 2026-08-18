@@ -485,6 +485,62 @@ export default class TravelRepository extends BaseRepository<
   }
 
   /**
+   * 행성 탐사 기간 동안의 원천 활동 로그 조회 (식사, 수분, 운동, 감정/일기)
+   */
+  public async getPlanetActivityData(
+    userId: number,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    const prisma = getPrisma();
+
+    const [meals, waterLogs, exerciseLogs, emotionLogs] = await Promise.all([
+      prisma.meals.findMany({
+        where: {
+          user_id: userId,
+          registered_at: { gte: startDate, lte: endDate },
+        },
+        include: {
+          meal_items: true,
+          meal_images: true,
+        },
+        orderBy: { registered_at: "asc" },
+      }),
+      prisma.quick_logs.findMany({
+        where: {
+          user_id: userId,
+          category: "WATER",
+          created_at: { gte: startDate, lte: endDate },
+        },
+        orderBy: { created_at: "asc" },
+      }),
+      prisma.quick_logs.findMany({
+        where: {
+          user_id: userId,
+          category: "EXERCISE",
+          created_at: { gte: startDate, lte: endDate },
+        },
+        orderBy: { created_at: "asc" },
+      }),
+      prisma.quick_logs.findMany({
+        where: {
+          user_id: userId,
+          category: { in: ["EMOTION", "JOURNAL"] },
+          created_at: { gte: startDate, lte: endDate },
+        },
+        orderBy: { created_at: "asc" },
+      }),
+    ]);
+
+    return {
+      meals,
+      waterLogs,
+      exerciseLogs,
+      emotionLogs,
+    };
+  }
+
+  /**
    * 월간 기간 동안의 행성별 도착 횟수 및 활동 로그 집계
    */
   public async getMonthlyAggregation(

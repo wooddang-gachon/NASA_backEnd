@@ -417,4 +417,198 @@ describe("TravelService", () => {
       expect(mockTravelRepository.saveMonthlyRetroReport).toHaveBeenCalled();
     });
   });
+
+  describe("generateStarPlanetReport", () => {
+    const mockUser = { id: 1, nickname: "우주탐험가" };
+
+    beforeEach(() => {
+      mockTravelRepository.findUserById.mockResolvedValue(mockUser as never);
+    });
+
+    it("수분별 행성에 대해 실제 수분 로그를 기반으로 stats를 계산하고 AI를 호출해야 한다", async () => {
+      mockTravelRepository.getPlanetActivityData.mockResolvedValue({
+        meals: [],
+        waterLogs: [
+          { id: 1, amount: 500, created_at: new Date() },
+          { id: 2, amount: 250, created_at: new Date() },
+        ],
+        exerciseLogs: [],
+        emotionLogs: [],
+      } as never);
+
+      mockAiService.generatePlanetReport.mockResolvedValue({
+        title: "수분 행성 정복!",
+        markdown: "충분한 수분을 섭취하셨습니다.",
+        nextActionChecks: ["하루 2L 마시기"],
+      } as never);
+
+      mockTravelRepository.savePlanetReport.mockImplementation(
+        async (data: any) =>
+          ({
+            id: BigInt(10),
+            report_uuid: data.report_uuid,
+            headline: data.headline,
+          }) as never,
+      );
+
+      const res = await travelService.generateStarPlanetReport(1, "water", 1);
+
+      expect(mockTravelRepository.getPlanetActivityData).toHaveBeenCalled();
+      expect(mockAiService.generatePlanetReport).toHaveBeenCalled();
+      expect(res.headline).toBe("수분 행성 정복!");
+      expect(mockTravelRepository.savePlanetReport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          planet_id: "water",
+          stats: JSON.stringify({
+            totalIntakeCount: 2,
+            totalIntakeMl: 750,
+            avgDailyIntakeMl: 250,
+          }),
+          is_fallback: false,
+        }),
+      );
+    });
+
+    it("식사별 행성에 대해 실제 식사 및 이미지 로그를 기반으로 stats를 계산해야 한다", async () => {
+      mockTravelRepository.getPlanetActivityData.mockResolvedValue({
+        meals: [
+          {
+            id: 1,
+            meal_type: "LUNCH",
+            total_calories_kcal: 700,
+            meal_images: [{ id: 1 }],
+            meal_items: [{ custom_food_name: "비빔밥" }],
+          },
+          {
+            id: 2,
+            meal_type: "DINNER",
+            total_calories_kcal: 500,
+            meal_images: [],
+            meal_items: [{ custom_food_name: "샐러드" }],
+          },
+        ],
+        waterLogs: [],
+        exerciseLogs: [],
+        emotionLogs: [],
+      } as never);
+
+      mockAiService.generatePlanetReport.mockResolvedValue({
+        title: "식사 리포트 완료",
+        markdown: "균형 잡힌 식단입니다.",
+      } as never);
+
+      mockTravelRepository.savePlanetReport.mockImplementation(
+        async (data: any) =>
+          ({
+            id: BigInt(11),
+            report_uuid: data.report_uuid,
+            headline: data.headline,
+          }) as never,
+      );
+
+      const res = await travelService.generateStarPlanetReport(1, "meal", 2);
+
+      expect(res.headline).toBe("식사 리포트 완료");
+      expect(mockTravelRepository.savePlanetReport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          planet_id: "meal",
+          stats: JSON.stringify({
+            totalMeals: 2,
+            avgCaloriesKcal: 600,
+            totalCaloriesKcal: 1200,
+          }),
+          activity_breakdown: JSON.stringify({
+            photoAnalysis: 1,
+            manualLog: 1,
+          }),
+        }),
+      );
+    });
+
+    it("감정별 행성에 대해 주요 감정과 마인드풀니스 피드백을 계산해야 한다", async () => {
+      mockTravelRepository.getPlanetActivityData.mockResolvedValue({
+        meals: [],
+        waterLogs: [],
+        exerciseLogs: [],
+        emotionLogs: [
+          { id: 1, emotion_type: "HAPPY", category: "EMOTION" },
+          {
+            id: 2,
+            emotion_type: "HAPPY",
+            category: "JOURNAL",
+            journal_content: "오늘 좋은 날",
+          },
+        ],
+      } as never);
+
+      mockAiService.generatePlanetReport.mockResolvedValue({
+        title: "마음 힐링 완료",
+        markdown: "행복한 감정이 주를 이루었습니다.",
+      } as never);
+
+      mockTravelRepository.savePlanetReport.mockImplementation(
+        async (data: any) =>
+          ({
+            id: BigInt(12),
+            report_uuid: data.report_uuid,
+            headline: data.headline,
+          }) as never,
+      );
+
+      await travelService.generateStarPlanetReport(1, "emotion", 1);
+
+      expect(mockTravelRepository.savePlanetReport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          planet_id: "emotion",
+          stats: JSON.stringify({
+            totalActivities: 2,
+            dominantEmotion: "HAPPY",
+          }),
+          activity_breakdown: JSON.stringify({
+            emotionRecord: 1,
+            diary: 1,
+          }),
+          mindfulness_feedback: expect.stringContaining(
+            "안정적이고 긍정적인 감정 상태",
+          ),
+        }),
+      );
+    });
+
+    it("AI 서비스 호출 실패 시 is_fallback이 true로 설정되지만 계산된 stats는 유지되어야 한다", async () => {
+      mockTravelRepository.getPlanetActivityData.mockResolvedValue({
+        meals: [],
+        waterLogs: [{ id: 1, amount: 1000, created_at: new Date() }],
+        exerciseLogs: [],
+        emotionLogs: [],
+      } as never);
+
+      mockAiService.generatePlanetReport.mockRejectedValue(
+        new Error("AI Server Timeout"),
+      );
+
+      mockTravelRepository.savePlanetReport.mockImplementation(
+        async (data: any) =>
+          ({
+            id: BigInt(13),
+            report_uuid: data.report_uuid,
+            headline: data.headline,
+          }) as never,
+      );
+
+      const res = await travelService.generateStarPlanetReport(1, "water", 1);
+
+      expect(res.headline).toContain("탐사 여행, 잘 다녀왔어!");
+      expect(mockTravelRepository.savePlanetReport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          is_fallback: true,
+          stats: JSON.stringify({
+            totalIntakeCount: 1,
+            totalIntakeMl: 1000,
+            avgDailyIntakeMl: 333,
+          }),
+        }),
+      );
+    });
+  });
 });
