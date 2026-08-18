@@ -98,6 +98,8 @@ jobs:
             --quiet \
             --command="sudo /usr/local/bin/nasa-deploy.sh"
 
-      # DB 마이그레이션은 의도적으로 포함하지 않았습니다.
-      # 스키마 변경 시 서버에서 직접 실행하세요:
-      #   cd /opt/nasa-backend && sudo -u nasa npx prisma migrate deploy
+      # DB 마이그레이션은 nasa-deploy.sh 안에서 자동으로 처리됩니다.
+      # (릴리스 tarball 의 prisma/migrations 를 기준으로 prisma migrate deploy 실행)
+      # 그래서 스키마를 바꿀 때는 마이그레이션 파일을 반드시 함께 커밋해야 합니다.
+      # schema.prisma 만 고치고 마이그레이션을 만들지 않으면 배포는 성공해도
+      # 런타임에 "table/column does not exist" 로 깨집니다.
